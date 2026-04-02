@@ -4,27 +4,23 @@
   <meta charset="utf-8">
   <title>데이터 동기화</title>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    body { font-family: Arial; max-width: 620px; margin: 40px auto; padding: 0 20px; }
     h1 { text-align: center; color: #333; }
     .section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
     .section h2 { margin-top: 0; font-size: 16px; }
     .upload   { border-left: 4px solid #28a745; }
     .download { border-left: 4px solid #007bff; }
     .setting  { border-left: 4px solid #ffc107; }
-    button { padding: 10px 24px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin: 4px; }
-    .btn-upload   { background: #28a745; color: white; }
-    .btn-upload:hover { background: #218838; }
-    .btn-download { background: #007bff; color: white; }
-    .btn-download:hover { background: #0056b3; }
-    .btn-save     { background: #ffc107; color: #333; }
-    .btn-save:hover { background: #e0a800; }
+    button { padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin: 4px; }
+    .btn-up   { background: #28a745; color: white; }
+    .btn-down { background: #007bff; color: white; }
+    .btn-save { background: #ffc107; color: #333; }
     input[type=text] { width: 100%; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin: 6px 0; }
-    #log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; font-size: 12px; min-height: 60px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 16px; }
-    .log-ok   { color: #28a745; }
-    .log-err  { color: #dc3545; }
-    .log-info { color: #6c757d; }
-    .keys-list { font-size: 12px; color: #666; margin: 8px 0; }
-    .keys-list span { display: inline-block; background: #e9ecef; border-radius: 3px; padding: 2px 6px; margin: 2px; }
+    #log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; font-size: 12px; min-height: 80px; max-height: 250px; overflow-y: auto; margin-top: 16px; }
+    .ok   { color: #28a745; }
+    .err  { color: #dc3545; }
+    .info { color: #6c757d; }
+    .key-tag { display:inline-block; background:#e9ecef; border-radius:3px; padding:2px 6px; margin:2px; font-size:12px; }
   </style>
 </head>
 <body>
@@ -36,38 +32,41 @@
   <label>Google Apps Script URL:</label>
   <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec">
   <button class="btn-save" onclick="saveUrl()">URL 저장</button>
-  <div class="keys-list">
-    동기화 대상:
-    <span>productListData</span>
-    <span>specialTableData</span>
-    <span>threePLPageData</span>
-    <span>middleProductData</span>
-    <span>shippingBaseData</span>
-    <span>boxStandard</span>
-    <span>택배비기준표</span>
+  <div style="margin-top:8px;">
+    동기화 항목:
+    <span class="key-tag">productListData</span>
+    <span class="key-tag">specialTableData</span>
+    <span class="key-tag">threePLPageData</span>
+    <span class="key-tag">middleProductData</span>
+    <span class="key-tag">shippingBaseData</span>
+    <span class="key-tag">boxStandard</span>
+    <span class="key-tag">택배비기준표</span>
   </div>
 </div>
 
 <div class="section upload">
   <h2>⬆️ 업로드 (내 PC → 서버)</h2>
-  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">제품리스트 등을 수정한 후 클릭하세요.</p>
-  <button class="btn-upload" onclick="uploadAll()">전체 업로드</button>
-  <button class="btn-upload" onclick="uploadKey('productListData')" style="background:#5cb85c;">제품리스트만</button>
-  <button class="btn-upload" onclick="uploadKey('specialTableData')" style="background:#5cb85c;">특수품목만</button>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">데이터 수정 후 클릭하세요.</p>
+  <button class="btn-up" onclick="uploadAll()">전체 업로드</button>
+  <button class="btn-up" onclick="uploadOne('productListData')" style="background:#5cb85c;font-size:12px;">제품리스트</button>
+  <button class="btn-up" onclick="uploadOne('specialTableData')" style="background:#5cb85c;font-size:12px;">특수품목</button>
+  <button class="btn-up" onclick="uploadOne('middleProductData')" style="background:#5cb85c;font-size:12px;">중상리스트</button>
 </div>
 
 <div class="section download">
   <h2>⬇️ 다운로드 (서버 → 내 PC)</h2>
-  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">연락 받으면 클릭하세요.</p>
-  <button class="btn-download" onclick="downloadAll()">전체 다운로드</button>
-  <button class="btn-download" onclick="downloadKey('productListData')" style="background:#5bc0de;">제품리스트만</button>
-  <button class="btn-download" onclick="downloadKey('specialTableData')" style="background:#5bc0de;">특수품목만</button>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">업무 시작 전 또는 연락 받으면 클릭하세요.</p>
+  <button class="btn-down" onclick="downloadAll()">전체 다운로드</button>
+  <button class="btn-down" onclick="downloadOne('productListData')" style="background:#5bc0de;font-size:12px;">제품리스트</button>
+  <button class="btn-down" onclick="downloadOne('specialTableData')" style="background:#5bc0de;font-size:12px;">특수품목</button>
+  <button class="btn-down" onclick="downloadOne('middleProductData')" style="background:#5bc0de;font-size:12px;">중상리스트</button>
 </div>
 
 <div id="log">대기 중...</div>
 
 <script>
-const SYNC_KEYS = [
+// ── 동기화 대상 키 목록 ──
+var KEYS = [
   "productListData",
   "specialTableData",
   "threePLPageData",
@@ -77,100 +76,102 @@ const SYNC_KEYS = [
   "택배비기준표"
 ];
 
-// 한 청크 최대 크기 (30,000자 — 안전하게 여유있게)
-const CHUNK_SIZE = 30000;
+var CHUNK = 25000; // 한 청크 최대 글자수
 
-window.addEventListener("DOMContentLoaded", function() {
-  const saved = localStorage.getItem("syncApiUrl");
+// ── 초기화 ──
+window.onload = function() {
+  var saved = localStorage.getItem("syncApiUrl");
   if (saved) document.getElementById("apiUrl").value = saved;
-});
+  log("준비 완료. URL을 확인하고 업로드/다운로드 하세요.", "info");
+};
 
 function saveUrl() {
-  const url = document.getElementById("apiUrl").value.trim();
-  if (!url) { addLog("URL을 입력해주세요.", "err"); return; }
+  var url = document.getElementById("apiUrl").value.trim();
+  if (!url) { log("URL을 입력해주세요.", "err"); return; }
   localStorage.setItem("syncApiUrl", url);
-  addLog("URL이 저장되었어요 ✓", "ok");
+  log("URL 저장 완료 ✓", "ok");
 }
 
 function getUrl() {
-  const url = localStorage.getItem("syncApiUrl");
-  if (!url) { addLog("먼저 URL을 저장해주세요.", "err"); return null; }
+  var url = localStorage.getItem("syncApiUrl");
+  if (!url) { log("먼저 URL을 저장해주세요.", "err"); return null; }
   return url;
 }
 
-function addLog(msg, type) {
-  type = type || "info";
-  const log = document.getElementById("log");
-  const now = new Date();
-  const pad = v => v < 10 ? "0"+v : v;
-  const time = pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
-  const line = document.createElement("div");
-  line.className = "log-" + type;
-  line.textContent = "["+time+"] " + msg;
-  log.appendChild(line);
-  log.scrollTop = log.scrollHeight;
+// ── 로그 ──
+function log(msg, type) {
+  var el = document.getElementById("log");
+  var now = new Date();
+  var pad = function(v) { return v < 10 ? "0"+v : v; };
+  var t = pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+  var line = document.createElement("div");
+  line.className = type || "info";
+  line.textContent = "["+t+"] " + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
 }
 
-// ── 업로드 (청크 분할) ──
-async function uploadKey(key) {
-  const url = getUrl(); if (!url) return;
-  const value = localStorage.getItem(key);
-  if (!value) { addLog(key + " — 로컬 데이터 없음, 건너뜀", "info"); return; }
+// ── 업로드 ──
+async function uploadOne(key) {
+  var url = getUrl(); if (!url) return;
+  var value = localStorage.getItem(key);
+  if (!value) { log(key + " — 로컬 데이터 없음, 건너뜀", "info"); return; }
 
-  // 30,000자 단위로 분할
-  const chunks = [];
-  for (let i = 0; i < value.length; i += CHUNK_SIZE) {
-    chunks.push(value.slice(i, i + CHUNK_SIZE));
+  var chunks = [];
+  for (var i = 0; i < value.length; i += CHUNK) {
+    chunks.push(value.slice(i, i + CHUNK));
   }
 
-  addLog(key + " 업로드 중... ("+chunks.length+"개 청크, "+Math.round(value.length/1024)+"KB)", "info");
+  log(key + " 업로드 중... (" + chunks.length + "청크 / " + Math.round(value.length/1024) + "KB)", "info");
 
   try {
-    const res = await fetch(url, {
+    var res = await fetch(url, {
       method: "POST",
-      body: JSON.stringify({ key, chunks })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key, chunks: chunks })
     });
-    const json = await res.json();
-    if (json.ok) addLog(key + " 업로드 완료 ✓", "ok");
-    else addLog(key + " 업로드 실패: " + JSON.stringify(json), "err");
+    var json = await res.json();
+    if (json.ok) log(key + " 업로드 완료 ✓", "ok");
+    else log(key + " 업로드 실패: " + JSON.stringify(json), "err");
   } catch(e) {
-    addLog(key + " 오류: " + e.message, "err");
+    log(key + " 오류: " + e.message, "err");
   }
 }
 
 async function uploadAll() {
-  addLog("=== 전체 업로드 시작 ===", "info");
-  for (var i = 0; i < SYNC_KEYS.length; i++) {
-    await uploadKey(SYNC_KEYS[i]);
+  log("=== 전체 업로드 시작 ===", "info");
+  for (var i = 0; i < KEYS.length; i++) {
+    await uploadOne(KEYS[i]);
   }
-  addLog("=== 전체 업로드 완료 ===", "ok");
+  log("=== 전체 업로드 완료 ===", "ok");
 }
 
-// ── 다운로드 (청크 합치기) ──
-async function downloadKey(key) {
-  const url = getUrl(); if (!url) return;
+// ── 다운로드 ──
+async function downloadOne(key) {
+  var url = getUrl(); if (!url) return;
   try {
-    addLog(key + " 다운로드 중...", "info");
-    const res = await fetch(url + "?key=" + encodeURIComponent(key));
-    const json = await res.json();
+    log(key + " 다운로드 중...", "info");
+    var res = await fetch(url + "?key=" + encodeURIComponent(key));
+    var json = await res.json();
     if (json.ok && json.data) {
       localStorage.setItem(key, json.data);
-      addLog(key + " 다운로드 완료 ✓ ("+Math.round(json.data.length/1024)+"KB)", "ok");
+      log(key + " 다운로드 완료 ✓ (" + Math.round(json.data.length/1024) + "KB)", "ok");
     } else {
-      addLog(key + " — 서버에 데이터 없음", "info");
+      log(key + " — 서버에 데이터 없음", "info");
     }
   } catch(e) {
-    addLog(key + " 오류: " + e.message, "err");
+    log(key + " 오류: " + e.message, "err");
   }
 }
 
 async function downloadAll() {
-  addLog("=== 전체 다운로드 시작 ===", "info");
-  for (var i = 0; i < SYNC_KEYS.length; i++) {
-    await downloadKey(SYNC_KEYS[i]);
+  log("=== 전체 다운로드 시작 ===", "info");
+  for (var i = 0; i < KEYS.length; i++) {
+    await downloadOne(KEYS[i]);
   }
-  addLog("=== 전체 다운로드 완료 — 페이지를 새로고침하세요 ===", "ok");
+  log("=== 전체 다운로드 완료! 각 페이지를 새로고침하세요 ===", "ok");
 }
 </script>
+
 </body>
 </html>
