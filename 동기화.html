@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>데이터 동기화</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    h1 { text-align: center; color: #333; }
+    .section {
+      border: 1px solid #ddd; border-radius: 8px;
+      padding: 20px; margin: 20px 0;
+    }
+    .section h2 { margin-top: 0; font-size: 16px; }
+    .upload   { border-left: 4px solid #28a745; }
+    .download { border-left: 4px solid #007bff; }
+    .setting  { border-left: 4px solid #ffc107; }
+
+    button {
+      padding: 10px 24px; font-size: 14px; font-weight: bold;
+      border: none; border-radius: 6px; cursor: pointer; margin: 4px;
+    }
+    .btn-upload   { background: #28a745; color: white; }
+    .btn-upload:hover { background: #218838; }
+    .btn-download { background: #007bff; color: white; }
+    .btn-download:hover { background: #0056b3; }
+    .btn-save     { background: #ffc107; color: #333; }
+    .btn-save:hover { background: #e0a800; }
+
+    input[type=text] {
+      width: 100%; padding: 8px; font-size: 13px;
+      border: 1px solid #ccc; border-radius: 4px;
+      box-sizing: border-box; margin: 6px 0;
+    }
+
+    #log {
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 4px; padding: 10px;
+      font-size: 12px; min-height: 60px;
+      max-height: 200px; overflow-y: auto;
+      white-space: pre-wrap; margin-top: 16px;
+    }
+    .log-ok   { color: #28a745; }
+    .log-err  { color: #dc3545; }
+    .log-info { color: #6c757d; }
+
+    .keys-list { font-size: 12px; color: #666; margin: 8px 0; }
+    .keys-list span {
+      display: inline-block; background: #e9ecef;
+      border-radius: 3px; padding: 2px 6px; margin: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📦 데이터 동기화</h1>
+
+<!-- API URL 설정 -->
+<div class="section setting">
+  <h2>⚙️ 설정</h2>
+  <label>Google Apps Script URL:</label>
+  <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+  <button class="btn-save" onclick="saveUrl()">URL 저장</button>
+  <div class="keys-list">
+    동기화 대상:
+    <span>productListData</span>
+    <span>specialTableData</span>
+    <span>threePLPageData</span>
+    <span>중상리스트Data</span>
+    <span>boxStandard</span>
+    <span>택배비기준표</span>
+  </div>
+</div>
+
+<!-- 업로드 (사무실 → Google Sheets) -->
+<div class="section upload">
+  <h2>⬆️ 업로드 (사무실 → 서버)</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">
+    제품리스트 등을 수정한 후, 이 버튼으로 서버에 올려주세요.
+  </p>
+  <button class="btn-upload" onclick="uploadAll()">전체 업로드</button>
+  <button class="btn-upload" onclick="uploadKey('productListData')" style="background:#5cb85c;">제품리스트만</button>
+  <button class="btn-upload" onclick="uploadKey('specialTableData')" style="background:#5cb85c;">특수품목만</button>
+</div>
+
+<!-- 다운로드 (Google Sheets → 물류팀) -->
+<div class="section download">
+  <h2>⬇️ 다운로드 (서버 → 내 PC)</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">
+    업무 시작 전 또는 데이터가 변경됐다는 연락을 받으면 클릭하세요.
+  </p>
+  <button class="btn-download" onclick="downloadAll()">전체 다운로드</button>
+  <button class="btn-download" onclick="downloadKey('productListData')" style="background:#5bc0de;">제품리스트만</button>
+  <button class="btn-download" onclick="downloadKey('specialTableData')" style="background:#5bc0de;">특수품목만</button>
+</div>
+
+<!-- 로그 -->
+<div id="log">대기 중...</div>
+
+<script>
+const SYNC_KEYS = [
+  "productListData",
+  "specialTableData",
+  "threePLPageData",
+  "중상리스트Data",
+  "boxStandard",
+  "택배비기준표"
+];
+
+// ── URL 저장/불러오기 ──
+window.addEventListener("DOMContentLoaded", function() {
+  const saved = localStorage.getItem("syncApiUrl");
+  if (saved) document.getElementById("apiUrl").value = saved;
+});
+
+function saveUrl() {
+  const url = document.getElementById("apiUrl").value.trim();
+  if (!url) { addLog("URL을 입력해주세요.", "err"); return; }
+  localStorage.setItem("syncApiUrl", url);
+  addLog("URL이 저장되었어요 ✓", "ok");
+}
+
+function getUrl() {
+  const url = localStorage.getItem("syncApiUrl");
+  if (!url) { addLog("먼저 URL을 저장해주세요.", "err"); return null; }
+  return url;
+}
+
+// ── 로그 ──
+function addLog(msg, type="info") {
+  const log = document.getElementById("log");
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,"0") + ":" +
+               now.getMinutes().toString().padStart(2,"0") + ":" +
+               now.getSeconds().toString().padStart(2,"0");
+  const line = document.createElement("div");
+  line.className = "log-" + type;
+  line.textContent = "[" + time + "] " + msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── 업로드 ──
+async function uploadKey(key) {
+  const url = getUrl(); if (!url) return;
+  const value = localStorage.getItem(key);
+  if (!value) { addLog(key + " — 로컬 데이터 없음, 건너뜀", "info"); return; }
+  try {
+    addLog(key + " 업로드 중...", "info");
+    const res = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({ key, value })
+    });
+    const json = await res.json();
+    if (json.ok) addLog(key + " 업로드 완료 ✓", "ok");
+    else addLog(key + " 업로드 실패", "err");
+  } catch(e) {
+    addLog(key + " 오류: " + e.message, "err");
+  }
+}
+
+async function uploadAll() {
+  const url = getUrl(); if (!url) return;
+  addLog("=== 전체 업로드 시작 ===", "info");
+  for (const key of SYNC_KEYS) {
+    await uploadKey(key);
+  }
+  addLog("=== 전체 업로드 완료 ===", "ok");
+}
+
+// ── 다운로드 ──
+async function downloadKey(key) {
+  const url = getUrl(); if (!url) return;
+  try {
+    addLog(key + " 다운로드 중...", "info");
+    const res = await fetch(url + "?key=" + key);
+    const json = await res.json();
+    if (json.ok && json.data) {
+      localStorage.setItem(key, json.data);
+      // 데이터 크기 표시
+      const size = Math.round(json.data.length / 1024);
+      addLog(key + " 다운로드 완료 ✓ (" + size + "KB)", "ok");
+    } else {
+      addLog(key + " — 서버에 데이터 없음", "info");
+    }
+  } catch(e) {
+    addLog(key + " 오류: " + e.message, "err");
+  }
+}
+
+async function downloadAll() {
+  const url = getUrl(); if (!url) return;
+  addLog("=== 전체 다운로드 시작 ===", "info");
+  for (const key of SYNC_KEYS) {
+    await downloadKey(key);
+  }
+  addLog("=== 전체 다운로드 완료 — 페이지를 새로고침하세요 ===", "ok");
+}
+</script>
+
+</body>
+</html>

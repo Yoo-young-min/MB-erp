@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>(쇼)주문</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; }
+    h1 { text-align: center; margin-bottom: 5px; }
+    .top-bar { width:95%; margin:10px auto; display:flex; justify-content:space-between; align-items:center; }
+    .send-btn { padding:6px 14px; font-size:14px; cursor:pointer; background-color:#28a745; color:white; border:none; border-radius:4px; }
+    .send-btn:hover { background-color:#218838; }
+    .reset-btn { margin-left:10px; padding:6px 14px; font-size:14px; background:#32ade6; color:white; border:none; border-radius:4px; cursor:pointer; }
+    .reset-btn:hover { background-color:#298ebd; }
+    .reset-all-btn { background:#dc3545; color:white; font-weight:bold; }
+    .reset-all-btn:hover { background:#9b2518; }
+    #clock { font-size:15px; color:#0e0d0d; }
+    .table-wrapper { width:95%; height:720px; overflow-y:auto; margin:auto; border:1px solid #ccc; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border:1px solid #ccc; padding:6px; text-align:center; font-size:13px; font-weight:400; color:#070707; }
+    td:focus { outline:2px solid #4CAF50; background-color:#f0fff4; }
+    td:nth-child(4), td:nth-child(5) { text-align:left; padding-left:10px; }
+    th:nth-child(1) { width:9%; } th:nth-child(2) { width:8%; } th:nth-child(3) { width:8%; }
+    th:nth-child(4) { width:20%; } th:nth-child(5) { width:18%; } th:nth-child(6) { width:5%; }
+    th:nth-child(7) { width:6%; } th:nth-child(8) { width:7%; } th:nth-child(9) { width:15%; }
+    thead th { position:sticky; top:0; background-color:powderblue; z-index:2; font-size:16px; font-weight:400; letter-spacing:1px; padding:7px 7px; }
+    tr:hover { background-color:#f5f5f5; }
+    tr.selected-row { background-color:#e8f5e9 !important; }
+    /* 드래그 선택 */
+    td.cell-selected { background-color:#cce5ff !important; }
+  </style>
+</head>
+<body>
+
+  <h1>쇼핑몰 주문 현황</h1>
+  <div class="top-bar">
+    <div>
+      <a href="발송선택.html"><button class="send-btn"><strong>발송선택 보내기</strong></button></a>
+      <button class="reset-btn" onclick="resetOrder()">새 작업 시작</button>
+      <button class="reset-btn reset-all-btn" onclick="resetAllOrders()">전체 새 작업</button>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <div class="table-wrapper">
+    <table data-gm-table>
+      <thead>
+        <tr>
+          <th>주 문 자</th><th>휴 대 폰</th><th>전 화</th>
+          <th>주&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;소</th>
+          <th>품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;목</th>
+          <th>수 량</th><th>금 액</th>
+          <th>합계<div id="grandTotal" style="font-size:12px;color:red;font-weight:400;margin-top:4px;">0</div></th>
+          <th>기타 / 메모</th>
+          <th style="font-size:13px;color:rgb(252,6,6);">실 수량</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // ── 시계 ──
+    function clock() {
+      var t=new Date(), week=["일","월","화","수","목","금","토"];
+      var pad=v=>v<10?"0"+v:v;
+      document.getElementById("clock").innerText=
+        (t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일 "+
+        pad(t.getHours())+":"+pad(t.getMinutes())+":"+pad(t.getSeconds());
+    }
+    clock(); setInterval(clock,1000);
+
+    const STORAGE_KEY="shopOrderData", COL_COUNT=10, ROW_COUNT=500;
+    const TOTAL_COL=7, NUM_COLS=[5,6,7,9];
+
+    // ── 테이블 생성 ──
+    function buildTable() {
+      const tbody=document.getElementById("orderTable");
+      if(tbody.rows.length>0) return;
+      let html="";
+      for(let i=0;i<ROW_COUNT;i++){
+        html+="<tr>";
+        for(let j=0;j<COL_COUNT;j++) html+="<td contenteditable='true'></td>";
+        html+="</tr>";
+      }
+      tbody.innerHTML=html;
+    }
+
+    // ── 합계 ──
+    function calculateGrandTotal() {
+      const rows=document.getElementById("orderTable").rows;
+      let sum=0;
+      for(let i=0;i<rows.length;i++){
+        const v=parseFloat((rows[i].cells[TOTAL_COL]?.innerText||"").replace(/,/g,"").trim());
+        if(!isNaN(v)) sum+=v;
+      }
+      document.getElementById("grandTotal").innerText=sum.toLocaleString();
+    }
+
+    // ── 실수량 ──
+    function loadProductUnitMap() {
+      const data=JSON.parse(localStorage.getItem("productListData")||"[]");
+      const map={};
+      data.forEach(row=>{
+        const name=row[0]?.trim(), unit=parseFloat((row[1]||"").replace(/,/g,""));
+        if(name&&!isNaN(unit)) map[name]=unit;
+      });
+      return map;
+    }
+    function calculateRealQty() {
+      const pm=loadProductUnitMap();
+      document.querySelectorAll("#orderTable tr").forEach(row=>{
+        const prod=row.cells[4]?.innerText.trim();
+        const qty=parseFloat((row.cells[5]?.innerText||"").replace(/,/g,"").trim());
+        const rc=row.cells[9]; if(!rc) return;
+        rc.innerText=(pm[prod]&&!isNaN(qty))?(qty*pm[prod]).toLocaleString():"";
+      });
+    }
+
+    // ── 중복 하이라이트 ──
+    function highlightDuplicateNames() {
+      const rows=document.getElementById("orderTable").rows;
+      const nm={};
+      Array.from(rows).forEach(row=>{
+        const name=row.cells[0]?.innerText.trim();
+        if(!name) return;
+        if(!nm[name]) nm[name]=[];
+        nm[name].push({row,phone:row.cells[1]?.innerText.trim(),address:row.cells[3]?.innerText.trim()});
+      });
+      Object.keys(nm).forEach(name=>{
+        const entries=nm[name]; if(entries.length<=1) return;
+        entries.forEach((e,i)=>{
+          const dup=entries.some((o,j)=>i!==j&&e.phone===o.phone&&e.address===o.address);
+          e.row.cells[0].style.color=dup?"red":"black";
+        });
+      });
+    }
+
+    // ── 저장/복원 ──
+    function saveOrderData() {
+      const rows=document.querySelectorAll("#orderTable tr"), data=[];
+      rows.forEach(row=>{
+        const rd=Array.from(row.cells).map(c=>c.innerText.trim());
+        if(rd.join("")!=="") data.push(rd);
+      });
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    }
+    function loadOrderData() {
+      const saved=localStorage.getItem(STORAGE_KEY); if(!saved) return;
+      const data=JSON.parse(saved);
+      const rows=document.querySelectorAll("#orderTable tr");
+      data.forEach((rd,i)=>{ const row=rows[i]; if(!row) return; rd.forEach((t,j)=>{ if(row.cells[j]) row.cells[j].innerText=t; }); });
+    }
+
+    // ── 초기화 ──
+    function resetOrder() {
+      if(!confirm("현재 페이지의 주문 데이터를 초기화하시겠습니까?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem("sendListData_(쇼)주문",JSON.stringify([]));
+      document.querySelectorAll("#orderTable td").forEach(td=>td.innerText="");
+      calculateGrandTotal(); alert("초기화 완료!");
+    }
+    function resetAllOrders() {
+      if(!confirm("모든 주문 페이지 데이터를 초기화하시겠습니까?\n(쇼),(이),(쿠),(스) 주문이 모두 삭제됩니다.")) return;
+      ["shopOrderData","ecountOrderData","coupangOrderData","smartOrderData"].forEach(k=>localStorage.removeItem(k));
+      ["(쇼)주문","(이)주문","(쿠)주문","(스)주문"].forEach(k=>localStorage.setItem("sendListData_"+k,JSON.stringify([])));
+      alert("모든 주문 데이터가 초기화되었습니다."); location.reload();
+    }
+
+    // ── 발송선택용 저장 ──
+    function saveOrderPageData(pageKey) {
+      const arr=[];
+      document.querySelectorAll("#orderTable tr").forEach(row=>{
+        const name=row.cells[0]?.innerText.trim(), mobile=row.cells[1]?.innerText.trim();
+        const tel=row.cells[2]?.innerText.trim(), addr=row.cells[3]?.innerText.trim();
+        const item=row.cells[4]?.innerText.trim();
+        const qty=pageKey==="(쇼)주문"?row.cells[9]?.innerText.trim():row.cells[5]?.innerText.trim();
+        const etc=row.cells[8]?.innerText.trim();
+        if(name||mobile||addr||item){
+          arr.push({name,mobile,tel,addr,etc,itemText:item?"★"+item+"("+qty+")":"",source:pageKey});
+        }
+      });
+      localStorage.setItem("sendListData_"+pageKey,JSON.stringify(arr));
+    }
+
+    function refreshAll() {
+      loadOrderData(); calculateRealQty(); calculateGrandTotal(); highlightDuplicateNames();
+    }
+
+    // ════════════════════════════════════════
+    // ★ 드래그 선택 / Delete / Undo 추가
+    // ════════════════════════════════════════
+    let dragStart=null, selectedCells=[], isMouseDown=false;
+    const undoStack=[];
+
+    function clearSel() {
+      selectedCells.forEach(c=>c.classList.remove("cell-selected"));
+      selectedCells=[];
+    }
+
+    function selectRange(start, end) {
+      clearSel();
+      const tbody=document.getElementById("orderTable");
+      const rows=tbody.rows;
+      const r1=Math.min(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+      const r2=Math.max(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+      const c1=Math.min(start.cellIndex,end.cellIndex);
+      const c2=Math.max(start.cellIndex,end.cellIndex);
+      for(let i=r1;i<=r2;i++) for(let j=c1;j<=c2;j++){
+        const cell=rows[i]?.cells[j];
+        if(cell){ cell.classList.add("cell-selected"); selectedCells.push(cell); }
+      }
+    }
+
+    let lastSelectedRow=null;
+
+    function initEvents() {
+      const tbody=document.getElementById("orderTable");
+
+      // blur → 콤마 + 저장
+      tbody.addEventListener("blur",function(e){
+        if(e.target.tagName!=="TD") return;
+        const col=e.target.cellIndex;
+        if(NUM_COLS.includes(col)){
+          let v=e.target.innerText.replace(/,/g,"").trim();
+          if(v!==""&&!isNaN(v)) e.target.innerText=Number(v).toLocaleString();
+        }
+        if(e.target.dataset.original!==e.target.innerText){
+          // ★ undo 스택에 push
+          undoStack.push({cell:e.target, before:e.target.dataset.original??"", after:e.target.innerText});
+          if(undoStack.length>200) undoStack.shift();
+          saveOrderData(); calculateGrandTotal(); calculateRealQty(); highlightDuplicateNames();
+          saveOrderPageData("(쇼)주문");
+          e.target.dataset.original=e.target.innerText;
+        }
+      },true);
+
+      tbody.addEventListener("input",function(){
+        saveOrderData(); saveOrderPageData("(쇼)주문");
+      });
+
+      // paste
+      tbody.addEventListener("paste",function(e){
+        e.preventDefault();
+        const text=(e.clipboardData||window.clipboardData).getData("text");
+        const rows=text.trim().split("\n");
+        const startCell=document.activeElement;
+        if(!startCell||startCell.tagName!=="TD") return;
+        const startRow=startCell.parentElement.rowIndex-1, startCol=startCell.cellIndex;
+        rows.forEach((rowText,i)=>{
+          const cols=rowText.split("\t");
+          const row=tbody.rows[startRow+i]; if(!row) return;
+          cols.forEach((colText,j)=>{ const cell=row.cells[startCol+j]; if(cell) cell.innerText=colText.trim(); });
+        });
+        setTimeout(()=>{ saveOrderData(); calculateRealQty(); calculateGrandTotal(); highlightDuplicateNames(); saveOrderPageData("(쇼)주문"); },100);
+      });
+
+      // focusin → 행 하이라이트 + 원본값
+      tbody.addEventListener("focusin",function(e){
+        if(e.target.tagName!=="TD") return;
+        if(lastSelectedRow) lastSelectedRow.classList.remove("selected-row");
+        e.target.parentElement.classList.add("selected-row");
+        lastSelectedRow=e.target.parentElement;
+        e.target.dataset.original=e.target.innerText;
+      });
+
+      // ── 드래그 선택 ──
+      tbody.addEventListener("mousedown",function(e){
+        if(e.target.tagName!=="TD") return;
+        isMouseDown=true; dragStart=e.target;
+        clearSel(); selectRange(dragStart,dragStart);
+      });
+      tbody.addEventListener("mouseover",function(e){
+        if(!isMouseDown||e.target.tagName!=="TD") return;
+        selectRange(dragStart,e.target);
+      });
+      document.addEventListener("mouseup",function(){ isMouseDown=false; });
+    }
+
+    // ── Delete: 선택 셀 삭제 ──
+    document.addEventListener("keydown",function(e){
+      // Ctrl+S
+      if(e.ctrlKey&&e.key==="s"){
+        e.preventDefault(); saveOrderData(); saveOrderPageData("(쇼)주문"); alert("주문 데이터 저장 완료 👍"); return;
+      }
+
+      // Ctrl+Z (Undo)
+      if((e.ctrlKey||e.metaKey)&&e.key==="z"){
+        if(!undoStack.length) return;
+        e.preventDefault();
+        const {cell,before}=undoStack.pop();
+        cell.innerText=before; cell.dataset.original=before;
+        saveOrderData(); calculateGrandTotal(); calculateRealQty(); saveOrderPageData("(쇼)주문");
+        return;
+      }
+
+      // Delete: 선택된 셀 삭제 (단일 편집 중이면 기본 동작)
+      if(e.key==="Delete"){
+        const active=document.activeElement;
+        // 편집 중인 단일 셀이면 기본 Delete 허용
+        if(active?.tagName==="TD"&&selectedCells.length<=1) return;
+        if(selectedCells.length>1){
+          e.preventDefault();
+          selectedCells.forEach(cell=>{
+            undoStack.push({cell,before:cell.innerText,after:""});
+            cell.innerText="";
+          });
+          if(undoStack.length>200) undoStack.splice(0,undoStack.length-200);
+          clearSel();
+          saveOrderData(); calculateGrandTotal(); calculateRealQty(); saveOrderPageData("(쇼)주문");
+        }
+      }
+    });
+
+    // ── 초기 실행 ──
+    window.addEventListener("load",function(){ buildTable(); initEvents(); setTimeout(()=>refreshAll(),100); });
+    window.addEventListener("pageshow",function(){ refreshAll(); });
+    window.addEventListener("focus",function(){ refreshAll(); });
+  </script>
+
+  <script src="버튼.js"></script>
+  <script src="주문페이지공통적용.js"></script>
+</body>
+</html>

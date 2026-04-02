@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>택배비부피별금액기준</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:30px;
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+table{
+border-collapse:collapse;
+width:600px;
+margin:0 auto;
+table-layout:fixed;
+}
+
+th:nth-child(1), td:nth-child(1){width:150px;}
+th:nth-child(2), td:nth-child(2){width:150px;}
+th:nth-child(3), td:nth-child(3){width:150px;}
+th:nth-child(4), td:nth-child(4){width:150px;}
+th:nth-child(5), td:nth-child(5){width:150px;}
+
+
+th,td{
+border:1px solid #ccc;
+padding:8px;
+text-align:center;
+height:25px;
+}
+
+th{
+background:#e6f2ff;
+}
+
+input{
+width:90%;
+text-align:center;
+}
+
+button{
+margin-top:20px;
+padding:8px 18px;
+background:#28a745;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+float:right;
+margin-right:calc(50% - 400px);
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>부피별 택배비 기준표</h2>
+
+<table id="cbmTable">
+
+<tr>
+<th>CBM</th>
+<th>택배</th>
+<th>화물</th>
+<th>화물택배</th>
+<th>특수품목</th>
+</tr>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
+<button onclick="save()">기준 저장</button>
+<button onclick="restoreBackup()" style="margin-right:10px;background:#007bff;">
+백업 복구
+</button>
+
+<script>
+
+// 행 개수
+const ROWS = 15
+
+// 테이블 생성
+function createTable(){
+
+const body=document.getElementById("tableBody")
+
+for(let i=0;i<ROWS;i++){
+
+const tr=document.createElement("tr")
+
+for(let j=0;j<5;j++){
+
+const td=document.createElement("td")
+const input=document.createElement("input")
+
+td.appendChild(input)
+tr.appendChild(td)
+
+}
+
+body.appendChild(tr)
+
+}
+
+}
+
+createTable()
+
+load()
+
+// 저장
+function save(){
+
+const rows=document.querySelectorAll("#tableBody tr")
+
+let data=[]
+
+rows.forEach(row=>{
+
+const inputs=row.querySelectorAll("input")
+
+const cbm=parseFloat(inputs[0].value)
+
+if(!isNaN(cbm)){
+
+data.push({
+
+cbm:cbm,
+택배:parseInt(inputs[1].value)||0,
+화물:parseInt(inputs[2].value)||0,
+화물택배:parseInt(inputs[3].value)||0,
+특수품목:parseInt(inputs[4].value)||0
+
+})
+
+}
+
+})
+
+data.sort((a,b)=>a.cbm-b.cbm)
+
+localStorage.setItem("택배비기준표",JSON.stringify(data));
+localStorage.setItem("택배비기준표_backup",JSON.stringify(data));
+alert("기준 저장 완료");
+}
+
+
+// 불러오기
+function load(){
+
+const saved=localStorage.getItem("택배비기준표")
+
+if(!saved) return
+
+const data=JSON.parse(saved)
+
+const rows=document.querySelectorAll("#tableBody tr")
+
+data.forEach((row,i)=>{
+
+const inputs=rows[i].querySelectorAll("input")
+
+inputs[0].value=row.cbm
+inputs[1].value=row.택배
+inputs[2].value=row.화물
+inputs[3].value=row.화물택배
+inputs[4].value=row.특수품목
+
+})
+
+}
+
+
+function restoreBackup(){
+
+const backup = localStorage.getItem("택배비기준표_backup")
+
+if(!backup){
+alert("백업 데이터가 없습니다.")
+return
+}
+
+if(!confirm("백업 데이터로 복구하시겠습니까?")) return
+
+localStorage.setItem("택배비기준표", backup)
+
+load()
+
+alert("복구 완료")
+
+}
+
+
+
+</script>
+
+<script src="버튼3.js"></script>
+
+</body>
+</html>

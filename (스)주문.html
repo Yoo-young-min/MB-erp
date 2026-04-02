@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>(스)주문</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body {
+      font-family: Arial;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    /* 상단 바 (버튼 + 시계 한 줄 정렬) */
+    .top-bar {
+      width: 95%;
+      margin: 10px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 보내기 버튼 (녹색) */
+    .send-btn {
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .send-btn:hover {
+      background-color: #218838;
+    }
+
+    .reset-btn {
+      margin-left: 10px;
+      padding: 6px 14px;
+      font-size: 14px;
+      background: #32ade6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .reset-btn:hover {
+      background-color: #298ebd;
+    }
+
+
+    /* 시계 */
+    #clock {
+      font-size: 15px;
+      color: #0e0d0d;
+    }
+
+    /* 테이블 스크롤 영역, th, td는 폰트 조정 */
+    .table-wrapper {
+      width: 95%;
+      height: 720px;   /* 화면에 보여지는 세로 크기 */
+      overflow-y: auto;
+      margin: auto;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+      font-size: 13px;      /* 테이블내 데이터 글자 크기 */
+      font-weight: 400;     /* 굵기 (400=보통, 500=중간, 600=굵게) */
+      color: #070707;          /* 글자 색 */
+    }
+    td:focus {
+      outline: 2px solid #4CAF50;   /* 클릭했을 때 테두리 */
+      background-color: #f0fff4;    /* 선택 시 배경 */
+    }
+    td:nth-child(4),
+    td:nth-child(5) {
+      text-align: left;
+      padding-left: 10px;
+    }
+
+    th:nth-child(1) { width: 9%; }   /* 주문자 */
+    th:nth-child(2) { width: 8%; }  /* 휴대폰 */
+    th:nth-child(3) { width: 8%; }  /* 전화 */
+    th:nth-child(4) { width: 20%; }  /* 주소 */
+    th:nth-child(5) { width: 18%; }  /* 품목 */
+    th:nth-child(6) { width: 5%; }   /* 수량 */
+    th:nth-child(7) { width: 6%; }  /* 금액 */
+    th:nth-child(8) { width: 7%; }  /* 합계 */
+    th:nth-child(9) { width: 15%; }  /* 기타/메모 */
+
+
+    /* 테이블 헤더 고정, 폰트 조정 */
+    thead th {
+      position: sticky;
+      top: 0;
+      background-color: powderblue;
+      z-index: 2;
+
+      font-size: 16px;      /* 글자 크기 */
+      font-weight: 400;     /* 굵기 줄임 */
+      letter-spacing: 1px;  /* 글자 간격 */
+      padding: 7px 7px;    /* 위아래 여백 */
+    }
+
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+
+    tr.selected-row {
+      background-color: #e8f5e9 !important; /* 선택 행 전체 하이라이트 */
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>스마트 주문 현황</h1>
+
+  <!-- 버튼 + 시계 -->
+  <div class="top-bar">
+
+  <div>
+    <a href="발송선택.html">
+      <button class="send-btn"><strong>발송선택 보내기</strong></button>
+    </a>
+
+    <button class="reset-btn" onclick="resetOrder()">새 작업 시작</button>
+  </div>
+
+  <div id="clock"></div>
+
+</div>
+
+  <!-- 테이블 -->
+  <div class="table-wrapper">
+    <table data-gm-table>
+      <thead>
+        <tr>
+          <th>주 문 자</th>
+          <th>휴 대 폰</th>
+          <th>전 화</th>
+          <th>주&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;소</th>
+          <th>품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;목</th>
+          <th>수 량</th>
+          <th>금 액</th>
+          <th>
+            합계
+             <div id="grandTotal"
+                  style="font-size:12px; color:red; font-weight:400; margin-top:4px;">
+                0
+             </div>
+          </th>
+          <th>기타 / 메모</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+  </div>
+
+  <!-- 시계 스크립트 -->
+  <script>
+    function clock() {
+      var time = new Date();
+
+      var month = time.getMonth() + 1;
+      var date = time.getDate();
+      var day = time.getDay();
+      var week = ["일", "월", "화", "수", "목", "금", "토"];
+
+      var hours = time.getHours();
+      var minutes = time.getMinutes();
+      var seconds = time.getSeconds();
+
+      document.getElementById("clock").innerText =
+        month + "월 " + date + "일 " + week[day] + "요일 " +
+        (hours < 10 ? "0" + hours : hours) + ":" +
+        (minutes < 10 ? "0" + minutes : minutes) + ":" +
+        (seconds < 10 ? "0" + seconds : seconds);
+    }
+
+    clock();
+    setInterval(clock, 1000);
+  </script>
+
+  <!-- 행 자동 생성, 500숫자를 변경하면 행 숫자 변경 가능 -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+  const tbody = document.getElementById("orderTable");
+
+  let html = "";
+
+  for (let i = 0; i < 500; i++) {
+
+    html += "<tr>";
+
+    for (let j = 0; j < 9; j++) {
+      html += "<td contenteditable='true'></td>";
+    }
+
+    html += "</tr>";
+  }
+
+  tbody.innerHTML = html;
+
+});
+  </script>
+
+<!-- 엑셀 복붙 기능 -->
+  <script>
+document.getElementById("orderTable").addEventListener("paste", function(e) {
+
+  e.preventDefault();
+
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  const rows = text.trim().split("\n");
+
+  const tbody = document.getElementById("orderTable");
+
+  const startCell = document.activeElement;
+  if (!startCell || startCell.tagName !== "TD") return;
+
+  const startRow = startCell.parentElement.rowIndex - 1;
+  const startCol = startCell.cellIndex;
+
+  // 🔥 필요한 행 수 계산
+  const requiredRows = startRow + rows.length;
+
+  // 🔥 부족한 행 자동 추가
+  while (tbody.rows.length < requiredRows) {
+
+    const newRow = tbody.insertRow();
+
+    for (let j = 0; j < 9; j++) {   // 현재 열 개수 9개라면 9로 맞추기
+      const cell = newRow.insertCell();
+      cell.contentEditable = "true";
+    }
+  }
+
+  // 🔥 데이터 붙여넣기
+  rows.forEach((rowText, i) => {
+
+    const cols = rowText.split("\t");
+    const row = tbody.rows[startRow + i];
+
+    cols.forEach((colText, j) => {
+      const cell = row.cells[startCol + j];
+      if (cell) {
+        cell.innerText = colText.trim();
+      }
+    });
+
+  });
+
+  // 🔥 합계 자동 갱신 (있다면)
+  if (typeof updateSummary === "function") {
+    updateSummary();
+  }
+
+});
+
+</script>
+
+
+
+<!-- 1000단위 콤마 자동 적용 -->
+<script>
+document.getElementById("orderTable").addEventListener("blur", function(e) {
+  const cell = e.target;
+  if (cell.tagName !== "TD") return;
+
+  const colIndex = cell.cellIndex;
+
+  // 6,7,8,10번 열에 적용 (0부터 시작)
+  if (colIndex === 5 || colIndex === 6 || colIndex === 7 || colIndex === 9) {
+    let value = cell.innerText.replace(/,/g, "").trim();
+
+    if (!isNaN(value) && value !== "") {
+      cell.innerText = Number(value).toLocaleString();
+    }
+  }
+}, true);
+</script>
+
+<!-- 선택 행 전체 하이라이트 -->
+<script>
+ document.getElementById("orderTable").addEventListener("focusin", function(e) {
+
+  if (e.target.tagName !== "TD") return;
+
+  // 기존 선택 제거
+  document.querySelectorAll("#orderTable tr").forEach(row => {
+    row.classList.remove("selected-row");
+  });
+
+  // 현재 행 선택
+  e.target.parentElement.classList.add("selected-row");
+});
+</script>
+
+<!-- 수량, 단가, 금액 숫자 수정시 한번에 수정하기 -->
+<script>
+const table = document.getElementById("orderTable");
+
+// 숫자 열 인덱스 (수1~7열까지)
+const numberColumns = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+table.addEventListener("focusin", function(e) {
+
+  if (e.target.tagName !== "TD") return;
+
+  const colIndex = e.target.cellIndex;
+
+  if (numberColumns.includes(colIndex)) {
+
+    // 약간의 딜레이 후 전체 선택
+    setTimeout(() => {
+      const range = document.createRange();
+      range.selectNodeContents(e.target);
+
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }, 0);
+  }
+});
+</script>
+
+<!-- 합계 열 금액 합산 기능 -->
+<script>
+const tableBody = document.getElementById("orderTable");
+const grandTotalEl = document.getElementById("grandTotal");
+
+// 합계 열 인덱스 (0부터 시작 → 8번째 열이면 7)
+const totalColumnIndex = 7;
+
+function calculateGrandTotal() {
+  let sum = 0;
+
+  const rows = tableBody.querySelectorAll("tr"); // tbody 안의 행만 가져오기
+
+  rows.forEach(row => {
+    const cell = row.cells[totalColumnIndex];
+    if (!cell) return;
+
+    // 콤마 제거 후 숫자로 변환
+    let value = cell.innerText.replace(/,/g, "").trim();
+    if (value !== "" && !isNaN(value)) {
+      sum += Number(value);
+    }
+  });
+
+  grandTotalEl.innerText = sum.toLocaleString();
+}
+
+// 값 수정 후 자동 재계산
+tableBody.addEventListener("blur", function(e) {
+  if (e.target.tagName === "TD") {
+    calculateGrandTotal();
+  }
+}, true);
+
+// 최초 실행
+calculateGrandTotal();
+</script>
+
+<!-- 중복 체크 / 전번, 주소까지 동일하면 다른 주문 -->
+<script>
+function highlightDuplicateNames() {
+  const rows = document.querySelectorAll("#orderTable tr");
+
+  // 모든 주문자 데이터 수집
+  const nameMap = {};
+
+  rows.forEach(row => {
+    const name = row.cells[0]?.innerText.trim();
+    const phone = row.cells[1]?.innerText.trim();
+    const address = row.cells[3]?.innerText.trim();
+
+    if (!name) return;
+
+    // 이름별 배열 생성
+    if (!nameMap[name]) nameMap[name] = [];
+
+    nameMap[name].push({ row, phone, address });
+  });
+
+  // 중복 체크
+  Object.keys(nameMap).forEach(name => {
+    const entries = nameMap[name];
+    if (entries.length <= 1) return; // 한 번만 나타나면 OK
+
+    // 여러 행 중 동일한 휴대폰 + 주소면 정상, 아니면 빨간색
+    entries.forEach((entry, i) => {
+      const duplicate = entries.some((other, j) => {
+        if (i === j) return false;
+        return entry.phone === other.phone && entry.address === other.address;
+      });
+
+      // 휴대폰, 주소가 다른 경우 → 검정색 / 같으면 빨간색
+      if (!duplicate) {
+        entry.row.cells[0].style.color = "black"; // 이름 동일, 전번, 주소 다르면 다른 주문, 검정색
+      } else {
+        entry.row.cells[0].style.color = "red"; // 주문자 같은 경우 빨간색
+      }
+    });
+  });
+}
+
+// 주문 테이블 변경 시마다 실행
+document.getElementById("orderTable").addEventListener("blur", function(e) {
+  if (e.target.tagName === "TD") {
+    highlightDuplicateNames();
+  }
+}, true);
+
+// 최초 실행
+highlightDuplicateNames();
+</script>
+
+
+<script>
+
+// 저장 키
+const STORAGE_KEY = "smartstoreOrderData";
+
+
+// ========================
+// 데이터 저장
+// ========================
+
+function saveOrderData() {
+
+  const rows = document.querySelectorAll("#orderTable tr");
+
+  const data = [];
+
+  rows.forEach(row => {
+
+    const rowData = [];
+
+    row.querySelectorAll("td").forEach(cell => {
+      rowData.push(cell.innerText);
+    });
+
+    data.push(rowData);
+
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+}
+
+// ========================
+// 데이터 불러오기
+// ========================
+function loadOrderData() {
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+
+  if (!saved) return;
+
+  const data = JSON.parse(saved);
+
+  const rows = document.querySelectorAll("#orderTable tr");
+
+  data.forEach((rowData, i) => {
+
+    if (!rows[i]) return;
+
+    rowData.forEach((text, j) => {
+
+      if (rows[i].cells[j]) {
+        rows[i].cells[j].innerText = text;
+      }
+
+    });
+
+  });
+
+}
+
+
+// 전체 초기화 감지
+if(localStorage.getItem("resetAllOrders") === "true"){
+
+  localStorage.removeItem("shopOrderData");
+  localStorage.removeItem("ecountOrderData");
+  localStorage.removeItem("coupangOrderData");
+  localStorage.removeItem("smartOrderData");
+
+  localStorage.removeItem("sendListData_(쇼)주문");
+  localStorage.removeItem("sendListData_(이)주문");
+  localStorage.removeItem("sendListData_(쿠)주문");
+  localStorage.removeItem("sendListData_(스)주문");
+
+  localStorage.removeItem("resetAllOrders");
+
+}
+
+
+// ========================
+// 새 작업 시작
+// ========================
+function resetOrder() {
+
+  if (!confirm("새 작업을 시작하시겠습니까?\n현재 데이터가 삭제됩니다.")) return;
+
+  document.querySelectorAll("#orderTable td").forEach(cell => {
+    cell.innerText = "";
+  });
+
+  localStorage.removeItem(STORAGE_KEY);
+
+}
+
+// ========================
+// 자동 저장
+// ========================
+document.getElementById("orderTable").addEventListener("input", function() {
+
+  saveOrderData();
+
+});
+
+// ========================
+// Ctrl + S 저장
+// ========================
+document.addEventListener("keydown", function(e) {
+
+  if (e.ctrlKey && e.key === "s") {
+
+    e.preventDefault();
+
+    saveOrderData();
+
+    alert("저장 완료 👍");
+
+  }
+
+});
+
+// ========================
+// 페이지 복원
+// ========================
+window.addEventListener("load",function(){
+
+  setTimeout(()=>{
+    loadOrderData();
+    highlightDuplicateNames();
+    calculateGrandTotal();
+  },100);
+
+});
+
+window.addEventListener("pageshow",function(){
+  loadOrderData();
+  highlightDuplicateNames();
+  calculateGrandTotal();
+});
+
+window.addEventListener("focus",function(){
+  loadOrderData();
+  highlightDuplicateNames();
+  calculateGrandTotal();
+});
+
+
+
+
+
+
+
+// ★ 품목(수량) 조합
+function saveOrderPageData(pageKey) {
+
+  const rows = document.querySelectorAll("#orderTable tr");
+  const arr = [];
+
+  rows.forEach(function(row){
+
+    const name   = row.cells[0]?.innerText.trim();
+    const mobile = row.cells[1]?.innerText.trim();
+    const tel    = row.cells[2]?.innerText.trim();
+    const addr   = row.cells[3]?.innerText.trim();
+
+    const item   = row.cells[4]?.innerText.trim(); // 5열 품목
+    const qty    = row.cells[5]?.innerText.trim(); // ★ 6열 수량
+
+    const etc = row.cells[8]?.innerText.trim();
+
+    if(name || mobile || addr || item){
+
+      let itemText = "";
+      if(item){
+        itemText = "★" + item + "(" + qty + ")";
+      }
+
+      arr.push({
+        name,
+        mobile,
+        tel,
+        addr,
+        etc,
+        itemText,
+        source: pageKey
+      });
+    }
+
+  });
+
+  localStorage.setItem("sendListData_" + pageKey, JSON.stringify(arr));
+}
+
+
+// 자동 저장
+setInterval(function(){
+  saveOrderPageData("(스)주문");
+},500);
+
+
+// 입력 수정시 바로 저장
+document.getElementById("orderTable").addEventListener("input",function(){
+  saveOrderPageData("(스)주문");
+});
+
+
+
+
+</script>
+
+
+<script src="버튼.js"></script>
+
+<script src="주문페이지공통적용.js"></script>
+
+</body>
+</html>

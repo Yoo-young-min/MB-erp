@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>쇼핑몰품목만</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; }
+    h1 { text-align: center; margin-bottom: 5px; }
+
+    .top-bar {
+      width: 95%; margin: 10px auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    #clock { font-size: 15px; color: #0e0d0d; margin-left: auto; margin-right: 1cm; }
+
+    /* ★ 체크 요약 바 */
+    #checkBar {
+      width: 95%; margin: 0 auto 6px auto; padding: 4px 10px;
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 4px; font-size: 12px;
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    }
+    #checkBar span { font-weight: bold; }
+    #checkBar .ok   { color: #28a745; }
+    #checkBar .warn { color: #dc3545; }
+
+    .table-wrapper {
+      width: 95%; height: 730px; overflow-y: auto;
+      margin: auto; border: 1px solid #ccc;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th, td {
+      border: 1px solid #ccc; padding: 6px; text-align: center;
+      font-size: 10px; font-weight: 300; color: #070707;
+    }
+
+    td:focus { outline: 2px solid #4CAF50; background-color: #f0fff4; }
+    #orderTable th, #orderTable td { vertical-align: middle; }
+
+    th:nth-child(1)  { width: 1%; }   th:nth-child(2)  { width: 1%; }
+    th:nth-child(3)  { width: 2.5%; } th:nth-child(4)  { width: 2.5%; }
+    th:nth-child(5)  { width: 1%; }   th:nth-child(6)  { width: 2.5%; }
+    th:nth-child(7)  { width: 1%; }   th:nth-child(8)  { width: 1%; }
+    th:nth-child(9)  { width: 1%; }   th:nth-child(10) { width: 2%; }
+    th:nth-child(11) { width: 1%; }   th:nth-child(12) { width: 2%; }
+    th:nth-child(13) { width: 1%; }   th:nth-child(14) { width: 2.5%; }
+    th:nth-child(15) { width: 12%; }  th:nth-child(16) { width: 1%; }
+    th:nth-child(17) { width: 2.5%; } th:nth-child(18) { width: 2.5%; }
+    th:nth-child(19) { width: 1%; }   th:nth-child(20) { width: 3.5%; }
+    th:nth-child(21) { width: 3%; }   th:nth-child(22) { width: 2.5%; }
+    th:nth-child(23) { width: 2%; }   th:nth-child(24) { width: 3.5%; }
+
+    thead th {
+      position: sticky; top: 0; background-color: powderblue; z-index: 2;
+      font-size: 12px; font-weight: 400; letter-spacing: 1px; padding: 7px 7px;
+    }
+    th:nth-child(24) { padding: 2px 1px; }
+
+    tr:hover { background-color: #f5f5f5; }
+    tr.selected-row { background-color: #e8f5e9 !important; }
+    .cell-selected { background-color: #cce5ff !important; }
+
+    /* ★ 제품리스트 미등록 품목 */
+    td.warn-no-product { color: #dc3545 !important; font-weight: bold; }
+    /* ★ 수량 불일치 행 */
+    td.warn-qty-mismatch { color: #ff6600 !important; font-weight: bold; }
+    /* ★ 수량/단가 누락 행 */
+    tr.warn-empty td:nth-child(17),
+    tr.warn-empty td:nth-child(18) { background-color: #ffc107 !important; }
+  </style>
+</head>
+<body>
+
+  <h1>쇼핑몰품목만</h1>
+
+  <div class="top-bar">
+    <div id="clock"></div>
+  </div>
+
+  <!-- ★ 체크 요약 바 -->
+  <div id="checkBar">
+    <span>데이터 체크:</span>
+    <span id="chk-order">발송선택 품목: <b id="chk-order-n">0</b>건</span>
+    <span id="chk-cur">현재: <b id="chk-cur-n">0</b>건</span>
+    <span id="chk-noproduct">⚠ 미등록 품목: <b id="chk-noproduct-n">0</b>건</span>
+    <span id="chk-empty">⚠ 수량/단가 누락: <b id="chk-empty-n">0</b>건</span>
+    <span style="margin-left:auto;">합계 공급가액: <b id="chk-supply-total" style="color:red;">0</b></span>
+  </div>
+
+  <div class="table-wrapper">
+    <table data-gm-table>
+      <thead>
+        <tr>
+          <th>일자</th><th>순번</th><th>거래처코드</th><th>거래처명</th>
+          <th>담당</th><th>출하창고</th><th>거래유형</th><th>통화</th>
+          <th>환율</th><th>미수금</th><th>부서</th><th>입금자및기타</th>
+          <th>공지</th><th>품목코드</th><th>품  목  명</th><th>규격</th>
+          <th>수량</th><th>단가</th><th>외화금액</th><th>공급가액</th>
+          <th>부가세</th><th>거래명세서메모</th><th>생산전표생성</th>
+          <th><div id="grandTotal" style="font-size:10px;color:red;font-weight:400;margin-top:4px;">0</div></th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+  // ── 시계 ──
+  function clock() {
+    var t=new Date(), week=["일","월","화","수","목","금","토"];
+    var pad=v=>v<10?"0"+v:v;
+    document.getElementById("clock").innerText=
+      (t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일 "+
+      pad(t.getHours())+":"+pad(t.getMinutes())+":"+pad(t.getSeconds());
+  }
+  clock(); setInterval(clock,1000);
+
+  // ── 합계 ──
+  function updateGrandTotal() {
+    let sum=0;
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      const v=parseFloat((row.cells[23]?.innerText||"").replace(/,/g,""))||0;
+      sum+=v;
+    });
+    // 테이블 헤더 합계
+    document.getElementById("grandTotal").innerText=sum.toLocaleString();
+    // 체크바 합계
+    const el=document.getElementById("chk-supply-total");
+    if(el) el.textContent=sum.toLocaleString();
+  }
+
+  // ── 행 계산 ──
+  function calcRow(row) {
+    const qty=parseFloat(row.cells[16].innerText.replace(/,/g,""))||0;
+    const price=parseFloat(row.cells[17].innerText.replace(/,/g,""))||0;
+    const total=qty*price;
+    if(total>0){
+      const supply=Math.round(total/1.1);
+      const vat=total-supply;
+      row.cells[19].innerText=supply.toLocaleString();
+      row.cells[20].innerText=vat.toLocaleString();
+      row.cells[23].innerText=total.toLocaleString();
+    } else {
+      row.cells[19].innerText="";
+      row.cells[20].innerText="";
+      row.cells[23].innerText="";
+    }
+  }
+
+  // ── ★ 데이터 체크 ──
+  function checkDataQuality() {
+    // 발송선택 S경로 ★ 개수 합산
+    const packRaw=localStorage.getItem("packData");
+    let starCount=0;
+    if(packRaw){
+      JSON.parse(packRaw).forEach(row=>{
+        if((row.path||"").trim()!=="S") return;
+        const stars=(row.item||"").split(/(?=★)/).map(v=>v.trim()).filter(v=>v).length;
+        starCount+=stars;
+      });
+    }
+    document.getElementById("chk-order-n").textContent=starCount;
+
+    let curCount=0, noProductCount=0, emptyCount=0;
+
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      const item=row.cells[14]?.innerText.trim();
+      if(!item){
+        row.classList.remove("warn-empty");
+        row.cells[14]?.classList.remove("warn-no-product");
+        row.cells[16]?.classList.remove("warn-qty-mismatch");
+        return;
+      }
+      curCount++;
+
+      // 미등록 품목: 코드나 단가 없으면
+      const code=(row.cells[13]?.innerText||"").trim();
+      const price=(row.cells[17]?.innerText||"").trim();
+      if(!code||!price){
+        row.cells[14].classList.add("warn-no-product");
+        noProductCount++;
+      } else {
+        row.cells[14].classList.remove("warn-no-product");
+      }
+
+      // 수량/단가 누락
+      const qty=(row.cells[16]?.innerText||"").trim();
+      if(!qty||!price){
+        row.classList.add("warn-empty");
+        emptyCount++;
+      } else {
+        row.classList.remove("warn-empty");
+      }
+    });
+
+    document.getElementById("chk-cur-n").textContent=curCount;
+
+    const npEl=document.getElementById("chk-noproduct");
+    document.getElementById("chk-noproduct-n").textContent=noProductCount;
+    npEl.className=noProductCount>0?"warn":"ok";
+
+    const emEl=document.getElementById("chk-empty");
+    document.getElementById("chk-empty-n").textContent=emptyCount;
+    emEl.className=emptyCount>0?"warn":"ok";
+  }
+
+    // ── 데이터 로드 ──
+  function loadShopOrderData() {
+    const shopRaw=localStorage.getItem("shopOrderData");
+    const productRaw=localStorage.getItem("productListData");
+    if(!shopRaw||!productRaw) return;
+
+    const shopData=JSON.parse(shopRaw);
+    const productData=JSON.parse(productRaw);
+    const excludedRaw=localStorage.getItem("packExcluded");
+    const excludedSet=new Set(excludedRaw?JSON.parse(excludedRaw):[]);
+
+    const productMap=new Map();
+    productData.forEach(p=>{
+      const name=(p[0]||"").trim(), code=(p[4]||"").trim(), price=(p[5]||"").trim();
+      if(name) productMap.set(name,{code,price});
+    });
+
+    const tbody=document.getElementById("orderTable");
+    const rows=tbody.querySelectorAll("tr");
+    rows.forEach(row=>{
+      [13,14,16,17,19,20,23].forEach(ci=>{ row.cells[ci].innerText=""; });
+      row.cells[14]?.classList.remove("warn-no-product");
+      row.classList.remove("warn-empty");
+    });
+
+    let rowIndex=0;
+    shopData.forEach(rowData=>{
+      const name=(rowData[0]||"").trim(), mobile=(rowData[1]||"").trim();
+      const addr=(rowData[3]||"").trim(), itemName=(rowData[4]||"").trim();
+      const realQty=(rowData[9]||"").trim();
+      if(!itemName) return;
+      const excludeKey=name+"|"+mobile+"|"+addr;
+      if(excludedSet.has(excludeKey)) return;
+      const row=rows[rowIndex]; if(!row) return;
+      row.cells[14].innerText=itemName;
+      const qty=parseFloat(realQty.replace(/,/g,""));
+      row.cells[16].innerText=isNaN(qty)?"":qty.toLocaleString();
+      const matched=productMap.get(itemName);
+      if(matched){
+        row.cells[13].innerText=matched.code;
+        const price=parseFloat(matched.price.replace(/,/g,""));
+        row.cells[17].innerText=isNaN(price)?"":price.toLocaleString();
+      }
+      calcRow(row);
+      rowIndex++;
+    });
+
+    updateGrandTotal();
+    checkDataQuality(); // ★ 로드 후 체크
+  }
+
+  // ── DOMContentLoaded ──
+  document.addEventListener("DOMContentLoaded",function(){
+    const tbody=document.getElementById("orderTable");
+    let html="";
+    for(let i=0;i<500;i++){
+      let row="<tr>";
+      for(let j=0;j<24;j++){
+        if     (j===2) row+="<td>111111</td>";
+        else if(j===3) row+="<td>쇼핑몰</td>";
+        else if(j===4) row+="<td>00006</td>";
+        else if(j===5) row+="<td>00001</td>";
+        else if(j===6) row+="<td>11</td>";
+        else           row+="<td contenteditable='true'></td>";
+      }
+      row+="</tr>"; html+=row;
+    }
+    tbody.innerHTML=html;
+    loadShopOrderData();
+
+    tbody.addEventListener("paste",function(e){
+      e.preventDefault();
+      const text=(e.clipboardData||window.clipboardData).getData("text");
+      const startCell=document.activeElement;
+      const startRow=startCell.parentElement.rowIndex-1, startCol=startCell.cellIndex;
+      text.split("\n").forEach((rowText,i)=>{
+        rowText.split("\t").forEach((colText,j)=>{
+          const row=document.querySelectorAll("#orderTable tr")[startRow+i];
+          if(row?.cells[startCol+j]) row.cells[startCol+j].innerText=colText.trim();
+        });
+      });
+      setTimeout(()=>{updateGrandTotal();checkDataQuality();},50);
+    });
+
+    tbody.addEventListener("blur",function(e){
+      if(e.target.tagName!=="TD") return;
+      const col=e.target.cellIndex;
+      if([16,17,19,20,23].includes(col)){
+        const v=e.target.innerText.replace(/,/g,"").trim();
+        if(!isNaN(v)&&v!=="") e.target.innerText=Number(v).toLocaleString();
+      }
+    },true);
+
+    let lastSelectedRow=null;
+    tbody.addEventListener("focusin",function(e){
+      if(e.target.tagName!=="TD") return;
+      if(lastSelectedRow) lastSelectedRow.classList.remove("selected-row");
+      e.target.parentElement.classList.add("selected-row");
+      lastSelectedRow=e.target.parentElement;
+    });
+
+    tbody.addEventListener("input",function(e){
+      if(e.target.tagName!=="TD") return;
+      const col=e.target.cellIndex;
+      if(col===16||col===17){ calcRow(e.target.parentElement); updateGrandTotal(); }
+      checkDataQuality();
+    });
+
+    tbody.addEventListener("dragstart",function(e){e.preventDefault();});
+  });
+
+  window.addEventListener("load",loadShopOrderData);
+  window.addEventListener("pageshow",loadShopOrderData);
+  window.addEventListener("focus",loadShopOrderData);
+  </script>
+
+  <script src="버튼.js"></script>
+</body>
+</html>

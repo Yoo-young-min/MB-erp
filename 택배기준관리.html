@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>택배기준관리</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:30px;
+}
+
+h2{
+text-align: center;
+margin-bottom:20px;
+}
+
+table{
+border-collapse:collapse;
+width:600px;
+margin:0 auto;
+table-layout:fixed;
+}
+
+th:nth-child(1), td:nth-child(1){width:80px;}
+th:nth-child(2), td:nth-child(2){width:120px;}
+th:nth-child(3), td:nth-child(3){width:120px;}
+th:nth-child(4), td:nth-child(4){width:120px;}
+th:nth-child(5), td:nth-child(5){width:120px;}
+th:nth-child(6), td:nth-child(6){width:120px;}
+
+
+th,td{
+border:1px solid #ccc;
+padding:8px;
+text-align:center;
+height:60px;
+}
+
+th{
+background:#e6f2ff;
+}
+
+input{
+width:100px;
+padding:4px;
+text-align:center;
+}
+
+button{
+margin-top:20px;
+padding:8px 18px;
+background:#28a745;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+float:right;
+margin-right:calc(50% - 380px);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>택배 기준 관리</h2>
+
+<table>
+
+<tr>
+<th>구 분</th>
+<th>가로(mm)</th>
+<th>세로(mm)</th>
+<th>높이(mm)</th>
+<th>CBM</th>
+<th>기준금액</th>
+</tr>
+
+<tr>
+<td>택배</td>
+<td><input id="w1"></td>
+<td><input id="d1"></td>
+<td><input id="h1"></td>
+<td><input id="cbm1"></td>
+<td><input id="price1"></td>
+</tr>
+
+<tr>
+<td>특수품목</td>
+<td><input id="w2"></td>
+<td><input id="d2"></td>
+<td><input id="h2"></td>
+<td><input id="cbm2"></td>
+<td><input id="price2"></td>
+</tr>
+
+</table>
+
+<button onclick="save()">기준 저장</button>
+
+<script>
+
+// 최초 기본값
+if(!localStorage.getItem("boxStandard")){
+
+const defaultData={
+parcel:{w:580,d:330,h:320,cbm:0.06125,price:120000},
+special:{w:460,d:450,h:434.8,cbm:0.09,price:120000}
+}
+
+localStorage.setItem("boxStandard",JSON.stringify(defaultData))
+
+}
+
+load()
+
+function load(){
+
+const data=JSON.parse(localStorage.getItem("boxStandard"))
+
+w1.value=data.parcel.w
+d1.value=data.parcel.d
+h1.value=data.parcel.h
+cbm1.value=data.parcel.cbm
+price1.value=data.parcel.price
+
+w2.value=data.special.w
+d2.value=data.special.d
+h2.value=data.special.h
+cbm2.value=data.special.cbm
+price2.value=data.special.price
+
+}
+
+function save(){
+
+const data={
+
+parcel:{
+w:parseFloat(w1.value),
+d:parseFloat(d1.value),
+h:parseFloat(h1.value),
+cbm:parseFloat(cbm1.value),
+price:parseFloat(price1.value)
+},
+
+special:{
+w:parseFloat(w2.value),
+d:parseFloat(d2.value),
+h:parseFloat(h2.value),
+cbm:parseFloat(cbm2.value),
+price:parseFloat(price2.value)
+}
+
+}
+
+localStorage.setItem("boxStandard",JSON.stringify(data))
+
+alert("기준 저장 완료 👍")
+
+}
+
+</script>
+
+<script src="버튼3.js"></script>
+
+</body>
+</html>

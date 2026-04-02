@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>제품 리스트</title>
+</head>
+<body>
+
+<h2>제품 리스트 테스트</h2>
+
+<button onclick="saveProducts()">저장 테스트</button>
+
+<script>
+let productList = [
+    { mall_name: "10호 세트", price: 5000 }
+];
+
+function saveProducts() {
+    fetch("/save_products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productList)
+    })
+    .then(res => res.json())
+    .then(data => alert("저장 완료"));
+}
+</script>
+
+</body>
+</html>

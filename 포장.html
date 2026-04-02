@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>포장</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; display: flex; flex-direction: column; align-items: center; }
+    h1 { text-align: center; margin-bottom: 5px; }
+
+    .print-area-header {
+      width: 794px; margin: 10px auto 0px auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .print-btn {
+      background-color: #4CAF50; color: white; border: none;
+      padding: 6px 16px; font-size: 15px; cursor: pointer; border-radius: 4px;
+    }
+    .print-btn:hover { background-color: #45a049; }
+
+    #clock { font-size: 14px; color: #0e0d0d; }
+
+    /* ★ 체크 요약 바 */
+    #checkBar {
+      width: 794px; margin: 4px auto; padding: 4px 10px;
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 4px; font-size: 12px;
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    }
+    #checkBar span { font-weight: bold; }
+    #checkBar .ok   { color: #28a745; }
+    #checkBar .warn { color: #dc3545; }
+
+    .table-wrapper {
+      width: 794px; height: 1000px; margin: 10px auto;
+      overflow-y: auto; border: 1px solid #ccc;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 13px; font-weight: 400; color: #070707; }
+    td:focus { outline: 2px solid #4CAF50; background-color: #f0fff4; }
+
+    #orderTable td:nth-child(1) { font-size: 8px; }
+    thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(3) { font-size: 8px; font-weight: 600; }
+    thead th:nth-child(4), thead th:nth-child(5), thead th:nth-child(6) { font-size: 13px; font-weight: 500; }
+    thead th:nth-child(7), thead th:nth-child(8), thead th:nth-child(9) { font-size: 8px; font-weight: 600; }
+
+    td:nth-child(2), td:nth-child(3) { font-size: 8px; }
+    td:nth-child(4) { font-size: 10px; font-weight: 500; }
+    td:nth-child(5) { text-align: left; padding-left: 10px; font-size: 10px; }
+    td:nth-child(6) { font-size: 10px; }
+    td:nth-child(7) { font-size: 10px; }
+    td:nth-child(8) { font-size: 9.5px; }
+    td:nth-child(9) { font-size: 10px; font-weight: 400; text-align: center; }
+
+    th:nth-child(1) { width: 2.5%; } th:nth-child(2) { width: 3%; }
+    th:nth-child(3) { width: 3%; } th:nth-child(4) { width: 10%; }
+    th:nth-child(5) { width: 41.5%; }  th:nth-child(6) { width: 10%; }
+    th:nth-child(7) { width: 3.5%; } th:nth-child(8) { width: 5.5%; }
+    th:nth-child(9) { width: 2.5%; }
+
+    thead th {
+      position: sticky; top: 0; background-color: powderblue; z-index: 2;
+      font-size: 16px; font-weight: 400; letter-spacing: 1px; padding: 7px 7px;
+    }
+
+    tr:hover { background-color: #f5f5f5; }
+    tr.selected-row { background-color: #e8f5e9 !important; }
+    .cell-selected { background-color: #cce5ff !important; }
+
+    #orderTable tr:nth-child(even) td {
+      background-color: #f0f0f0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ★ 택배수 누락 행 */
+    tr.warn-count td:nth-child(7) {
+      background-color: #ffc107 !important;
+      font-weight: bold;
+    }
+
+    /* ★ 화물/화택 행 강조 */
+    tr.cargo-row td:nth-child(2)  { color: #0d6efd; font-weight: bold; }
+    tr.cargoex-row td:nth-child(3) { color: #dc3545; font-weight: bold; }
+
+    @media print {
+      thead th { background-color: #d9d9d9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-btn, #checkBar { display: none; }
+      .table-wrapper { width: 100%; height: auto; overflow: visible; border: none; }
+      table { width: 100%; }
+      body { margin: 0; }
+    }
+    @media print {
+      @page { size: A4; margin: 5mm; }
+      .print-area-header { width: 794px; margin: 0 auto; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>포장</h1>
+
+<div class="print-area-header">
+  <button class="print-btn" onclick="printTable()">인쇄</button>
+  <div id="clock"></div>
+</div>
+
+<!-- ★ 체크 요약 바 -->
+<div id="checkBar">
+  <span id="chk-pack">포장 <b id="chk-pack-n">0</b>건</span>
+  <span id="chk-send">발송선택 <b id="chk-send-n">0</b>건</span>
+  <span id="chk-diff">누락: <b id="chk-diff-n">0</b>건</span>
+  <span id="chk-nocount">택배수 누락: <b id="chk-nocount-n">0</b>건</span>
+  <span id="chk-cargo">화물: <b id="chk-cargo-n">0</b>건 / <b id="chk-cargo-sum">0</b></span>
+  <span id="chk-cargoex">화택: <b id="chk-cargoex-n">0</b>건 / <b id="chk-cargoex-sum">0</b></span>
+  <span>택배수: <span id="grandTotal" style="font-size:12px;color:red;font-weight:700;">0</span></span>
+  <span style="margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+    <span>총 덩어리수: <b id="chk-total-pack" style="color:#0d6efd;">0</b></span>
+    <span>
+      <span style="color:blue;">S: <b id="chk-s">0</b></span>&nbsp;&nbsp;
+      <span style="color:darkred;">E: <b id="chk-e">0</b></span>&nbsp;&nbsp;
+      <span style="color:orangered;">C: <b id="chk-c">0</b></span>&nbsp;&nbsp;
+      <span style="color:green;">N: <b id="chk-n">0</b></span>
+    </span>
+  </span>
+</div>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>순번</th><th>화물</th><th>화택</th>
+        <th>주 문 자</th>
+        <th>품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;목</th>
+        <th>기&nbsp;&nbsp;&nbsp;타</th>
+        <th>택배</th>
+        <th>화물<br>지점</th>
+        <th>경로</th>
+      </tr>
+    </thead>
+    <tbody id="orderTable"></tbody>
+  </table>
+</div>
+
+<script>
+// ── 시계 ──
+function clock() {
+  var t=new Date(), week=["일","월","화","수","목","금","토"];
+  var pad=v=>v<10?"0"+v:v;
+  document.getElementById("clock").innerText=
+    (t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일 "+
+    pad(t.getHours())+":"+pad(t.getMinutes())+":"+pad(t.getSeconds());
+}
+clock(); setInterval(clock,1000);
+
+// ── 테이블 생성 ──
+document.addEventListener("DOMContentLoaded", function() {
+  const tbody=document.getElementById("orderTable");
+  let html="";
+  for(let i=0;i<500;i++){
+    html+="<tr>";
+    for(let j=0;j<9;j++){
+      html += j===0 ? "<td class='row-number'>"+(i+1)+"</td>" : "<td contenteditable='true'></td>";
+    }
+    html+="</tr>";
+  }
+  tbody.innerHTML=html;
+});
+
+// ── 키보드 이동 ──
+document.getElementById("orderTable").addEventListener("keydown",function(e){
+  const cell=document.activeElement; if(cell.tagName!=="TD") return;
+  const row=cell.parentElement, ci=cell.cellIndex;
+  let target;
+  switch(e.key){
+    case "ArrowRight": target=row.cells[ci+1]; break;
+    case "ArrowLeft":  target=row.cells[ci-1]; break;
+    case "ArrowDown":  target=row.nextElementSibling?.cells[ci]; break;
+    case "ArrowUp":    target=row.previousElementSibling?.cells[ci]; break;
+    case "Enter": e.preventDefault(); target=row.nextElementSibling?.cells[ci]; break;
+    case "Tab":   e.preventDefault(); target=row.cells[ci+1]||row.nextElementSibling?.cells[0]; break;
+  }
+  if(target) target.focus();
+});
+
+// ── 행 하이라이트 + 전체선택 ──
+document.getElementById("orderTable").addEventListener("focusin",function(e){
+  if(e.target.tagName!=="TD") return;
+  document.querySelectorAll("#orderTable tr").forEach(row=>row.classList.remove("selected-row"));
+  e.target.parentElement.classList.add("selected-row");
+  if(isMouseDown) return;
+  setTimeout(()=>{
+    const range=document.createRange(); range.selectNodeContents(e.target);
+    const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  },0);
+});
+
+// ── 드래그 선택 ──
+let isMouseDown=false, startCell=null, selectedCells=[];
+const tableBody=document.getElementById("orderTable");
+
+tableBody.addEventListener("mousedown",function(e){
+  if(e.target.tagName!=="TD") return;
+  clearSelection(); isMouseDown=true; startCell=e.target; selectRange(startCell,startCell);
+});
+tableBody.addEventListener("mouseover",function(e){
+  if(!isMouseDown||e.target.tagName!=="TD") return;
+  selectRange(startCell,e.target);
+});
+document.addEventListener("mouseup",function(){ isMouseDown=false; });
+
+function selectRange(start,end){
+  clearSelection();
+  const rows=document.querySelectorAll("#orderTable tr");
+  const minRow=Math.min(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+  const maxRow=Math.max(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+  const minCol=Math.min(start.cellIndex,end.cellIndex);
+  const maxCol=Math.max(start.cellIndex,end.cellIndex);
+  for(let i=minRow;i<=maxRow;i++) for(let j=minCol;j<=maxCol;j++){
+    const cell=rows[i]?.cells[j];
+    if(cell){cell.classList.add("cell-selected");selectedCells.push(cell);}
+  }
+}
+function clearSelection(){ selectedCells.forEach(c=>c.classList.remove("cell-selected")); selectedCells=[]; }
+
+// ── Ctrl+C 복사 ──
+document.addEventListener("keydown",function(e){
+  if(e.ctrlKey&&e.key.toLowerCase()==="c"){
+    if(!selectedCells.length) return;
+    e.preventDefault();
+    const rows=document.querySelectorAll("#orderTable tr");
+    const rI=selectedCells.map(c=>c.parentElement.rowIndex-1);
+    const cI=selectedCells.map(c=>c.cellIndex);
+    const minR=Math.min(...rI),maxR=Math.max(...rI),minC=Math.min(...cI),maxC=Math.max(...cI);
+    let result="";
+    for(let i=minR;i<=maxR;i++){
+      let row=[];
+      for(let j=minC;j<=maxC;j++) row.push(rows[i]?.cells[j]?.innerText||"");
+      result+=row.join("\t")+"\n";
+    }
+    navigator.clipboard.writeText(result);
+  }
+  if(e.key==="Delete"||e.key==="Backspace"){
+    const active=document.activeElement;
+    if(selectedCells.length<=1&&active.tagName==="TD") return;
+    if(selectedCells.length>1){
+      e.preventDefault();
+      selectedCells.forEach(cell=>{ if(cell.cellIndex===0) return; cell.innerText=""; });
+      clearSelection(); updateGrandTotal();
+    }
+  }
+});
+
+// ── 택배수 합산 ──
+function updateGrandTotal(){
+  let total=0;
+  document.querySelectorAll("#orderTable tr").forEach(row=>{
+    const v=parseFloat(row.cells[6]?.innerText.trim());
+    if(!isNaN(v)) total+=v;
+  });
+  // ★ 총 덩어리수 = 택배수 전체 합계
+  const el=document.getElementById("chk-total-pack");
+  if(el) el.textContent=total;
+  // grandTotal(합계 택배수)은 checkDataQuality()에서 총-화물-화택으로 계산
+}
+document.getElementById("orderTable").addEventListener("input",function(e){
+  if(e.target.cellIndex===6) updateGrandTotal();
+});
+
+// ── ★ 데이터 체크 ──
+function checkDataQuality(){
+  const rows=document.querySelectorAll("#orderTable tr");
+
+  // 발송선택 건수 (packData)
+  const packData=JSON.parse(localStorage.getItem("packData")||"[]");
+  const sendCount=packData.length;
+
+  let packCount=0, missingCount=0, cargoCount=0, cargoExCount=0, cargoSum=0, cargoExSum=0;
+
+  rows.forEach(row=>{
+    const name=row.cells[3]?.innerText.trim();
+    const item=row.cells[4]?.innerText.trim();
+    if(!name&&!item) return; // 빈 행 건너뜀
+    packCount++;
+
+    // 택배수 누락 체크 (7열 index 6)
+    const cnt=row.cells[6]?.innerText.trim();
+    if(!cnt||cnt==="0"){
+      row.classList.add("warn-count");
+      missingCount++;
+    } else {
+      row.classList.remove("warn-count");
+    }
+
+    // 화물/화택 강조 + 택배수 합산
+    const cargo=row.cells[1]?.innerText.trim();
+    const cargoEx=row.cells[2]?.innerText.trim();
+    const rowCount=parseFloat(row.cells[6]?.innerText.trim())||0;
+    if(cargo){ row.classList.add("cargo-row"); cargoCount++; cargoSum+=rowCount; }
+    else row.classList.remove("cargo-row");
+    if(cargoEx){ row.classList.add("cargoex-row"); cargoExCount++; cargoExSum+=rowCount; }
+    else row.classList.remove("cargoex-row");
+  });
+
+  const diff=sendCount-packCount;
+
+  // 요약 바 업데이트
+  document.getElementById("chk-pack-n").textContent=packCount;
+
+  const sendEl=document.getElementById("chk-send");
+  document.getElementById("chk-send-n").textContent=sendCount;
+
+  const diffEl=document.getElementById("chk-diff");
+  document.getElementById("chk-diff-n").textContent=diff>0?"+"+diff:diff;
+  diffEl.className=diff!==0?"warn":"ok";
+
+  const noCountEl=document.getElementById("chk-nocount");
+  document.getElementById("chk-nocount-n").textContent=missingCount;
+  noCountEl.className=missingCount>0?"warn":"ok";
+
+  document.getElementById("chk-cargo-n").textContent=cargoCount;
+  document.getElementById("chk-cargo-sum").textContent=cargoSum;
+  document.getElementById("chk-cargoex-n").textContent=cargoExCount;
+  document.getElementById("chk-cargoex-sum").textContent=cargoExSum;
+  // 합계 택배수 = 총 덩어리수 - 화물 - 화택
+  const totalPack=parseFloat(document.getElementById("chk-total-pack")?.textContent)||0;
+  const netCount=totalPack-cargoSum-cargoExSum;
+  document.getElementById("grandTotal").innerText=netCount;
+
+  // 경로별 카운트 (9열 path)
+  const pathCount={S:0,E:0,C:0,N:0};
+  document.querySelectorAll("#orderTable tr").forEach(row=>{
+    const name=row.cells[3]?.innerText.trim();
+    const item=row.cells[4]?.innerText.trim();
+    if(!name&&!item) return;
+    const path=(row.cells[8]?.innerText||"").trim();
+    if(pathCount.hasOwnProperty(path)) pathCount[path]++;
+  });
+  document.getElementById("chk-s").textContent=pathCount.S;
+  document.getElementById("chk-e").textContent=pathCount.E;
+  document.getElementById("chk-c").textContent=pathCount.C;
+  document.getElementById("chk-n").textContent=pathCount.N;
+}
+
+// ── 발송선택 데이터 로드 ──
+function loadPackData(){
+  const saved=localStorage.getItem("packData"); if(!saved) return;
+  const data=JSON.parse(saved);
+  const tbody=document.getElementById("orderTable");
+  Array.from(tbody.rows).forEach(row=>{
+    for(let j=1;j<row.cells.length;j++) row.cells[j].innerText="";
+  });
+  data.forEach((item,i)=>{
+    const row=tbody.rows[i]; if(!row) return;
+    row.cells[1].innerText=item.cargo||"";
+    row.cells[2].innerText=item.cargoEx||"";
+    row.cells[3].innerText=item.name||"";
+    row.cells[4].innerText=item.item||"";
+    row.cells[5].innerText=item.etc||"";
+    row.cells[6].innerText=item.count||"";
+    row.cells[7].innerText=item.depot||"";
+    row.cells[8].innerText=item.path||"";
+  });
+  updateGrandTotal();
+  checkDataQuality();
+}
+
+// input 때도 체크
+document.getElementById("orderTable").addEventListener("input",function(){ checkDataQuality(); });
+
+// ── 인쇄 ──
+function printTable(){
+  const rows=document.querySelectorAll("#orderTable tr"); let lastRow=0;
+  rows.forEach((row,index)=>{
+    const cells=row.querySelectorAll("td");
+    for(let i=1;i<cells.length;i++){ if(cells[i].innerText.trim()!==""){lastRow=index;break;} }
+  });
+  rows.forEach((row,index)=>{ row.style.display=index>lastRow?"none":""; });
+  window.print();
+  rows.forEach(row=>row.style.display="");
+}
+
+window.addEventListener("load",function(){ loadPackData(); });
+window.addEventListener("focus",function(){ loadPackData(); });
+window.addEventListener("pageshow",function(){ loadPackData(); });
+</script>
+
+<script src="버튼.js"></script>
+</body>
+</html>

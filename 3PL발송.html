@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>3PL 발송</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; }
+    h1 { text-align: center; margin-bottom: 5px; }
+
+    .top-bar {
+      width: 95%; margin: 10px auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    #clock { font-size: 15px; color: #0e0d0d; margin-left: auto; margin-right: 1cm; }
+
+    /* ★ 체크 요약 바 */
+    #checkBar {
+      width: 95%; margin: 0 auto 6px auto; padding: 4px 10px;
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 4px; font-size: 12px;
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    }
+    #checkBar span { font-weight: bold; }
+    #checkBar .ok   { color: #28a745; }
+    #checkBar .warn { color: #dc3545; }
+
+    .table-wrapper {
+      width: 95%; height: 730px; overflow-y: auto;
+      margin: auto; border: 1px solid #ccc;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th, td {
+      border: 1px solid #ccc; padding: 6px; text-align: center;
+      font-size: 13px; font-weight: 350; color: #070707;
+    }
+
+    td:nth-child(10), td:nth-child(11) { font-size: 12px; }
+    td:focus { outline: 2px solid #4CAF50; background-color: #f0fff4; }
+
+    th:nth-child(1)  { width: 3%; }  th:nth-child(2)  { width: 9%; }
+    th:nth-child(3)  { width: 7%; }  th:nth-child(4)  { width: 7%; }
+    th:nth-child(5)  { width: 5%; }  th:nth-child(6)  { width: 22%; }
+    th:nth-child(7)  { width: 24%; } th:nth-child(8)  { width: 4%; }
+    th:nth-child(9)  { width: 10%; } th:nth-child(10) { width: 4%; }
+    th:nth-child(11) { width: 3%; }
+
+    #orderTable td:nth-child(6) { text-align: left; padding-left: 8px; white-space: normal; line-height: 1.4; }
+    #orderTable td:nth-child(7) { text-align: left; padding-left: 6px; }
+
+    thead th {
+      position: sticky; top: 0; background-color: powderblue; z-index: 2;
+      font-size: 16px; font-weight: 400; letter-spacing: 1px; padding: 7px 7px;
+    }
+
+    tr:hover { background-color: #f5f5f5; }
+    tr.selected-row { background-color: #e8f5e9 !important; }
+    .row-number { font-size: 12px; font-weight: 300; pointer-events: none; user-select: none; }
+    tr:nth-child(even) td { background-color: #f0f0f0; }
+
+
+  </style>
+</head>
+<body>
+
+  <h1>3PL발송</h1>
+
+  <div class="top-bar">
+    <div id="clock"></div>
+  </div>
+
+  <!-- ★ 체크 요약 바 -->
+  <div id="checkBar">
+    <span>데이터 체크:</span>
+    <span id="chk-send">발송선택 3PL <b id="chk-send-n">0</b>건</span>
+    <span id="chk-cur">현재 <b id="chk-cur-n">0</b>건</span>
+    <span id="chk-diff">누락: <b id="chk-diff-n">0</b>건</span>
+    <span>합계 택배수: <b id="grandTotal" style="color:red;">0</b></span>
+  </div>
+
+  <div class="table-wrapper">
+    <table data-gm-table>
+      <thead>
+        <tr>
+          <th>순번</th><th>상  호</th><th>휴 대 폰</th><th>전 화</th><th>우편번호</th>
+          <th>주&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;소</th>
+          <th>품&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;목</th>
+          <th>택배수</th>
+          <th>기타 / 메모</th>
+          <th style="font-size:12px;">상품 수량</th>
+          <th style="font-size:13px;color:rgb(252,6,6);">선/착</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+  // ── 시계 ──
+  function clock() {
+    var t=new Date(), week=["일","월","화","수","목","금","토"];
+    var pad=v=>v<10?"0"+v:v;
+    document.getElementById("clock").innerText=
+      (t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일 "+
+      pad(t.getHours())+":"+pad(t.getMinutes())+":"+pad(t.getSeconds());
+  }
+  clock(); setInterval(clock,1000);
+
+  // ── 택배수 합계 ──
+  function updateGrandTotal() {
+    let total=0;
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      const v=parseFloat((row.cells[7]?.innerText||"").replace(/,/g,"").trim());
+      if(!isNaN(v)) total+=v;
+    });
+    document.getElementById("grandTotal").innerText=total.toLocaleString();
+  }
+
+  // ── 선/착불 색상 ──
+  function updatePaymentColor() {
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      const cell=row.cells[10]; if(!cell) return;
+      if(cell.innerText.trim()==="착불"){cell.style.color="red";cell.style.fontWeight="normal";}
+      else{cell.style.color="";cell.style.fontWeight="";}
+    });
+  }
+
+  // ── ★ 데이터 체크 ──
+  function checkDataQuality() {
+    const sendData=JSON.parse(localStorage.getItem("3plData")||"[]");
+    const sendCount=sendData.length;
+    let curCount=0;
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      const name=row.cells[1]?.innerText.trim();
+      const item=row.cells[6]?.innerText.trim();
+      if(name||item) curCount++;
+    });
+    const diff=sendCount-curCount;
+    document.getElementById("chk-send-n").textContent=sendCount;
+    document.getElementById("chk-cur-n").textContent=curCount;
+    const diffEl=document.getElementById("chk-diff");
+    document.getElementById("chk-diff-n").textContent=diff>0?"+"+diff:diff;
+    diffEl.className=diff!==0?"warn":"ok";
+  }
+
+  // ── 3PL 데이터 로드 ──
+  function load3PLData() {
+    const saved=localStorage.getItem("3plData"); if(!saved) return;
+    const data=JSON.parse(saved);
+    const tbody=document.getElementById("orderTable");
+    Array.from(tbody.rows).forEach(row=>{
+      for(let j=1;j<row.cells.length;j++) row.cells[j].innerText="";
+      
+    });
+    data.forEach((item,i)=>{
+      const row=tbody.rows[i]; if(!row) return;
+      row.cells[1].innerText=item.name||"";
+      row.cells[2].innerText=item.mobile||"";
+      row.cells[3].innerText=item.tel||"";
+      row.cells[5].innerText=item.addr||"";
+      row.cells[6].innerText=item.item||"";
+      row.cells[7].innerText=item.count||"";
+      row.cells[8].innerText=item.etc||"";
+      row.cells[10].innerText=item.pay||"";
+      const match=(item.item||"").match(/\(([\d,]+)\)(?:\s*$|(?=\s*★))/);
+      if(match){ const num=parseInt(match[1].replace(/,/g,"")); row.cells[9].innerText=isNaN(num)?"":num.toLocaleString(); }
+    });
+    updateGrandTotal();
+    updatePaymentColor();
+    checkDataQuality();
+  }
+
+  // ── DOMContentLoaded ──
+  document.addEventListener("DOMContentLoaded",function(){
+    const tbody=document.getElementById("orderTable");
+    let html="";
+    for(let i=0;i<500;i++){
+      html+="<tr>";
+      for(let j=0;j<11;j++){
+        html+=j===0?"<td class='row-number'>"+(i+1)+"</td>":"<td contenteditable='true'></td>";
+      }
+      html+="</tr>";
+    }
+    tbody.innerHTML=html;
+    load3PLData();
+
+    tbody.addEventListener("paste",function(e){
+      e.preventDefault();
+      const text=(e.clipboardData||window.clipboardData).getData("text");
+      const startCell=document.activeElement;
+      const startRow=startCell.parentElement.rowIndex-1, startCol=startCell.cellIndex;
+      text.split("\n").forEach((rowText,i)=>{
+        rowText.split("\t").forEach((colText,j)=>{
+          const row=document.querySelectorAll("#orderTable tr")[startRow+i];
+          if(row?.cells[startCol+j]) row.cells[startCol+j].innerText=colText.trim();
+        });
+      });
+      setTimeout(()=>{updateGrandTotal();updatePaymentColor();checkDataQuality();},50);
+    });
+
+    tbody.addEventListener("blur",function(e){
+      if(e.target.tagName!=="TD"||e.target.cellIndex!==9) return;
+      const v=e.target.innerText.replace(/,/g,"").trim();
+      if(!isNaN(v)&&v!=="") e.target.innerText=Number(v).toLocaleString();
+    },true);
+
+    let lastSelectedRow=null;
+    tbody.addEventListener("focusin",function(e){
+      if(e.target.tagName!=="TD") return;
+      if(lastSelectedRow) lastSelectedRow.classList.remove("selected-row");
+      e.target.parentElement.classList.add("selected-row");
+      lastSelectedRow=e.target.parentElement;
+      setTimeout(()=>{
+        const range=document.createRange(); range.selectNodeContents(e.target);
+        const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      },0);
+    });
+
+    tbody.addEventListener("input",function(e){
+      if(e.target.tagName!=="TD") return;
+      if(e.target.cellIndex===7) updateGrandTotal();
+      if(e.target.cellIndex===10) updatePaymentColor();
+      checkDataQuality();
+    });
+
+    tbody.addEventListener("dragstart",function(e){e.preventDefault();});
+  });
+
+  window.addEventListener("load",load3PLData);
+  window.addEventListener("pageshow",load3PLData);
+  window.addEventListener("focus",load3PLData);
+  </script>
+
+  <script src="버튼.js"></script>
+</body>
+</html>

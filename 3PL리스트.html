@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>3PL리스트</title>
+<style>
+body { font-family:Arial; margin:0; }
+h1 { text-align:center; margin-bottom:5px; }
+
+.table-wrapper {
+  width: calc(100% - 2cm);
+  margin: 0 auto;
+  height: 730px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+table { width:100%; border-collapse:collapse; }
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 380;
+  text-align: center;
+  min-width: 30px;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: powderblue;
+  font-size: 15px;
+  font-weight: 380;
+  z-index: 2;
+}
+
+thead th:nth-child(1) { width: 15%; }
+thead th:nth-child(2) { width: 15%; }
+thead th:nth-child(3) { width: 15%; }
+thead th:nth-child(4) { width: 5%; }
+thead th:nth-child(5) { width: 5%; }
+
+td { cursor:text; outline:none; }
+td:focus { outline:2px solid #4CAF50; background:#f0fff4 !important; }
+td.active { outline:2px solid #4CAF50; background:#f0fff4 !important; }
+
+tr.selected-row { background:#e8f5e9; }
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  background: #28a745;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.top-bar {
+  width: calc(100% - 2cm);
+  margin: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; width: 100%;
+  padding: 8px 0; background: #f4f4f4;
+  display: flex; justify-content: center; z-index: 9999;
+}
+.nav-container {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  max-width: 800px; justify-content: center;
+}
+.bottom-nav button {
+  background-color: #d6ebf5; color: black; border: none;
+  font-size: 14px; font-weight: 350; padding: 6px 8px;
+  border-radius: 4px; cursor: pointer;
+}
+.bottom-nav button:hover { opacity: 0.85; }
+@media print { .bottom-nav { display:none !important; } }
+</style>
+</head>
+<body>
+
+<h1>3PL리스트</h1>
+
+<div class="top-bar">
+  <button onclick="saveBackup()">백업 저장하기</button>
+</div>
+
+<div class="table-wrapper">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>3PL리스트</th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="orderTable"></tbody>
+  </table>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const STORAGE_KEY = "threePLPageData";
+  const tbody    = document.getElementById("orderTable");
+  const COLS     = 5, MIN_ROWS = 20, EXTRA = 10, BATCH = 10;
+  const undoStack = [];
+  let saveTimer   = null;
+  let activeCell  = null;
+  let lastRow     = null;
+
+  /* ── localStorage ── */
+  let savedData = [];
+  try { const r = localStorage.getItem(STORAGE_KEY); if (r) savedData = JSON.parse(r); } catch {}
+
+  /* ── 행 생성 ── */
+  function makeRow(data) {
+    const tr = document.createElement("tr");
+    for (let j = 0; j < COLS; j++) {
+      const td = document.createElement("td");
+      td.contentEditable = "true";
+      td.spellcheck = false;
+      td.tabIndex = -1;
+      if (data?.[j]) td.textContent = data[j];
+      tr.appendChild(td);
+    }
+    return tr;
+  }
+
+  /* ── 초기 렌더 ── */
+  const frag = document.createDocumentFragment();
+  const initRows = Math.max(MIN_ROWS, savedData.length + EXTRA);
+  for (let i = 0; i < initRows; i++) frag.appendChild(makeRow(savedData[i]));
+  tbody.appendChild(frag);
+
+  /* ── 셀 활성화 ── */
+  function activateCell(td, doSelectAll) {
+    if (activeCell && activeCell !== td) {
+      activeCell.classList.remove("active");
+      saveBefore(activeCell);
+    }
+    activeCell = td;
+    td.classList.add("active");
+
+    if (lastRow) lastRow.classList.remove("selected-row");
+    lastRow = td.parentElement;
+    lastRow.classList.add("selected-row");
+
+    if (doSelectAll) {
+      td.focus();
+      document.execCommand('selectAll', false, null);
+    } else {
+      td.focus();
+    }
+  }
+
+  function saveBefore(td) {
+    const before = td.dataset.before ?? "";
+    const after  = td.textContent;
+    if (before !== after) {
+      undoStack.push({ cell: td, before, after });
+      if (undoStack.length > 200) undoStack.shift();
+    }
+  }
+
+  /* ── 마우스 클릭 ── */
+  tbody.addEventListener("mousedown", function (e) {
+    const td = e.target.closest("td");
+    if (!td) return;
+    if (td === activeCell) return;
+    activateCell(td, false);
+    td.dataset.before = td.textContent;
+  });
+
+  /* ── focusin ── */
+  tbody.addEventListener("focusin", function (e) {
+    const td = e.target;
+    if (td.tagName !== "TD") return;
+    td.dataset.before = td.textContent;
+  });
+
+  /* ── focusout ── */
+  tbody.addEventListener("focusout", function (e) {
+    const td = e.target;
+    if (td.tagName !== "TD") return;
+    saveBefore(td);
+    td.classList.remove("active");
+    if (activeCell === td) activeCell = null;
+  }, true);
+
+  /* ── input ── */
+  tbody.addEventListener("input", function (e) {
+    if (e.target.tagName !== "TD") return;
+    scheduleSave();
+  });
+
+  /* ── keydown ── */
+  tbody.addEventListener("keydown", function (e) {
+    const td = e.target;
+    if (td.tagName !== "TD") return;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      saveBefore(td);
+      const next = e.shiftKey ? td.previousElementSibling : td.nextElementSibling;
+      if (next) { next.dataset.before = next.textContent; activateCell(next, true); }
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveBefore(td);
+      const nr = td.parentElement.nextElementSibling;
+      if (nr) { nr.cells[td.cellIndex].dataset.before = nr.cells[td.cellIndex].textContent; activateCell(nr.cells[td.cellIndex], true); }
+      return;
+    }
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      saveBefore(td);
+      const sib = e.key === "ArrowUp"
+        ? td.parentElement.previousElementSibling
+        : td.parentElement.nextElementSibling;
+      if (sib) { sib.cells[td.cellIndex].dataset.before = sib.cells[td.cellIndex].textContent; activateCell(sib.cells[td.cellIndex], true); }
+      return;
+    }
+
+    // ←→ Home End → 브라우저 기본 동작
+  });
+
+  /* ── 자동저장 ── */
+  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveDataToLocal, 500); }
+
+  /* ── 붙여넣기 ── */
+  tbody.addEventListener("paste", function (e) {
+    const start = document.activeElement;
+    if (!start || start.tagName !== "TD") return;
+    e.preventDefault();
+    const lines = (e.clipboardData||window.clipboardData).getData("text").split(/\r?\n/).filter(Boolean);
+    const sr = start.parentElement.rowIndex - 1, sc = start.cellIndex;
+    lines.forEach((line, i) => {
+      const cols = line.split("\t");
+      let row = tbody.rows[sr+i];
+      if (!row) { addRows(1); row = tbody.rows[sr+i]; }
+      if (!row) return;
+      cols.forEach((val, j) => { if (row.cells[sc+j]) row.cells[sc+j].textContent = val.trim(); });
+    });
+    saveDataToLocal();
+  });
+
+  /* ── Ctrl+Z ── */
+  document.addEventListener("keydown", function (e) {
+    if (!(e.ctrlKey||e.metaKey) || e.key !== "z") return;
+    if (!undoStack.length) return;
+    e.preventDefault();
+    const { cell, before } = undoStack.pop();
+    cell.textContent = before; cell.dataset.before = before;
+    saveDataToLocal();
+  });
+
+  /* ── 저장 ── */
+  function saveDataToLocal() {
+    const data = [];
+    for (const tr of tbody.rows) {
+      const row = [...tr.cells].map(td => td.textContent.trim());
+      if (row.some(v => v)) data.push(row);
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(err) {}
+  }
+
+  /* ── 행 추가 ── */
+  function addRows(n) {
+    const f = document.createDocumentFragment();
+    for (let i = 0; i < n; i++) f.appendChild(makeRow(null));
+    tbody.appendChild(f);
+  }
+  document.querySelector(".table-wrapper").addEventListener("scroll", function () {
+    if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) addRows(BATCH);
+  });
+
+});
+
+/* ── 백업 저장 ── */
+function saveBackup() {
+  const c = localStorage.getItem("threePLPageData");
+  if (c) localStorage.setItem("threePLPageData_backup", c);
+  alert("백업 저장 완료 👍");
+}
+
+/* ── 페이지 이동 ── */
+function goPage(page) {
+  const pageMap = {
+    "제품리스트"   : "제품리스트.html",
+    "특수품목리스트": "특수품목리스트.html",
+    "3PL리스트"   : "3PL리스트.html",
+    "중상리스트"   : "중상리스트.html"
+  };
+  location.href = pageMap[page];
+}
+</script>
+
+<div class="bottom-nav">
+  <div class="nav-container">
+    <button onclick="goPage('제품리스트')">제품리스트</button>
+    <button onclick="goPage('특수품목리스트')">특수품목리스트</button>
+    <button onclick="goPage('3PL리스트')">3PL리스트</button>
+    <button onclick="goPage('중상리스트')">중상리스트</button>
+  </div>
+</div>
+
+</body>
+</html>

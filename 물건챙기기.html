@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>물건챙기기</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; }
+    h1 { text-align: center; margin: 5px 0 3px 0; }
+
+    .top-bar {
+      width: 95%; margin: 0 auto 5px auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    #clock { font-size: 15px; color: #0e0d0d; }
+    #autoStatus { font-size: 12px; color: #888; margin-left: 10px; }
+
+    /* ★ 체크 요약 바 */
+    #checkBar {
+      width: 95%; margin: 0 auto 4px auto; padding: 4px 10px;
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 4px; font-size: 12px;
+      display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    }
+    #checkBar span { font-weight: bold; }
+    #checkBar .ok   { color: #28a745; }
+    #checkBar .warn { color: #dc3545; }
+
+    .table-wrapper {
+      width: 297mm; overflow: visible; margin: 3px auto; border: none;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      border: 1px solid #ccc; padding: 6px; text-align: center;
+      font-size: 11.5px; font-weight: 350; color: #070707;
+    }
+    #orderTable tr td { height: 16px; padding: 4px 6px; vertical-align: middle; }
+    td:focus { outline: 2px solid #4CAF50; background-color: #f0fff4; }
+
+    td:nth-child(2), td:nth-child(4), td:nth-child(6) { border-right: 3px solid #888; }
+    th:nth-child(2), th:nth-child(4), th:nth-child(6) { border-right: 3px solid #888; }
+
+    th:nth-child(1) { width: 9%; } th:nth-child(2) { width: 3.5%; }
+    th:nth-child(3) { width: 9%; } th:nth-child(4) { width: 3.5%; }
+    th:nth-child(5) { width: 9%; } th:nth-child(6) { width: 3.5%; }
+    th:nth-child(7) { width: 9%; } th:nth-child(8) { width: 3.5%; }
+
+    thead th {
+      position: sticky; top: 0; background-color: powderblue; z-index: 2;
+      font-size: 15px; font-weight: 350; letter-spacing: 1px; padding: 3px 3px;
+    }
+
+    tr:hover { background-color: #f5f5f5; }
+    tr.selected-row { background-color: #e8f5e9 !important; }
+    .cell-selected { background-color: #cce5ff !important; }
+
+    /* ★ 미등록 품목 */
+    td.warn-no-product { color: #dc3545 !important; font-weight: bold; }
+
+    .print-btn {
+      background-color: #4CAF50; color: #ffffff;
+      font-size: 14px; font-weight: 500; border: none;
+      padding: 6px 16px; border-radius: 4px; cursor: pointer;
+    }
+    .print-btn:hover { background-color: #45a049; }
+    .refresh-btn {
+      background-color: #2196F3; color: white;
+      font-size: 14px; font-weight: 500; border: none;
+      padding: 6px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;
+    }
+    .refresh-btn:hover { background-color: #1976D2; }
+
+    #orderTable tr:nth-child(even) td {
+      background-color: #f0f0f0;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    @media print {
+      thead th { background-color: #d9d9d9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { size: A4 landscape; margin: 2mm 5mm; }
+      body { width: 297mm; margin: auto; padding: 0; }
+      .table-wrapper { width: 100%; height: auto; overflow: visible; border: none; }
+      table { width: 100%; font-size: 12px; }
+      th, td { padding: 4px; font-size: 12px; }
+      .print-btn, .refresh-btn, #autoStatus, #checkBar { display: none; }
+      .top-bar { justify-content: flex-end !important; }
+      #clock { display: block; text-align: right; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>물건챙기기</h1>
+
+  <div class="top-bar">
+    <div>
+      <button class="print-btn" onclick="window.print()">인쇄</button>
+      <button class="refresh-btn" onclick="collectItems(true)">주문 집계</button>
+      <span id="autoStatus"></span>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <!-- ★ 체크 요약 바 -->
+  <div id="checkBar">
+    <span>집계 체크:</span>
+    <span id="chk-send">발송선택 <b id="chk-send-n">0</b>건</span>
+    <span id="chk-total">집계 <b id="chk-total-n">0</b>품목</span>
+    <span id="chk-nopos">⚠ 미등록 품목: <b id="chk-nopos-n">0</b></span>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>품 명(A)</th><th>수  량</th>
+          <th>품 명(B)</th><th>수  량</th>
+          <th>품 명(C)</th><th>수  량</th>
+          <th>품 명(D)</th><th>수  량</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+  // ── 시계 ──
+  function clock() {
+    var t=new Date(), week=["일","월","화","수","목","금","토"];
+    var pad=v=>v<10?"0"+v:v;
+    document.getElementById("clock").innerText=
+      (t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일 "+
+      pad(t.getHours())+":"+pad(t.getMinutes())+":"+pad(t.getSeconds());
+  }
+  clock(); setInterval(clock,1000);
+
+  // ── 행 생성 ──
+  document.addEventListener("DOMContentLoaded", function() {
+    const tbody=document.getElementById("orderTable");
+    let html="";
+    for(let i=0;i<50;i++){
+      html+="<tr>";
+      for(let j=0;j<8;j++) html+="<td contenteditable='true'></td>";
+      html+="</tr>";
+    }
+    tbody.innerHTML=html;
+    if(localStorage.getItem("packData")) collectItems(false);
+    else loadData();
+  });
+
+  // ── ★ 데이터 체크 함수 ──
+  function checkDataQuality(groups, ecountToPos) {
+    // 발송선택 건수
+    const packData = JSON.parse(localStorage.getItem("packData")||"[]");
+    document.getElementById("chk-send-n").textContent = packData.length;
+
+    const productData = JSON.parse(localStorage.getItem("productListData")||"[]");
+    const productSet  = new Set();
+    productData.forEach(row=>{
+      if(row[3]?.trim()) productSet.add(row[3].trim()); // 이카운트 품목명
+      if(row[0]?.trim()) productSet.add(row[0].trim()); // 쇼핑몰 품목명
+    });
+
+    const [group0, group1, group2, group3] = groups;
+
+    let totalItems=0, noPosCount=0;
+
+    const rows = document.querySelectorAll("#orderTable tr");
+
+    // 각 그룹별 통계 + 미등록 체크
+    [[group0,0],[group1,1],[group2,2],[group3,3]].forEach(([group, gi])=>{
+      group.forEach(([item, qty], i)=>{
+        totalItems++;
+
+        // 테이블 셀에 미등록 표시
+        const colIdx = gi * 2;
+        const row = rows[i];
+        if(!row) return;
+        const td = row.cells[colIdx];
+        if(!td) return;
+
+        // 제품리스트에 없으면 빨간색
+        const inProduct = productSet.has(item) ||
+          [...productSet].some(p=>p.replace(/^★/,"").toLowerCase()===item.replace(/^★/,"").toLowerCase());
+        if(!inProduct){
+          td.classList.add("warn-no-product");
+          noPosCount++;
+        } else {
+          td.classList.remove("warn-no-product");
+        }
+      });
+    });
+
+    // 요약 바 업데이트
+    document.getElementById("chk-total-n").textContent = totalItems;
+
+    const noPosEl = document.getElementById("chk-nopos");
+    document.getElementById("chk-nopos-n").textContent = noPosCount;
+    noPosEl.className = noPosCount > 0 ? "warn" : "ok";
+  }
+
+  // ── 주문 집계 메인 함수 ──
+  function collectItems(showAlert) {
+    const packRaw=localStorage.getItem("packData");
+    if(!packRaw){
+      if(showAlert) alert("발송선택 데이터가 없어요!\n발송선택 페이지에서 먼저 데이터를 불러오세요.");
+      return;
+    }
+    const packData=JSON.parse(packRaw);
+    const productRaw=localStorage.getItem("productListData");
+    const productData=productRaw?JSON.parse(productRaw):[];
+
+    const ecountToPos=new Map(), ecountToIsSet=new Map();
+    const ecountToComponents=new Map(), codeToEcount=new Map(), shopToEcount=new Map();
+
+    productData.forEach(p=>{
+      const shopName=(p[0]||"").trim(), ecountName=(p[3]||"").trim();
+      const code=(p[4]||"").trim(), position=(p[14]||"").trim();
+      const isSet=(p[10]||"").trim(), compCode=(p[12]||"").trim();
+      const compQty=parseFloat((p[13]||"").replace(/,/g,""))||0;
+      if(shopName&&ecountName) shopToEcount.set(shopName,ecountName);
+      if(ecountName&&position) ecountToPos.set(ecountName,position);
+      if(code&&ecountName) codeToEcount.set(code,ecountName);
+      if(ecountName) ecountToIsSet.set(ecountName,isSet.toUpperCase()==="Y");
+      if(ecountName&&isSet.toUpperCase()==="Y"&&compCode&&compQty){
+        if(!ecountToComponents.has(ecountName)) ecountToComponents.set(ecountName,[]);
+        ecountToComponents.get(ecountName).push({compCode,compQty});
+      }
+    });
+
+    const specialRaw=localStorage.getItem("specialTableData");
+    const col13toOrigins=new Map();
+    if(specialRaw){
+      JSON.parse(specialRaw).forEach(sp=>{
+        const col12=(sp[11]||"").trim(), col13=(sp[12]||"").trim();
+        if(!col12||!col13) return;
+        const m12=col12.replace(/^★/,"").match(/^(.+?)\(([\d,]+)\)$/);
+        if(!m12) return;
+        const originName=m12[1].trim(), originQty=parseFloat(m12[2].replace(/,/g,""))||0;
+        if(!col13toOrigins.has(col13)) col13toOrigins.set(col13,[]);
+        const list=col13toOrigins.get(col13);
+        if(!list.some(o=>o.name===originName)) list.push({name:originName,qty:originQty});
+      });
+    }
+
+    function normalizeName(name){ return name.replace(/\s+/g," ").trim(); }
+    function normFull(name){ return name.replace(/\s+/g,"").trim(); }
+    function findPos(name){
+      if(ecountToPos.has(name)) return true;
+      const norm=normFull(name);
+      for(const [k] of ecountToPos) if(normFull(k)===norm) return true;
+      return false;
+    }
+    function resolveEcountName(name){
+      if(ecountToPos.has(name)||ecountToIsSet.has(name)) return name;
+      const norm=normFull(name);
+      for(const [k] of ecountToPos) if(normFull(k)===norm) return k;
+      for(const [k] of ecountToIsSet) if(normFull(k)===norm) return k;
+      return name;
+    }
+
+    const itemMap=new Map();
+    function addItem(ecountName,qty){
+      if(!ecountName||!qty) return;
+      ecountName=resolveEcountName(ecountName);
+      const isSet=ecountToIsSet.get(ecountName);
+      const components=ecountToComponents.get(ecountName);
+      if(isSet&&components?.length){
+        components.forEach(({compCode,compQty})=>{
+          const compName=codeToEcount.get(compCode);
+          if(compName) itemMap.set(compName,(itemMap.get(compName)||0)+qty*compQty);
+        });
+      } else {
+        itemMap.set(ecountName,(itemMap.get(ecountName)||0)+qty);
+      }
+    }
+
+    const processedGroups=new Set();
+    packData.forEach((row)=>{
+      if(!row.item) return;
+      const path=(row.path||"").trim();
+      const originItem=(row.originItem||"").trim();
+      const originGroup=(row.originGroup||"").trim();
+
+      if(originItem&&originGroup){
+        const groupKey=originGroup+"|"+originItem;
+        if(processedGroups.has(groupKey)) return;
+        processedGroups.add(groupKey);
+        const mOrig=originItem.replace(/^★/,"").match(/^(.+?)\(([\d,]+)\)$/);
+        if(!mOrig) return;
+        const origName=mOrig[1].trim(), origQty=parseFloat(mOrig[2].replace(/,/g,""))||0;
+        if(!origQty) return;
+        let finalName=origName;
+        if(path==="S"){
+          let mapped=shopToEcount.get(origName);
+          if(!mapped){ const norm=normFull(origName); for(const [k,v] of shopToEcount) if(normFull(k)===norm){mapped=v;break;} }
+          finalName=mapped||origName;
+        }
+        addItem(finalName,origQty);
+        return;
+      }
+
+      const itemParts=row.item.split(/(?=★)/).map(v=>v.trim()).filter(v=>v);
+      itemParts.forEach(itemText=>{
+        const match=itemText.replace(/^★/,"").match(/^(.+?)\(([\d,]+)\)$/);
+        if(!match) return;
+        const rawName=match[1].trim(), qty=parseFloat(match[2].replace(/,/g,""))||0;
+        if(!qty) return;
+        let ecountName;
+        if(path==="S"){
+          ecountName=shopToEcount.get(rawName);
+          if(!ecountName){ const norm=normFull(rawName); for(const [k,v] of shopToEcount) if(normFull(k)===norm){ecountName=v;break;} }
+          ecountName=ecountName||rawName;
+        } else {
+          ecountName=rawName;
+        }
+        addItem(ecountName,qty);
+      });
+    });
+
+    if(itemMap.size===0){ if(showAlert) alert("집계된 주문 데이터가 없어요!"); return; }
+
+    const sorted=[...itemMap.entries()].sort((a,b)=>{
+      const posA=ecountToPos.get(a[0])||"ZZZZ";
+      const posB=ecountToPos.get(b[0])||"ZZZZ";
+      return posA.localeCompare(posB,"ko");
+    });
+
+    const prefixSet=new Set();
+    sorted.forEach(([item])=>{ const pos=ecountToPos.get(item)||""; if(pos) prefixSet.add(pos[0].toUpperCase()); });
+    const prefixes=[...prefixSet].sort();
+
+    const group0=[],group1=[],group2=[],group3=[];
+    if(prefixes.length>=2){
+      sorted.forEach(([item,qty])=>{
+        const pos=ecountToPos.get(item)||"", prefix=pos?pos[0].toUpperCase():"";
+        const idx=prefixes.indexOf(prefix);
+        if(idx===0) group0.push([item,qty]);
+        else if(idx===1) group1.push([item,qty]);
+        else if(idx===2) group2.push([item,qty]);
+        else group3.push([item,qty]);
+      });
+    } else {
+      const colSize=Math.ceil(sorted.length/4);
+      sorted.forEach(([item,qty],i)=>{
+        if(i<colSize) group0.push([item,qty]);
+        else if(i<colSize*2) group1.push([item,qty]);
+        else if(i<colSize*3) group2.push([item,qty]);
+        else group3.push([item,qty]);
+      });
+    }
+
+    const tbody=document.getElementById("orderTable");
+    const rows=tbody.querySelectorAll("tr");
+    rows.forEach(row=>Array.from(row.cells).forEach(cell=>{
+      cell.innerText="";
+      cell.classList.remove("warn-no-product");
+    }));
+
+    [[group0,0],[group1,2],[group2,4],[group3,6]].forEach(([group,colIdx])=>{
+      group.forEach(([item,qty],i)=>{
+        const row=rows[i]; if(!row) return;
+        row.cells[colIdx].innerText=item;
+        row.cells[colIdx+1].innerText=qty.toLocaleString();
+      });
+    });
+
+    saveData();
+
+    // ★ 집계 후 데이터 체크 실행
+    checkDataQuality([group0,group1,group2,group3], ecountToPos);
+
+    const now=new Date(), pad=v=>v<10?"0"+v:v;
+    const timeStr=pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+    document.getElementById("autoStatus").innerText="최종 집계: "+timeStr+"  ("+sorted.length+"개 품목)";
+    if(showAlert) alert("집계 완료! 총 "+sorted.length+"개 품목");
+  }
+
+  // ── 저장/불러오기 ──
+  function saveData(){
+    const rows=document.querySelectorAll("#orderTable tr"), data=[];
+    rows.forEach(row=>data.push([...row.cells].map(cell=>cell.innerText)));
+    localStorage.setItem("mbPackingList",JSON.stringify(data));
+  }
+  function loadData(){
+    const saved=localStorage.getItem("mbPackingList"); if(!saved) return;
+    const data=JSON.parse(saved);
+    const rows=document.querySelectorAll("#orderTable tr");
+    data.forEach((rowData,i)=>{
+      if(!rows[i]) return;
+      rowData.forEach((cellData,j)=>{ if(rows[i].cells[j]) rows[i].cells[j].innerText=cellData; });
+    });
+  }
+
+  window.addEventListener("storage",function(e){ if(e.key==="packData") collectItems(false); });
+  window.addEventListener("focus",function(){ if(localStorage.getItem("packData")) collectItems(false); });
+  window.addEventListener("pageshow",function(){ if(localStorage.getItem("packData")) collectItems(false); });
+
+  document.getElementById("orderTable").addEventListener("input",function(e){ if(e.target.tagName!=="TD") return; saveData(); });
+
+  document.getElementById("orderTable").addEventListener("blur",function(e){
+    if(e.target.tagName!=="TD") return;
+    if([1,3,5,7].includes(e.target.cellIndex)){
+      const v=e.target.innerText.replace(/,/g,"").trim();
+      if(!isNaN(v)&&v!=="") e.target.innerText=Number(v).toLocaleString();
+    }
+  },true);
+
+  let lastSelectedRow=null;
+  document.getElementById("orderTable").addEventListener("focusin",function(e){
+    if(e.target.tagName!=="TD") return;
+    if(lastSelectedRow) lastSelectedRow.classList.remove("selected-row");
+    e.target.parentElement.classList.add("selected-row");
+    lastSelectedRow=e.target.parentElement;
+  });
+
+  document.getElementById("orderTable").addEventListener("paste",function(e){
+    e.preventDefault();
+    const text=(e.clipboardData||window.clipboardData).getData("text");
+    const startCell=document.activeElement;
+    const startRow=startCell.parentElement.rowIndex-1, startCol=startCell.cellIndex;
+    text.split("\n").forEach((rowText,i)=>{
+      rowText.split("\t").forEach((colText,j)=>{
+        const row=document.querySelectorAll("#orderTable tr")[startRow+i];
+        if(row?.cells[startCol+j]) row.cells[startCol+j].innerText=colText.trim();
+      });
+    });
+    saveData();
+  });
+
+  let isMouseDown=false, startCell=null, selectedCells=[];
+  document.getElementById("orderTable").addEventListener("mousedown",function(e){
+    if(e.target.tagName!=="TD") return;
+    clearSelection(); isMouseDown=true; startCell=e.target;
+    e.target.classList.add("cell-selected"); selectedCells.push(e.target);
+  });
+  document.getElementById("orderTable").addEventListener("mouseover",function(e){
+    if(!isMouseDown||e.target.tagName!=="TD") return;
+    clearSelection(); selectRange(startCell,e.target);
+  });
+  document.addEventListener("mouseup",()=>{ isMouseDown=false; });
+
+  function selectRange(start,end){
+    const minRow=Math.min(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+    const maxRow=Math.max(start.parentElement.rowIndex-1,end.parentElement.rowIndex-1);
+    const minCol=Math.min(start.cellIndex,end.cellIndex);
+    const maxCol=Math.max(start.cellIndex,end.cellIndex);
+    const rows=document.querySelectorAll("#orderTable tr");
+    for(let i=minRow;i<=maxRow;i++) for(let j=minCol;j<=maxCol;j++){
+      const cell=rows[i]?.cells[j];
+      if(cell){cell.classList.add("cell-selected");selectedCells.push(cell);}
+    }
+  }
+  function clearSelection(){ selectedCells.forEach(c=>c.classList.remove("cell-selected")); selectedCells=[]; }
+
+  document.addEventListener("keydown",function(e){
+    if(e.ctrlKey&&e.key.toLowerCase()==="c"){
+      if(!selectedCells.length) return;
+      e.preventDefault();
+      const rows=document.querySelectorAll("#orderTable tr");
+      const rIdxs=selectedCells.map(c=>c.parentElement.rowIndex-1);
+      const cIdxs=selectedCells.map(c=>c.cellIndex);
+      const minR=Math.min(...rIdxs),maxR=Math.max(...rIdxs),minC=Math.min(...cIdxs),maxC=Math.max(...cIdxs);
+      let result="";
+      for(let i=minR;i<=maxR;i++){
+        let row=[];
+        for(let j=minC;j<=maxC;j++) row.push(rows[i]?.cells[j]?.innerText||"");
+        result+=row.join("\t")+"\n";
+      }
+      navigator.clipboard.writeText(result);
+    }
+    if(e.key==="Delete"||e.key==="Backspace"){
+      const active=document.activeElement;
+      if(active?.tagName==="TD"&&selectedCells.length<=1) return;
+      if(selectedCells.length>1){
+        e.preventDefault();
+        selectedCells.forEach(cell=>{ cell.innerText=""; });
+        clearSelection(); saveData();
+      }
+    }
+  });
+
+  document.getElementById("orderTable").addEventListener("keydown",function(e){
+    const cell=document.activeElement; if(cell.tagName!=="TD") return;
+    const row=cell.parentElement, ci=cell.cellIndex;
+    let target;
+    switch(e.key){
+      case "ArrowRight": target=row.cells[ci+1]; break;
+      case "ArrowLeft":  target=row.cells[ci-1]; break;
+      case "ArrowDown":  target=row.nextElementSibling?.cells[ci]; break;
+      case "ArrowUp":    target=row.previousElementSibling?.cells[ci]; break;
+      case "Enter": e.preventDefault(); target=row.nextElementSibling?.cells[ci]; break;
+      case "Tab":   e.preventDefault(); target=row.cells[ci+1]||row.nextElementSibling?.cells[0]; break;
+    }
+    if(target) target.focus();
+  });
+  </script>
+
+  <script src="버튼.js"></script>
+</body>
+</html>
