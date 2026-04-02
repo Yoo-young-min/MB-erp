@@ -8,30 +8,41 @@
     h1 { text-align: center; color: #333; }
     .section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
     .section h2 { margin-top: 0; font-size: 16px; }
-    .upload   { border-left: 4px solid #28a745; }
-    .download { border-left: 4px solid #007bff; }
-    .setting  { border-left: 4px solid #ffc107; }
+    .export  { border-left: 4px solid #28a745; }
+    .import  { border-left: 4px solid #007bff; }
+    .info-box { border-left: 4px solid #ffc107; }
     button { padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin: 4px; }
-    .btn-up   { background: #28a745; color: white; }
-    .btn-down { background: #007bff; color: white; }
-    .btn-save { background: #ffc107; color: #333; }
-    input[type=text] { width: 100%; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin: 6px 0; }
-    #log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; font-size: 12px; min-height: 80px; max-height: 250px; overflow-y: auto; margin-top: 16px; }
+    .btn-ex  { background: #28a745; color: white; }
+    .btn-im  { background: #007bff; color: white; }
+    .btn-ex:hover { background: #218838; }
+    .btn-im:hover { background: #0056b3; }
+    #log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; font-size: 12px; min-height: 80px; max-height: 200px; overflow-y: auto; margin-top: 16px; }
     .ok   { color: #28a745; }
     .err  { color: #dc3545; }
     .info { color: #6c757d; }
     .key-tag { display:inline-block; background:#e9ecef; border-radius:3px; padding:2px 6px; margin:2px; font-size:12px; }
+    ol li { margin: 8px 0; font-size: 14px; }
+    code { background:#f0f0f0; padding:2px 6px; border-radius:3px; font-size:13px; }
   </style>
 </head>
 <body>
 
 <h1>📦 데이터 동기화</h1>
 
-<div class="section setting">
-  <h2>⚙️ 설정</h2>
-  <label>Google Apps Script URL:</label>
-  <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec">
-  <button class="btn-save" onclick="saveUrl()">URL 저장</button>
+<!-- 사용 방법 -->
+<div class="section info-box">
+  <h2>📋 사용 방법</h2>
+  <b>사무실 PC (데이터 수정 후):</b>
+  <ol>
+    <li>아래 <b>내보내기</b> 버튼 클릭 → <code>erp_data.json</code> 파일 다운로드</li>
+    <li>GitHub에서 이 파일을 업로드</li>
+    <li>물류팀에 "업데이트했어요" 연락</li>
+  </ol>
+  <b>물류팀 PC (연락 받은 후):</b>
+  <ol>
+    <li>아래 <b>가져오기</b> 버튼 클릭</li>
+    <li>완료!</li>
+  </ol>
   <div style="margin-top:8px;">
     동기화 항목:
     <span class="key-tag">productListData</span>
@@ -44,28 +55,28 @@
   </div>
 </div>
 
-<div class="section upload">
-  <h2>⬆️ 업로드 (내 PC → 서버)</h2>
-  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">데이터 수정 후 클릭하세요.</p>
-  <button class="btn-up" onclick="uploadAll()">전체 업로드</button>
-  <button class="btn-up" onclick="uploadOne('productListData')" style="background:#5cb85c;font-size:12px;">제품리스트</button>
-  <button class="btn-up" onclick="uploadOne('specialTableData')" style="background:#5cb85c;font-size:12px;">특수품목</button>
-  <button class="btn-up" onclick="uploadOne('middleProductData')" style="background:#5cb85c;font-size:12px;">중상리스트</button>
+<!-- 내보내기 (사무실 PC) -->
+<div class="section export">
+  <h2>⬆️ 내보내기 (사무실 PC → GitHub)</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">
+    클릭하면 <code>erp_data.json</code> 파일이 다운로드돼요.<br>
+    이 파일을 GitHub 저장소에 올려주세요.
+  </p>
+  <button class="btn-ex" onclick="exportData()">📥 데이터 내보내기 (JSON 다운로드)</button>
 </div>
 
-<div class="section download">
-  <h2>⬇️ 다운로드 (서버 → 내 PC)</h2>
-  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">업무 시작 전 또는 연락 받으면 클릭하세요.</p>
-  <button class="btn-down" onclick="downloadAll()">전체 다운로드</button>
-  <button class="btn-down" onclick="downloadOne('productListData')" style="background:#5bc0de;font-size:12px;">제품리스트</button>
-  <button class="btn-down" onclick="downloadOne('specialTableData')" style="background:#5bc0de;font-size:12px;">특수품목</button>
-  <button class="btn-down" onclick="downloadOne('middleProductData')" style="background:#5bc0de;font-size:12px;">중상리스트</button>
+<!-- 가져오기 (물류팀 PC) -->
+<div class="section import">
+  <h2>⬇️ 가져오기 (GitHub → 내 PC)</h2>
+  <p style="font-size:13px;color:#555;margin:0 0 10px 0;">
+    GitHub에 올라온 최신 데이터를 내 PC로 가져와요.
+  </p>
+  <button class="btn-im" onclick="importData()">📤 데이터 가져오기</button>
 </div>
 
 <div id="log">대기 중...</div>
 
 <script>
-// ── 동기화 대상 키 목록 ──
 var KEYS = [
   "productListData",
   "specialTableData",
@@ -76,29 +87,9 @@ var KEYS = [
   "택배비기준표"
 ];
 
-var CHUNK = 25000; // 한 청크 최대 글자수
+// GitHub raw 파일 주소 (같은 저장소)
+var JSON_URL = "https://raw.githubusercontent.com/Yoo-young-min/MB-erp/main/erp_data.json";
 
-// ── 초기화 ──
-window.onload = function() {
-  var saved = localStorage.getItem("syncApiUrl");
-  if (saved) document.getElementById("apiUrl").value = saved;
-  log("준비 완료. URL을 확인하고 업로드/다운로드 하세요.", "info");
-};
-
-function saveUrl() {
-  var url = document.getElementById("apiUrl").value.trim();
-  if (!url) { log("URL을 입력해주세요.", "err"); return; }
-  localStorage.setItem("syncApiUrl", url);
-  log("URL 저장 완료 ✓", "ok");
-}
-
-function getUrl() {
-  var url = localStorage.getItem("syncApiUrl");
-  if (!url) { log("먼저 URL을 저장해주세요.", "err"); return null; }
-  return url;
-}
-
-// ── 로그 ──
 function log(msg, type) {
   var el = document.getElementById("log");
   var now = new Date();
@@ -111,65 +102,64 @@ function log(msg, type) {
   el.scrollTop = el.scrollHeight;
 }
 
-// ── 업로드 ──
-async function uploadOne(key) {
-  var url = getUrl(); if (!url) return;
-  var value = localStorage.getItem(key);
-  if (!value) { log(key + " — 로컬 데이터 없음, 건너뜀", "info"); return; }
-
-  var chunks = [];
-  for (var i = 0; i < value.length; i += CHUNK) {
-    chunks.push(value.slice(i, i + CHUNK));
-  }
-
-  log(key + " 업로드 중... (" + chunks.length + "청크 / " + Math.round(value.length/1024) + "KB)", "info");
-
-  try {
-    var res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: key, chunks: chunks })
-    });
-    var json = await res.json();
-    if (json.ok) log(key + " 업로드 완료 ✓", "ok");
-    else log(key + " 업로드 실패: " + JSON.stringify(json), "err");
-  } catch(e) {
-    log(key + " 오류: " + e.message, "err");
-  }
-}
-
-async function uploadAll() {
-  log("=== 전체 업로드 시작 ===", "info");
-  for (var i = 0; i < KEYS.length; i++) {
-    await uploadOne(KEYS[i]);
-  }
-  log("=== 전체 업로드 완료 ===", "ok");
-}
-
-// ── 다운로드 ──
-async function downloadOne(key) {
-  var url = getUrl(); if (!url) return;
-  try {
-    log(key + " 다운로드 중...", "info");
-    var res = await fetch(url + "?key=" + encodeURIComponent(key));
-    var json = await res.json();
-    if (json.ok && json.data) {
-      localStorage.setItem(key, json.data);
-      log(key + " 다운로드 완료 ✓ (" + Math.round(json.data.length/1024) + "KB)", "ok");
+// ── 내보내기: JSON 파일 다운로드 ──
+function exportData() {
+  var result = {};
+  var count = 0;
+  KEYS.forEach(function(key) {
+    var val = localStorage.getItem(key);
+    if (val) {
+      result[key] = val;
+      count++;
+      log(key + " ✓ (" + Math.round(val.length/1024) + "KB)", "ok");
     } else {
-      log(key + " — 서버에 데이터 없음", "info");
+      log(key + " — 없음, 건너뜀", "info");
     }
-  } catch(e) {
-    log(key + " 오류: " + e.message, "err");
+  });
+
+  if (count === 0) {
+    log("내보낼 데이터가 없어요.", "err");
+    return;
   }
+
+  // JSON 파일 생성 후 다운로드
+  var json = JSON.stringify(result);
+  var blob = new Blob([json], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "erp_data.json";
+  a.click();
+  URL.revokeObjectURL(url);
+
+  log("=== erp_data.json 다운로드 완료! GitHub에 이 파일을 올려주세요 ===", "ok");
 }
 
-async function downloadAll() {
-  log("=== 전체 다운로드 시작 ===", "info");
-  for (var i = 0; i < KEYS.length; i++) {
-    await downloadOne(KEYS[i]);
+// ── 가져오기: GitHub에서 JSON 읽기 ──
+async function importData() {
+  log("GitHub에서 데이터 가져오는 중...", "info");
+  try {
+    // 캐시 방지
+    var res = await fetch(JSON_URL + "?t=" + Date.now());
+    if (!res.ok) {
+      log("파일을 찾을 수 없어요. GitHub에 erp_data.json이 있는지 확인해주세요.", "err");
+      return;
+    }
+    var data = await res.json();
+    var count = 0;
+    KEYS.forEach(function(key) {
+      if (data[key]) {
+        localStorage.setItem(key, data[key]);
+        log(key + " 완료 ✓ (" + Math.round(data[key].length/1024) + "KB)", "ok");
+        count++;
+      } else {
+        log(key + " — 서버에 데이터 없음", "info");
+      }
+    });
+    log("=== 가져오기 완료! (" + count + "개) 각 페이지를 새로고침하세요 ===", "ok");
+  } catch(e) {
+    log("오류: " + e.message, "err");
   }
-  log("=== 전체 다운로드 완료! 각 페이지를 새로고침하세요 ===", "ok");
 }
 </script>
 
