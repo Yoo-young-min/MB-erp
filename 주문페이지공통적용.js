@@ -1,15 +1,6 @@
 // ========================
-// 전체 주문 초기화
+// 전체 주문 초기화 — (쇼)주문.html 의 resetAllOrders() 사용
 // ========================
-function resetAllOrders(){
-  if(!confirm("모든 주문 페이지 데이터를 초기화하시겠습니까?\n(쇼),(이),(쿠),(스) 주문이 모두 삭제됩니다.")) return;
-  localStorage.removeItem("shopOrderData");
-  localStorage.removeItem("ecountOrderData");
-  localStorage.removeItem("coupangOrderData");
-  localStorage.removeItem("smartstoreOrderData");
-  alert("모든 주문 데이터가 초기화되었습니다.");
-  if(typeof resetOrder === "function") resetOrder();
-}
 
 
 // ========================
