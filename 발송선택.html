@@ -520,10 +520,6 @@
   }
 
   function savePackData() {
-    // 날짜 함께 저장
-    const today = new Date().toLocaleDateString('ko-KR');
-    localStorage.setItem("cargoAccumDate", today);
-    localStorage.setItem("cargoExAccumDate", today);
     const threePLRaw=localStorage.getItem("threePLPageData");
     const threePLItems=threePLRaw?new Set(JSON.parse(threePLRaw).map(r=>(r[0]||"").replace(/,/g,"").trim()).filter(v=>v)):new Set();
     const rows=document.querySelectorAll("#orderTable tr"), data=[];
@@ -546,23 +542,38 @@
 
   // ★ 화물 누적 저장
   const cargoItems=data.filter(r=>r.cargo==="화물");
-  if(cargoItems.length>0){
-    const existing=JSON.parse(localStorage.getItem("cargoAccumData")||"[]");
-    const merged=existing.concat(cargoItems.filter(item=>
-      !existing.some(e=>e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr&&e.item===item.item)
-    ));
-    localStorage.setItem("cargoAccumData",JSON.stringify(merged));
-  }
+  const nonCargoKeys=new Set(data.filter(r=>r.cargo!=="화물").map(i=>i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
+  const cargoExisting=JSON.parse(localStorage.getItem("cargoAccumData")||"[]");
+  // 현재 화면에서 화물 취소된 것 제거
+  const cargoFiltered=cargoExisting.filter(e=>!nonCargoKeys.has(e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item));
+  // 현재 화면에 있는 항목은 최신값(depot 포함)으로 업데이트, 없는 것(오전 데이터)은 유지
+  const cargoMap=new Map(cargoItems.map(i=>[i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item, i]));
+  const cargoMerged=cargoFiltered.map(e=>{
+    const key=e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
+    return cargoMap.has(key) ? cargoMap.get(key) : e; // 현재 화면에 있으면 최신값으로
+  });
+  // 누적에 없는 새 항목 추가
+  cargoItems.forEach(item=>{
+    const key=item.name+"|"+item.mobile+"|"+item.addr+"|"+item.item;
+    if(!cargoMerged.some(e=>e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item===key)) cargoMerged.push(item);
+  });
+  localStorage.setItem("cargoAccumData",JSON.stringify(cargoMerged));
 
   // ★ 화택 누적 저장
   const cargoExItems=data.filter(r=>r.cargoEx==="화택");
-  if(cargoExItems.length>0){
-    const existingEx=JSON.parse(localStorage.getItem("cargoExAccumData")||"[]");
-    const mergedEx=existingEx.concat(cargoExItems.filter(item=>
-      !existingEx.some(e=>e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr&&e.item===item.item)
-    ));
-    localStorage.setItem("cargoExAccumData",JSON.stringify(mergedEx));
-  }
+  const nonCargoExKeys=new Set(data.filter(r=>r.cargoEx!=="화택").map(i=>i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
+  const cargoExExisting=JSON.parse(localStorage.getItem("cargoExAccumData")||"[]");
+  const cargoExFiltered=cargoExExisting.filter(e=>!nonCargoExKeys.has(e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item));
+  const cargoExMap=new Map(cargoExItems.map(i=>[i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item, i]));
+  const cargoExMerged=cargoExFiltered.map(e=>{
+    const key=e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
+    return cargoExMap.has(key) ? cargoExMap.get(key) : e;
+  });
+  cargoExItems.forEach(item=>{
+    const key=item.name+"|"+item.mobile+"|"+item.addr+"|"+item.item;
+    if(!cargoExMerged.some(e=>e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item===key)) cargoExMerged.push(item);
+  });
+  localStorage.setItem("cargoExAccumData",JSON.stringify(cargoExMerged));
   }
 
   function loadShippingTable() {
@@ -575,6 +586,13 @@
     excluded.fill(false);
     colSelected.forEach(v=>{v[0]=false;v[1]=false;});
     localStorage.removeItem("packManualData");
+    // ★ 전체 새 작업 플래그 체크 → 토글/제외 초기화
+    if(localStorage.getItem("packResetFlag")==="1"){
+      localStorage.removeItem("packMarkedCargo");
+      localStorage.removeItem("packMarkedCargoEx");
+      localStorage.removeItem("packExcluded");
+      localStorage.removeItem("packResetFlag");
+    }
     const specialItems=loadSpecialItems();
     const combined=[];
     pageKeys.forEach(key=>{
