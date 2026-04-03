@@ -38,6 +38,7 @@
       <a href="발송선택.html"><button class="send-btn"><strong>발송선택 보내기</strong></button></a>
       <button class="reset-btn" onclick="resetOrder()">새 작업 시작</button>
       <button class="reset-btn reset-all-btn" onclick="resetAllOrders()">전체 새 작업</button>
+      <button class="reset-btn" onclick="resetCargoAccum()" style="background:#ff9800;">화물·화택(당일) 리셋</button>
     </div>
     <div id="clock"></div>
   </div>
@@ -160,7 +161,14 @@
       document.querySelectorAll("#orderTable td").forEach(td=>td.innerText="");
       calculateGrandTotal(); alert("초기화 완료!");
     }
-    function resetAllOrders() {
+    function resetCargoAccum() {
+  if(!confirm("화물·화택 당일 누적 데이터를 초기화하시겠습니까?\n(화물송품장(당일), 화물택배송품장(당일) 데이터가 삭제됩니다)")) return;
+  localStorage.removeItem("cargoAccumData");
+  localStorage.removeItem("cargoExAccumData");
+  alert("화물·화택 당일 데이터가 초기화되었습니다.");
+}
+
+function resetAllOrders() {
       if(!confirm("모든 주문 페이지 데이터를 초기화하시겠습니까?\n(쇼),(이),(쿠),(스) 주문이 모두 삭제됩니다.")) return;
       ["shopOrderData","ecountOrderData","coupangOrderData","smartOrderData"].forEach(k=>localStorage.removeItem(k));
       ["(쇼)주문","(이)주문","(쿠)주문","(스)주문"].forEach(k=>localStorage.setItem("sendListData_"+k,JSON.stringify([])));

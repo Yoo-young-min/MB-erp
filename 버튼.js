@@ -19,6 +19,8 @@
       <button onclick="goPage('화물송품장')">화물송품장</button>
       <button onclick="goPage('화물택배송품장')">화물택배송품장</button>
       <button onclick="goPage('쇼핑몰품목만')">쇼핑몰품목만</button>
+      <button class="cargo-daily-btn" onclick="goPage('화물송품장당일')">화물송품장(당일)</button>
+      <button class="cargo-daily-btn" onclick="goPage('화물택배송품장당일')">화물택배송품장(당일)</button>
     </div>
   </div>
   `;
@@ -40,7 +42,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-width: 1000px;
+    max-width: 1200px;
     justify-content: center;
   }
   .bottom-nav button {
@@ -54,6 +56,10 @@
     cursor: pointer;
   }
   .bottom-nav button:hover { opacity: 0.85; }
+  /* ★ 화물(당일) 버튼 - 옅은 주황 */
+  .bottom-nav button.cargo-daily-btn {
+    background-color: #ffe0b2;
+  }
   @media print { .bottom-nav { display: none !important; } }
   body.right-align .nav-container {
     justify-content: flex-end;
@@ -80,18 +86,20 @@
 // ===============================
 function goPage(page) {
   const pageMap = {
-    "쇼주문"        : "(쇼)주문.html",
-    "이주문"        : "(이)주문.html",
-    "쿠주문"        : "(쿠)주문.html",
-    "스주문"        : "(스)주문.html",
-    "발송선택"      : "발송선택.html",
-    "3PL발송"       : "3PL발송.html",
-    "포장"          : "포장.html",
-    "물건챙기기"    : "물건챙기기.html",
-    "송장파일입력"  : "송장(파일입력).html",
-    "화물송품장"    : "화물송품장.html",
-    "화물택배송품장": "화물택배송품장.html",
-    "쇼핑몰품목만"  : "쇼핑몰품목만.html"
+    "쇼주문"            : "(쇼)주문.html",
+    "이주문"            : "(이)주문.html",
+    "쿠주문"            : "(쿠)주문.html",
+    "스주문"            : "(스)주문.html",
+    "발송선택"          : "발송선택.html",
+    "3PL발송"           : "3PL발송.html",
+    "포장"              : "포장.html",
+    "물건챙기기"        : "물건챙기기.html",
+    "송장파일입력"      : "송장(파일입력).html",
+    "화물송품장"        : "화물송품장.html",
+    "화물송품장당일"    : "화물송품장(당일).html",
+    "화물택배송품장"    : "화물택배송품장.html",
+    "화물택배송품장당일": "화물택배송품장(당일).html",
+    "쇼핑몰품목만"      : "쇼핑몰품목만.html"
   };
   location.href = pageMap[page];
 }
@@ -175,7 +183,6 @@ const GridManager = (() => {
 
     on(table, 'keydown', (e) => _handleKeydown(e, state, opts));
 
-    // ★ Ctrl+C를 document에도 등록 → 포커스가 BODY여도 복사 동작
     on(document, 'keydown', (e) => {
       if (!(e.ctrlKey || e.metaKey) || e.key !== 'c') return;
       if (state.selected.size > 1) {
@@ -193,14 +200,12 @@ const GridManager = (() => {
       _focusCell(cell, opts);
     });
 
-    // capture:true — 다른 focusin 핸들러보다 먼저 실행되어 gmBefore 확실히 세팅
     on(table, 'focusin', (e) => {
       const cell = _closestCell(e.target, opts);
       if (!cell) return;
       cell.dataset.gmBefore = cell.innerText;
     }, true);
 
-    // capture:true — 셀 떠날 때 값 변경 감지 → undo 스택 추가
     on(table, 'blur', (e) => {
       const cell = _closestCell(e.target, opts);
       if (!cell) return;
@@ -245,22 +250,18 @@ const GridManager = (() => {
     const active = document.activeElement;
     const cell   = _closestCell(active, opts) || _closestCell(e.target, opts);
 
-    // Ctrl+Z: undo 스택 있을 때만 가로채기
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && opts.undoKey) {
       if (state.undoStack.length > 0) { e.preventDefault(); _undo(state); }
       return;
     }
-    // Ctrl+Y
     if ((e.ctrlKey || e.metaKey) && opts.undoKey &&
         (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
       if (state.redoStack.length > 0) { e.preventDefault(); _redo(state); }
       return;
     }
-    // Ctrl+C (다중 선택, table keydown 경로)
     if ((e.ctrlKey || e.metaKey) && e.key === 'c' && opts.copyKey) {
       if (state.selected.size > 1) { e.preventDefault(); _copySelection(state); return; }
     }
-    // Delete (다중 선택일 때만)
     if ((e.key === 'Delete' || e.key === 'Backspace') && opts.deleteKey) {
       if (['INPUT', 'TEXTAREA'].includes(active?.tagName)) return;
       if (state.selected.size > 1) { e.preventDefault(); _deleteSelection(state); return; }
@@ -484,11 +485,6 @@ const GridManager = (() => {
     snapshots[0].cell.focus();
   }
 
-  function _applyValue(cell, value) {
-    cell.innerText = value;
-    cell.setAttribute('tabindex', '0');
-  }
-
   function _getInstanceByCell(cell) {
     const table = cell.closest('table');
     return (table && _instances.has(table)) ? _instances.get(table) : null;
@@ -531,27 +527,18 @@ const GridManager = (() => {
 })();
 
 
-/* ════════════════════════════════════════════════════════════════
-   페이지 자동 초기화
-   ════════════════════════════════════════════════════════════════ */
-
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('table[data-gm-table]').forEach(table => {
     GridManager.init(table, { editOnFocus: false });
   });
 });
 
-// (쿠)(스)주문처럼 DOMContentLoaded 안에서 tbody를 생성하는 페이지 대응
 window.addEventListener('load', () => {
   document.querySelectorAll('table[data-gm-table]:not([data-gm])').forEach(table => {
     GridManager.init(table, { editOnFocus: false });
   });
 });
 
-
-/* ════════════════════════════════════════════════════════════════
-   공통 버튼 함수
-   ════════════════════════════════════════════════════════════════ */
 
 function resetGrid(tableId) {
   const t = document.getElementById(tableId);
