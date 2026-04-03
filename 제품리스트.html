@@ -11,6 +11,7 @@ table { width:100%; border-collapse:collapse; }
 th, td { border:1px solid #ccc; padding:6px; font-size:11px; text-align:center; min-width:40px; }
 thead th { position:sticky; top:0; background:powderblue; font-size:13px; font-weight:390; z-index:1; }
 td { outline:none; cursor:cell; user-select:none; }
+td:nth-child(6) { background-color: #f0f0f0; font-weight:800; }
 td.active { outline:2px solid #4CAF50; background:#f0fff4 !important; cursor:text; user-select:text; }
 tr.selected-row { background:#e8f5e9; }
 td.sel { background:#cfe8ff !important; outline:1px solid #4dabf7; }
@@ -260,18 +261,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ── 붙여넣기 ──
   document.addEventListener("paste", function(e) {
-    // 편집 중 셀
-    if(activeCell){
-      // 기본 paste 허용 (contentEditable이 true이므로 자동 처리)
-      setTimeout(()=>{ updateRow(activeCell.closest("tr")); saveDataToLocal(); },0);
-      return;
-    }
-    // 선택 범위 기준
-    if(!dragStart||!tbody.contains(dragStart)) return;
+    const startCell = activeCell || dragStart;
+    if(!startCell || !tbody.contains(startCell)) return;
     e.preventDefault();
+    if(activeCell) deactivateCell();
     const text=(e.clipboardData||window.clipboardData).getData("text");
     const lines=text.split(/\r?\n/).filter(Boolean);
-    const sr=dragStart.parentElement.rowIndex-1, sc=dragStart.cellIndex;
+    const sr=startCell.parentElement.rowIndex-1, sc=startCell.cellIndex;
     lines.forEach((line,i)=>{
       const cols=line.split("\t");
       let row=tbody.rows[sr+i];
