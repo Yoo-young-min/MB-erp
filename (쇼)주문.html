@@ -168,10 +168,52 @@
   alert("화물·화택 당일 데이터가 초기화되었습니다.");
 }
 
-function resetAllOrders() {
+function saveBeforeReset() {
+      // 저장할 데이터 수집
+      const packData     = JSON.parse(localStorage.getItem("packData") || "[]");
+      const cargoAccum   = JSON.parse(localStorage.getItem("cargoAccumData") || "[]");
+      const cargoExAccum = JSON.parse(localStorage.getItem("cargoExAccumData") || "[]");
+
+      // 택배 데이터 (화물/화택 제외)
+      const parcelData = packData.filter(r => r.cargo !== "화물" && r.cargoEx !== "화택");
+
+      const saveData = {
+        saved_at : new Date().toLocaleString("ko-KR"),
+        parcel   : parcelData,
+        cargo    : cargoAccum,
+        cargoEx  : cargoExAccum
+      };
+
+      // 파일명: 날짜시간_발송데이터.json
+      const now = new Date();
+      const pad = v => v < 10 ? "0"+v : v;
+      const fname =
+        now.getFullYear() +
+        pad(now.getMonth()+1) +
+        pad(now.getDate()) + "_" +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        "_발송데이터.json";
+
+      const blob = new Blob([JSON.stringify(saveData, null, 2)], {type: "application/json"});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = fname; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetAllOrders() {
       if(!confirm("모든 주문 페이지 데이터를 초기화하시겠습니까?\n(쇼),(이),(쿠),(스) 주문이 모두 삭제됩니다.")) return;
-      ["shopOrderData","ecountOrderData","coupangOrderData","smartOrderData"].forEach(k=>localStorage.removeItem(k));
+
+      // ★ 새 작업 전 자동 저장
+      saveBeforeReset();
+      ["shopOrderData","ecountOrderData","coupangOrderData","smartstoreOrderData"].forEach(k=>localStorage.removeItem(k));
       ["(쇼)주문","(이)주문","(쿠)주문","(스)주문"].forEach(k=>localStorage.setItem("sendListData_"+k,JSON.stringify([])));
+      localStorage.removeItem("packMarkedCargo");
+      localStorage.removeItem("packMarkedCargoEx");
+      localStorage.removeItem("packExcluded");
+      localStorage.removeItem("packManualData");
+      localStorage.setItem("packResetFlag","1"); // ★ 발송선택에 초기화 신호
       alert("모든 주문 데이터가 초기화되었습니다."); location.reload();
     }
 
