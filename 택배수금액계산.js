@@ -130,11 +130,13 @@ function calculateShippingRatioCorrect() {
     if (resultCell.textContent.trim() !== "") return;
     const itemText = itemCell.innerText.trim();
     if (!itemText || excludeSet.has(itemText)) return;
-    const match = itemText.replace(/^★/, "").match(/^(.+?)\(([\d,]+)\)$/);
-    if (!match) return;
-    const divideValue = divideMap.get(match[1].trim());
+    const noStar1 = itemText.replace(/^★/, "").trim();
+    const qtyMatch1 = noStar1.match(/\(([\d,]+)\)$/);
+    if (!qtyMatch1) return;
+    const nameOnly1 = noStar1.replace(/\(([\d,]+)\)$/, "").trim();
+    const divideValue = divideMap.get(nameOnly1);
     if (!divideValue) return;
-    const result = Number(match[2].replace(/,/g, "")) / divideValue;
+    const result = Number(qtyMatch1[1].replace(/,/g, "")) / divideValue;
     if (result > 0) resultCell.textContent = Math.max(1, Math.floor(result));
   });
 
@@ -166,9 +168,9 @@ function calculateShippingRatioCorrect2() {
     if (resultCell.textContent.trim() !== "") return;
     const itemText = itemCell.innerText.trim();
     if (!itemText || excludeSet.has(itemText)) return;
-    const match = itemText.replace(/^★/, "").match(/^(.+?)\(([\d,]+)\)$/);
-    if (!match) return;
-    const foundValue = costMap.get(match[1].trim());
+    const noStar2 = itemText.replace(/^★/, "").trim();
+    const nameOnly2 = noStar2.replace(/\(([\d,]+)\)$/, "").trim();
+    const foundValue = costMap.get(nameOnly2);
     if (foundValue) resultCell.textContent = Number(foundValue.replace(/,/g, "")).toLocaleString();
   });
 }
