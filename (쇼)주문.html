@@ -109,14 +109,15 @@
       return map;
     }
     function calculateRealQty() {
-      const pm=loadProductUnitMap();
-      document.querySelectorAll("#orderTable tr").forEach(row=>{
-        const prod=row.cells[4]?.innerText.trim().toLowerCase();
-        const qty=parseFloat((row.cells[5]?.innerText||"").replace(/,/g,"").trim());
-        const rc=row.cells[9]; if(!rc) return;
-        rc.innerText=(pm[prod]&&!isNaN(qty))?(qty*pm[prod]).toLocaleString():"";
-      });
-    }
+  const pm=loadProductUnitMap();
+  document.querySelectorAll("#orderTable tr").forEach(row=>{
+    const prod=row.cells[4]?.innerText.trim().toLowerCase();
+    const qty=parseFloat((row.cells[5]?.innerText||"").replace(/,/g,"").trim());
+    const rc=row.cells[9]; if(!rc) return;
+    rc.innerText=(pm[prod]&&!isNaN(qty))?(qty*pm[prod]).toLocaleString():"";
+  });
+  saveOrderPageData("(쇼)주문"); // ★ 추가
+}
 
     // ── 중복 하이라이트 ──
     function highlightDuplicateNames() {
