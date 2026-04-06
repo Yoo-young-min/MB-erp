@@ -498,6 +498,14 @@
     savePackData();
     save3PLData();
 
+    // ★ 보이는 행만 순번 재정렬
+    let num=0;
+    document.querySelectorAll("#orderTable tr").forEach(row=>{
+      if(row.style.display==="none") return;
+      num++;
+      row.cells[1].innerText=num;
+    });
+
     // ★ 모든 계산 끝난 후 데이터 품질 체크
     checkDataQuality();
   }
