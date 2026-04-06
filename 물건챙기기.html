@@ -246,7 +246,7 @@
     }
 
     function normalizeName(name){ return name.replace(/\s+/g," ").trim(); }
-    function normFull(name){ return name.replace(/\s+/g,"").trim(); }
+    function normFull(name){ return name.replace(/\s+/g,"").trim().toLowerCase(); }
     function findPos(name){
       if(ecountToPos.has(name)) return true;
       const norm=normFull(name);
