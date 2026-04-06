@@ -185,7 +185,7 @@ function calculateBoxCount() {
   const productData = JSON.parse(productSaved);
   const BASE_CBM    = getBoxStandard().parcel.cbm;
 
-  const clean = str => (str||"").replace(/^★/,"").replace(/\([^)]*\)$/,"").toLowerCase().trim();
+  const clean = str => (str||"").replace(/^★/,"").replace(/\([\d,]+\)$/,"").toLowerCase().trim();
   const productMap = new Map();
   productData.forEach(p => productMap.set(clean(p[0]), p));
 
@@ -221,7 +221,7 @@ function calculateBoxCountECN() {
   const productData = JSON.parse(productSaved);
   const BASE_CBM    = getBoxStandard().parcel.cbm;
 
-  const clean = str => (str||"").replace(/^★/,"").replace(/\([^)]*\)$/,"").toLowerCase().trim();
+  const clean = str => (str||"").replace(/^★/,"").replace(/\([\d,]+\)$/,"").toLowerCase().trim();
   const productMap = new Map();
   productData.forEach(p => productMap.set(clean(p[3]), p));
 
@@ -260,7 +260,7 @@ function calculateBoxCost() {
   const productData = JSON.parse(productSaved);
   const costData    = JSON.parse(costSaved);
 
-  const clean = str => (str||"").replace(/^★/,"").replace(/\([^)]*\)$/,"").toLowerCase().trim();
+  const clean = str => (str||"").replace(/^★/,"").replace(/\([\d,]+\)$/,"").toLowerCase().trim();
   const productMapS   = new Map();
   const productMapECN = new Map();
   productData.forEach(p => { productMapS.set(clean(p[0]),p); productMapECN.set(clean(p[3]),p); });

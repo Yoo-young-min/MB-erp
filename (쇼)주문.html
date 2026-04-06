@@ -103,15 +103,15 @@
       const data=JSON.parse(localStorage.getItem("productListData")||"[]");
       const map={};
       data.forEach(row=>{
-        const name=row[0]?.trim(), unit=parseFloat((row[1]||"").replace(/,/g,""));
-        if(name&&!isNaN(unit)) map[name]=unit;
+        const name=row[0]?.trim().toLowerCase(), unit=parseFloat((row[1]||"").replace(/,/g,""));
+          if(name&&!isNaN(unit)) map[name]=unit;
       });
       return map;
     }
     function calculateRealQty() {
       const pm=loadProductUnitMap();
       document.querySelectorAll("#orderTable tr").forEach(row=>{
-        const prod=row.cells[4]?.innerText.trim();
+        const prod=row.cells[4]?.innerText.trim().toLowerCase();
         const qty=parseFloat((row.cells[5]?.innerText||"").replace(/,/g,"").trim());
         const rc=row.cells[9]; if(!rc) return;
         rc.innerText=(pm[prod]&&!isNaN(qty))?(qty*pm[prod]).toLocaleString():"";
