@@ -117,6 +117,7 @@
     rc.innerText=(pm[prod]&&!isNaN(qty))?(qty*pm[prod]).toLocaleString():"";
   });
   saveOrderPageData("(쇼)주문"); // ★ 추가
+  saveOrderData(); // ★ 이것도 추가
 }
 
     // ── 중복 하이라이트 ──
