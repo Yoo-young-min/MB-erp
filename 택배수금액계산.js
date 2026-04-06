@@ -304,7 +304,10 @@ function calculateBoxCost() {
     else if (isCargoEx) { sorted = sortedCargoEx; key = "화물택배"; }
     else                { sorted = sortedParcel;  key = "택배"; }
 
-    const found = sorted.find(c => totalCBM <= c.cbm) || sorted[sorted.length-1];
+    // ★ 1박스 평균 CBM = 전체 CBM ÷ 택배수 → 그 구간 단가
+    const shipCount = parseInt(cells[10]?.textContent.trim()) || 1;
+    const avgCBM = totalCBM / shipCount;
+    const found = sorted.find(c => avgCBM <= c.cbm) || sorted[sorted.length-1];
     if (found) cells[11].textContent = found[key].toLocaleString();
   });
 }
