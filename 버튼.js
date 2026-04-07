@@ -19,8 +19,9 @@
       <button onclick="goPage('화물송품장')">화물송품장</button>
       <button onclick="goPage('화물택배송품장')">화물택배송품장</button>
       <button onclick="goPage('쇼핑몰품목만')">쇼핑몰품목만</button>
-      <button class="cargo-daily-btn" onclick="goPage('화물송품장당일')">화물송품장(당일)</button>
-      <button class="cargo-daily-btn" onclick="goPage('화물택배송품장당일')">화물택배송품장(당일)</button>
+      <button class="cargo-daily-btn" onclick="goPage('화물송품장당일')">화물(당일)</button>
+      <button class="cargo-daily-btn" onclick="goPage('화물택배송품장당일')">화물택배(당일)</button>
+      <button class="cargo-daily-btn" onclick="goPage('쇼핑몰품목만당일')">쇼핑몰(당일)</button>
     </div>
   </div>
   `;
@@ -42,7 +43,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-width: 1400px;
+    max-width: 1200px;
     justify-content: center;
   }
   .bottom-nav button {
@@ -96,10 +97,11 @@ function goPage(page) {
     "물건챙기기"        : "물건챙기기.html",
     "송장파일입력"      : "송장(파일입력).html",
     "화물송품장"        : "화물송품장.html",
-    "화물송품장당일"    : "화물송품장(당일).html",
+    "화물송품장당일"    : "화물(당일).html",
     "화물택배송품장"    : "화물택배송품장.html",
-    "화물택배송품장당일": "화물택배송품장(당일).html",
-    "쇼핑몰품목만"      : "쇼핑몰품목만.html"
+    "화물택배송품장당일": "화물택배(당일).html",
+    "쇼핑몰품목만"      : "쇼핑몰품목만.html",
+    "쇼핑몰품목만당일"  : "쇼핑몰(당일).html"
   };
   location.href = pageMap[page];
 }

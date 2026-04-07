@@ -498,14 +498,6 @@
     savePackData();
     save3PLData();
 
-    // ★ 보이는 행만 순번 재정렬
-    let num=0;
-    document.querySelectorAll("#orderTable tr").forEach(row=>{
-      if(row.style.display==="none") return;
-      num++;
-      row.cells[1].innerText=num;
-    });
-
     // ★ 모든 계산 끝난 후 데이터 품질 체크
     checkDataQuality();
   }
@@ -582,6 +574,39 @@
     if(!cargoExMerged.some(e=>e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item===key)) cargoExMerged.push(item);
   });
   localStorage.setItem("cargoExAccumData",JSON.stringify(cargoExMerged));
+
+  // ★ 쇼핑몰 품목 누적 저장 (S경로, 당일)
+  const today = new Date().toLocaleDateString('ko-KR');
+  const shopAccumDate = localStorage.getItem("shopItemAccumDate");
+  // 날짜 바뀌면 자동 리셋
+  if(shopAccumDate && shopAccumDate !== today){
+    localStorage.removeItem("shopItemAccumData");
+  }
+  localStorage.setItem("shopItemAccumDate", today);
+
+  const shopItems = data.filter(r => r.path === "S" && r.item);
+  if(shopItems.length > 0){
+    const shopExisting = JSON.parse(localStorage.getItem("shopItemAccumData") || "[]");
+    // 현재 화면에 없는 것(오전 데이터)은 유지, 현재 있는 것은 최신값으로 업데이트
+    const shopCurrentKeys = new Set(shopItems.map(i => i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
+    const shopNonKeys = new Set(data.filter(r => r.path === "S").map(i => i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
+    // 현재 화면에 있는데 S경로가 아닌 경우 제거 (취소된 경우)
+    const shopFiltered = shopExisting.filter(e => {
+      const key = e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
+      return !shopNonKeys.has(key) || shopCurrentKeys.has(key);
+    });
+    // 현재 화면 항목으로 업데이트 또는 추가 (별도 행으로 누적)
+    const shopMap = new Map(shopItems.map(i => [i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item, i]));
+    const shopMerged = shopFiltered.map(e => {
+      const key = e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
+      return shopMap.has(key) ? shopMap.get(key) : e;
+    });
+    shopItems.forEach(item => {
+      const key = item.name+"|"+item.mobile+"|"+item.addr+"|"+item.item;
+      if(!shopMerged.some(e => e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item === key)) shopMerged.push(item);
+    });
+    localStorage.setItem("shopItemAccumData", JSON.stringify(shopMerged));
+  }
   }
 
   function loadShippingTable() {
