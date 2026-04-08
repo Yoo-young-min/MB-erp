@@ -119,7 +119,7 @@
     if(!shopRaw||!productRaw) return;
     const shopData=JSON.parse(shopRaw);
     const productData=JSON.parse(productRaw);
-    const excludedRaw=localStorage.getItem("packExcluded");
+    const excludedRaw=localStorage.getItem("packExcludedKeys");
     const excludedSet=new Set(excludedRaw?JSON.parse(excludedRaw):[]);
 
     // ★ 대소문자 무시
@@ -130,6 +130,10 @@
     });
 
     const tbody=document.getElementById("orderTable");
+    // ★ 데이터 개수에 맞게 행 생성
+    const neededRows = shopData.filter(r=>r[4]?.trim()).length + 10;
+    if(tbody.rows.length < neededRows) buildRows(neededRows);
+
     const rows=tbody.querySelectorAll("tr");
     rows.forEach(row=>{ [13,14,16,17,19,20,23].forEach(ci=>{ row.cells[ci].innerText=""; }); row.cells[14]?.classList.remove("warn-no-product"); row.classList.remove("warn-empty"); });
 
@@ -139,7 +143,7 @@
       const addr=(rowData[3]||"").trim(), itemName=(rowData[4]||"").trim();
       const realQty=(rowData[9]||"").trim();
       if(!itemName) return;
-      const excludeKey=name+"|"+mobile+"|"+addr;
+      const excludeKey=name+"|"+mobile+"|"+addr+"|"+itemName;
       if(excludedSet.has(excludeKey)) return;
       const row=rows[rowIndex]; if(!row) return;
       row.cells[14].innerText=itemName;
@@ -159,22 +163,30 @@
     checkDataQuality();
   }
 
+  function buildRows(count) {
+    const tbody=document.getElementById("orderTable");
+    tbody.innerHTML="";
+    const frag=document.createDocumentFragment();
+    for(let i=0;i<count;i++){
+      const tr=document.createElement("tr");
+      for(let j=0;j<24;j++){
+        const td=document.createElement("td");
+        td.contentEditable="true";
+        if(j===2) td.innerText="111111";
+        else if(j===3) td.innerText="쇼핑몰";
+        else if(j===4) td.innerText="00006";
+        else if(j===5) td.innerText="00001";
+        else if(j===6) td.innerText="11";
+        tr.appendChild(td);
+      }
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+  }
+
   document.addEventListener("DOMContentLoaded",function(){
     const tbody=document.getElementById("orderTable");
-    let html="";
-    for(let i=0;i<500;i++){
-      let row="<tr>";
-      for(let j=0;j<24;j++){
-        if(j===2) row+="<td>111111</td>";
-        else if(j===3) row+="<td>쇼핑몰</td>";
-        else if(j===4) row+="<td>00006</td>";
-        else if(j===5) row+="<td>00001</td>";
-        else if(j===6) row+="<td>11</td>";
-        else row+="<td contenteditable='true'></td>";
-      }
-      row+="</tr>"; html+=row;
-    }
-    tbody.innerHTML=html;
+    buildRows(50);
     loadShopOrderData();
 
     tbody.addEventListener("paste",function(e){

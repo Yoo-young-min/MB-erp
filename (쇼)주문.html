@@ -209,6 +209,9 @@ function saveBeforeReset() {
 
       // ★ 새 작업 전 자동 저장
       saveBeforeReset();
+      // ★ 차수 증가
+      const currentRound = parseInt(localStorage.getItem("packRound")||"0");
+      localStorage.setItem("packRound", currentRound + 1);
       ["shopOrderData","ecountOrderData","coupangOrderData","smartOrderData"].forEach(k=>localStorage.removeItem(k));
       ["(쇼)주문","(이)주문","(쿠)주문","(스)주문"].forEach(k=>localStorage.setItem("sendListData_"+k,JSON.stringify([])));
       localStorage.removeItem("packMarkedCargo");

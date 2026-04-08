@@ -420,17 +420,32 @@
   }
 
   function saveExcluded() {
-    const keys=[];
-    document.querySelectorAll("#orderTable tr").forEach(row=>{
-      if(row.cells[0]?.innerText.trim()==="제외") keys.push(_rowKey(row));
+    const indices=[], keys=[];
+    document.querySelectorAll("#orderTable tr").forEach((row,i)=>{
+      if(row.cells[0]?.innerText.trim()==="제외"){
+        indices.push(i);
+        // ★ 품목명까지 포함해서 키 저장 (품목 단위 제외)
+        const itemText = row.cells[8]?.innerText.trim()||"";
+        const parts = itemText.split(/(?=★)/).map(v=>v.trim()).filter(v=>v);
+        if(parts.length > 0){
+          parts.forEach(part=>{
+            const match = part.replace(/^★/,"").match(/^(.+?)\(([\d,]+)\)$/);
+            const itemName = match ? match[1].trim() : part.replace(/^★/,"").trim();
+            if(itemName) keys.push(_rowKey(row)+"|"+itemName);
+          });
+        } else {
+          keys.push(_rowKey(row));
+        }
+      }
     });
-    localStorage.setItem("packExcluded",JSON.stringify(keys));
+    localStorage.setItem("packExcluded", JSON.stringify(indices));
+    localStorage.setItem("packExcludedKeys", JSON.stringify(keys));
   }
 
   function restoreExcluded() {
-    const keys=JSON.parse(localStorage.getItem("packExcluded")||"[]");
+    const indices=JSON.parse(localStorage.getItem("packExcluded")||"[]");
     document.querySelectorAll("#orderTable tr").forEach((row,i)=>{
-      if(!keys.includes(_rowKey(row))) return;
+      if(!indices.includes(i)) return;
       excluded[i]=true;
       row.cells[0].innerText="제외";
       row.cells[0].classList.add("exclude-text");
@@ -536,7 +551,8 @@
         count:row.cells[10]?.innerText.trim(),price:row.cells[11]?.innerText.trim(),
         pay:row.cells[12]?.innerText.trim(),depot:row.cells[13]?.innerText.trim(),
         path:row.cells[14]?.innerText.trim(),
-        originItem:row.dataset.originItem||"",originGroup:row.dataset.originGroup||""});
+        originItem:row.dataset.originItem||"",originGroup:row.dataset.originGroup||"",
+        round:parseInt(localStorage.getItem("packRound")||"1")});
     });
     localStorage.setItem("packData",JSON.stringify(data));
 
@@ -587,23 +603,12 @@
   const shopItems = data.filter(r => r.path === "S" && r.item);
   if(shopItems.length > 0){
     const shopExisting = JSON.parse(localStorage.getItem("shopItemAccumData") || "[]");
-    // 현재 화면에 없는 것(오전 데이터)은 유지, 현재 있는 것은 최신값으로 업데이트
-    const shopCurrentKeys = new Set(shopItems.map(i => i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
-    const shopNonKeys = new Set(data.filter(r => r.path === "S").map(i => i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
-    // 현재 화면에 있는데 S경로가 아닌 경우 제거 (취소된 경우)
-    const shopFiltered = shopExisting.filter(e => {
-      const key = e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
-      return !shopNonKeys.has(key) || shopCurrentKeys.has(key);
-    });
-    // 현재 화면 항목으로 업데이트 또는 추가 (별도 행으로 누적)
-    const shopMap = new Map(shopItems.map(i => [i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item, i]));
-    const shopMerged = shopFiltered.map(e => {
-      const key = e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item;
-      return shopMap.has(key) ? shopMap.get(key) : e;
-    });
+    // ★ 새 항목만 추가 (취소 개념 없음, 오전 데이터 유지)
+    const shopExistingKeys = new Set(shopExisting.map(i => i.name+"|"+i.mobile+"|"+i.addr+"|"+i.item));
+    const shopMerged = [...shopExisting];
     shopItems.forEach(item => {
       const key = item.name+"|"+item.mobile+"|"+item.addr+"|"+item.item;
-      if(!shopMerged.some(e => e.name+"|"+e.mobile+"|"+e.addr+"|"+e.item === key)) shopMerged.push(item);
+      if(!shopExistingKeys.has(key)) shopMerged.push(item);
     });
     localStorage.setItem("shopItemAccumData", JSON.stringify(shopMerged));
   }

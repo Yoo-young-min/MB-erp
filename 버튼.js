@@ -40,22 +40,23 @@
     z-index: 9999;
   }
   .nav-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-width: 1200px;
-    justify-content: center;
-  }
-  .bottom-nav button {
-    background-color: #d6ebf5;
-    color: black;
-    border: none;
-    font-size: 14px;
-    font-weight: 350;
-    padding: 6px 6px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 1600px;
+  justify-content: center;
+}
+.bottom-nav button {
+  background-color: #d6ebf5;
+  color: black;
+  border: none;
+  font-size: 13px;
+  font-weight: 350;
+  padding: 6px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
   .bottom-nav button:hover { opacity: 0.85; }
   /* ★ 화물(당일) 버튼 - 옅은 주황 */
   .bottom-nav button.cargo-daily-btn {
