@@ -748,6 +748,7 @@
         cell.innerText=excluded[ri]?"제외":"";
         cell.classList.toggle("exclude-text",excluded[ri]);
         row.classList.toggle("excluded-row",excluded[ri]);
+        row.classList.remove("selected-row"); // ★ 즉시 회색 적용
         saveExcluded();savePackData();return;
       }
       if(cell.cellIndex===2){
@@ -758,6 +759,7 @@
         // 단가는 calculateBoxCost()에서 화물 기준표로 자동 계산
         row.cells[11].textContent = ""; // 단가 초기화 후 재계산
         if(typeof calculateBoxCost==="function") calculateBoxCost();
+        if(!colSelected[ri][0]&&!colSelected[ri][1]) row.classList.remove("selected-row","marked-row");
         saveMarked();savePackData();
       }
       if(cell.cellIndex===3){
@@ -768,6 +770,7 @@
         // 단가는 calculateBoxCost()에서 화물택배 기준표로 자동 계산
         row.cells[11].textContent = ""; // 단가 초기화 후 재계산
         if(typeof calculateBoxCost==="function") calculateBoxCost();
+        if(!colSelected[ri][0]&&!colSelected[ri][1]) row.classList.remove("selected-row","marked-row");
         saveMarked();savePackData();
       }
       const cargoCell=row.cells[13];

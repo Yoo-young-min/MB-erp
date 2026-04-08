@@ -215,6 +215,25 @@
 
   const undoStack=[];
   document.addEventListener("keydown",function(e){
+    // Ctrl+C 복사
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="c"){
+      if(!selectedCells.length) return;
+      e.preventDefault();
+      const rIdxs=selectedCells.map(c=>c.parentElement.rowIndex);
+      const cIdxs=selectedCells.map(c=>c.cellIndex);
+      const minR=Math.min(...rIdxs), maxR=Math.max(...rIdxs);
+      const minC=Math.min(...cIdxs), maxC=Math.max(...cIdxs);
+      const table=selectedCells[0].closest("table");
+      let result="";
+      for(let i=minR;i<=maxR;i++){
+        let row=[];
+        for(let j=minC;j<=maxC;j++) row.push(table.rows[i]?.cells[j]?.innerText||"");
+        result+=row.join("\t")+"\n";
+      }
+      navigator.clipboard.writeText(result);
+      return;
+    }
+    // Ctrl+Z 실행취소
     if(!(e.ctrlKey||e.metaKey)||e.key!=="z") return;
     if(!undoStack.length) return;
     e.preventDefault();
