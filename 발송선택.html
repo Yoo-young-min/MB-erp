@@ -868,20 +868,7 @@
       }
     });
 
-    const observer=new MutationObserver(updateGrandTotal);
-    observer.observe(tbody,{subtree:true,childList:true,characterData:true});
-
-    const sendBtn=document.createElement("button");
-    sendBtn.id="sendShippingBtn"; sendBtn.innerText="발송선택보내기";
-    sendBtn.style.margin="5px"; sendBtn.onclick=loadShippingTable;
-    document.body.appendChild(sendBtn);
-
-    ["포장","물건챙기기"].forEach(label=>{
-      const btn=document.createElement("button");
-      btn.innerText=label;
-      btn.onclick=()=>{ const data=getDataToSend(); alert(data.length+"개의 행이 "+label+" 전송 대상입니다."); };
-      document.body.appendChild(btn);
-    });
+    
   });
 
   window.addEventListener("load",function(){
