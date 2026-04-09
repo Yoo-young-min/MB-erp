@@ -65,15 +65,9 @@
 
   // ★ 차수별 색상
   function getRoundColor(round) {
-    const colors = {
-      1: "#000000",  // 1차: 검정
-      2: "#0066cc",  // 2차: 파랑
-      3: "#007700",  // 3차: 초록
-      4: "#cc6600",  // 4차: 주황
-      5: "#cc0077",  // 5차: 분홍
-    };
-    return colors[round] || "#333333";
-  }
+  const colors = ["#000000","#0066cc","#007700","#cc6600","#cc0077"];
+  return colors[(round-1) % colors.length];
+}
   function clock() {
     var t=new Date(), week=["일","월","화","수","목","금","토"];
     var text=(t.getMonth()+1)+"월 "+t.getDate()+"일 "+week[t.getDay()]+"요일";

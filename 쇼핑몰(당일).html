@@ -73,15 +73,9 @@
 
   // ★ 차수별 색상
   function getRoundColor(round) {
-    const colors = {
-      1: "#000000",  // 1차: 검정
-      2: "#0066cc",  // 2차: 파랑
-      3: "#007700",  // 3차: 초록
-      4: "#cc6600",  // 4차: 주황
-      5: "#cc0077",  // 5차: 분홍
-    };
-    return colors[round] || "#333333";
-  }
+  const colors = ["#000000","#0066cc","#007700","#cc6600","#cc0077"];
+  return colors[(round-1) % colors.length];
+}
   function clock() {
     var t=new Date(), week=["일","월","화","수","목","금","토"];
     var pad=v=>v<10?"0"+v:v;
@@ -120,79 +114,69 @@
   }
 
   function loadAccumData() {
-    // ★ 날짜 체크 - 날짜 바뀌면 자동 리셋
-    const today = new Date().toLocaleDateString('ko-KR');
-    const savedDate = localStorage.getItem("shopItemAccumDate");
-    if(savedDate && savedDate !== today){
-      localStorage.removeItem("shopItemAccumData");
-      localStorage.removeItem("shopItemAccumDate");
-    }
-
-    const accumRaw = localStorage.getItem("shopItemAccumData");
-    const productRaw = localStorage.getItem("productListData");
-    if(!accumRaw || !productRaw) return;
-
-    const accumData = JSON.parse(accumRaw);
-    const productData = JSON.parse(productRaw);
-
-    // ★ 제외된 주문자 키 로드
-    const excludedRaw = localStorage.getItem("packExcludedKeys");
-    const excludedSet = new Set(excludedRaw ? JSON.parse(excludedRaw) : []);
-
-    // ★ 대소문자 무시
-    const productMap = new Map();
-    productData.forEach(p=>{
-      const name=(p[0]||"").trim().toLowerCase(), code=(p[4]||"").trim(), price=(p[5]||"").trim();
-      if(name) productMap.set(name, {code, price});
-    });
-
-    // ★ 품목을 ★ 기준으로 분리해서 평탄화
-    const flatItems = [];
-    accumData.forEach(rowData => {
-      const baseKey = (rowData.name||"")+"|"+(rowData.mobile||"")+"|"+(rowData.addr||"");
-      const itemText = rowData.item || "";
-      const parts = itemText.split(/(?=★)/).map(v=>v.trim()).filter(v=>v);
-      parts.forEach(part => {
-        const match = part.replace(/^★/,"").match(/^(.+?)\(([\d,]+)\)$/);
-        const itemName = match ? match[1].trim() : part.replace(/^★/,"").trim();
-        const qty = match ? parseFloat(match[2].replace(/,/g,"")) : 0;
-        // ★ 품목 단위로 제외 체크
-        const excludeKey = baseKey+"|"+itemName;
-        if(excludedSet.has(excludeKey)) return;
-        flatItems.push({ itemName, qty, round: rowData.round||1 });
-      });
-    });
-
-    const tbody = document.getElementById("orderTable");
-    // 기존 행 초기화
-    Array.from(tbody.rows).forEach(row=>{
-      [13,14,16,17,19,20,23].forEach(ci=>{ if(row.cells[ci]) row.cells[ci].innerText=""; });
-      row.classList.remove("warn-empty");
-    });
-
-    // ★ 데이터 개수에 맞게 행 생성
-    const neededRows = flatItems.length + 10;
-    if(tbody.rows.length < neededRows) buildRows(neededRows);
-    const rows2 = tbody.querySelectorAll("tr");
-
-    // 데이터 표시
-    flatItems.forEach((item, i) => {
-      const row = rows2[i]; if(!row) return;
-      // ★ 차수별 색상 적용
-      Array.from(row.cells).forEach(td => { td.style.color = getRoundColor(item.round||1); });
-      row.cells[14].innerText = item.itemName;
-      row.cells[16].innerText = item.qty > 0 ? item.qty.toLocaleString() : "";
-      const matched = productMap.get(item.itemName.toLowerCase());
-      if(matched){
-        row.cells[13].innerText = matched.code;
-        const price = parseFloat(matched.price.replace(/,/g,""));
-        row.cells[17].innerText = isNaN(price) ? "" : price.toLocaleString();
-      }
-      calcRow(row);
-    });
-
-    updateSummary();
+  const today = new Date().toLocaleDateString('ko-KR');
+  const savedDate = localStorage.getItem("shopItemAccumDate");
+  if(savedDate && savedDate !== today){
+    localStorage.removeItem("shopItemAccumData");
+    localStorage.removeItem("shopItemAccumDate");
   }
+
+  const productRaw = localStorage.getItem("productListData");
+  const productData = productRaw ? JSON.parse(productRaw) : [];
+  const excludedRaw = localStorage.getItem("packExcludedKeys");
+  const excludedSet = new Set(excludedRaw ? JSON.parse(excludedRaw) : []);
+  const productMap = new Map();
+  productData.forEach(p=>{
+    const name=(p[0]||"").trim().toLowerCase(), code=(p[4]||"").trim(), price=(p[5]||"").trim();
+    if(name) productMap.set(name, {code, price});
+  });
+
+  // ★ 이전 차수 누적 데이터
+  const accumData = JSON.parse(localStorage.getItem("shopItemAccumData")||"[]");
+
+  // ★ 현재 차수 데이터 (쇼핑몰품목만과 동일하게 shopOrderData 실시간)
+  const currentRound = parseInt(localStorage.getItem("packRound")||"1");
+  const shopRaw = localStorage.getItem("shopOrderData");
+  const currentItems = [];
+  if(shopRaw){
+    JSON.parse(shopRaw).forEach(rowData=>{
+      const name=(rowData[0]||"").trim(), mobile=(rowData[1]||"").trim();
+      const addr=(rowData[3]||"").trim(), itemName=(rowData[4]||"").trim();
+      const realQty=(rowData[9]||"").trim();
+      if(!itemName) return;
+      const excludeKey=name+"|"+mobile+"|"+addr+"|"+itemName;
+      if(excludedSet.has(excludeKey)) return;
+      currentItems.push({ itemName, realQty, round: currentRound });
+    });
+  }
+
+  // ★ 이전 차수 + 현재 차수 합치기
+  const allItems = [...accumData, ...currentItems];
+  if(!allItems.length){ buildRows(50); updateSummary(); return; }
+
+  buildRows(Math.max(50, allItems.length + 10));
+  const rows = document.getElementById("orderTable").querySelectorAll("tr");
+
+  allItems.forEach((d, i) => {
+    const row = rows[i]; if(!row) return;
+    const color = getRoundColor(d.round||1);
+    Array.from(row.cells).forEach(td => { td.style.color = color; });
+    const itemName = d.itemName||"";
+    const realQty = d.realQty||"";
+    row.cells[14].innerText = itemName;
+    const qty = parseFloat(realQty.replace(/,/g,""))||0;
+    row.cells[16].innerText = qty > 0 ? qty.toLocaleString() : "";
+    const matched = productMap.get(itemName.toLowerCase());
+    if(matched){
+      row.cells[13].innerText = matched.code;
+      const price = parseFloat(matched.price.replace(/,/g,""))||0;
+      row.cells[17].innerText = price > 0 ? price.toLocaleString() : "";
+    }
+    calcRow(row);
+  });
+
+  updateSummary();
+}
 
   function buildRows(count) {
     const tbody = document.getElementById("orderTable");

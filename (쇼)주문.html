@@ -209,6 +209,27 @@ function saveBeforeReset() {
 
       // ★ 새 작업 전 자동 저장
       saveBeforeReset();
+      // ★ 전체 새 작업 전 현재 쇼핑몰품목만 데이터 누적 저장
+const _round = parseInt(localStorage.getItem("packRound")||"1");
+const _today = new Date().toLocaleDateString('ko-KR');
+const _savedDate = localStorage.getItem("shopItemAccumDate");
+if(_savedDate && _savedDate !== _today) localStorage.removeItem("shopItemAccumData");
+localStorage.setItem("shopItemAccumDate", _today);
+const _shopRaw = localStorage.getItem("shopOrderData");
+const _excludedSet = new Set(JSON.parse(localStorage.getItem("packExcludedKeys")||"[]"));
+if(_shopRaw){
+  const _existing = JSON.parse(localStorage.getItem("shopItemAccumData")||"[]");
+  JSON.parse(_shopRaw).forEach(row=>{
+    const name=(row[0]||"").trim(), mobile=(row[1]||"").trim();
+    const addr=(row[3]||"").trim(), itemName=(row[4]||"").trim();
+    const realQty=(row[9]||"").trim();
+    if(!itemName || !realQty) return;
+    const excludeKey=name+"|"+mobile+"|"+addr+"|"+itemName;
+    if(_excludedSet.has(excludeKey)) return;
+    _existing.push({ itemName, realQty, round: _round });
+  });
+  localStorage.setItem("shopItemAccumData", JSON.stringify(_existing));
+}
       // ★ 차수 증가
       const currentRound = parseInt(localStorage.getItem("packRound")||"0");
       localStorage.setItem("packRound", currentRound + 1);
@@ -217,6 +238,7 @@ function saveBeforeReset() {
       localStorage.removeItem("packMarkedCargo");
       localStorage.removeItem("packMarkedCargoEx");
       localStorage.removeItem("packExcluded");
+      localStorage.removeItem("packExcludedKeys");
       localStorage.removeItem("packManualData");
       localStorage.setItem("packResetFlag","1"); // ★ 발송선택에 초기화 신호
       alert("모든 주문 데이터가 초기화되었습니다."); location.reload();
