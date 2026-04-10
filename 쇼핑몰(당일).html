@@ -136,7 +136,8 @@
 
   // ★ 현재 차수 데이터 (쇼핑몰품목만과 동일하게 shopOrderData 실시간)
   const currentRound = parseInt(localStorage.getItem("packRound")||"1");
-  const shopRaw = localStorage.getItem("shopOrderData");
+  const shopOrderDate = localStorage.getItem("shopOrderDate");
+  const shopRaw = shopOrderDate === today ? localStorage.getItem("shopOrderData") : null;
   const currentItems = [];
   if(shopRaw){
     JSON.parse(shopRaw).forEach(rowData=>{

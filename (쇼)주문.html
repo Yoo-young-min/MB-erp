@@ -139,13 +139,14 @@
 
     // ── 저장/복원 ──
     function saveOrderData() {
-      const rows=document.querySelectorAll("#orderTable tr"), data=[];
-      rows.forEach(row=>{
-        const rd=Array.from(row.cells).map(c=>c.innerText.trim());
-        if(rd.join("")!=="") data.push(rd);
-      });
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-    }
+  const rows=document.querySelectorAll("#orderTable tr"), data=[];
+  rows.forEach(row=>{
+    const rd=Array.from(row.cells).map(c=>c.innerText.trim());
+    if(rd.join("")!=="") data.push(rd);
+  });
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  localStorage.setItem("shopOrderDate", new Date().toLocaleDateString('ko-KR')); // ★ 추가
+}
     function loadOrderData() {
       const saved=localStorage.getItem(STORAGE_KEY); if(!saved) return;
       const data=JSON.parse(saved);
