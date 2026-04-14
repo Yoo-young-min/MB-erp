@@ -166,6 +166,14 @@
   function loadSpecialItems() {
     return loadSpecialData().filter(r => r[0]?.trim()).map(r => normalizeItemName(r[0].trim()));
   }
+
+  function isExcludedBySpecial(itemText) {
+  const data = loadSpecialData();
+  const excludeList = data.map(r=>(r[7]||"").trim()).filter(v=>v);
+  const normalized = itemText.replace(/\s+/g,"");
+  return excludeList.some(e => e.replace(/\s+/g,"") === normalized);
+  }
+  
   function normalizeItemName(text) {
     return text ? text.replace(/^★/,"").replace(/\(.*\)/,"").trim() : "";
   }
@@ -627,7 +635,17 @@
       JSON.parse(raw).forEach(item=>{
         const itemText=item.itemText||"";
         const itemName=normalizeItemName(itemText);
-        if(specialItems.includes(itemName)){combined.push({...item,items:[itemText]});return;}
+        if(specialItems.includes(itemName)){
+  if(!isExcludedBySpecial(itemText)) combined.push({...item,items:[itemText]});
+  else {
+    // ★ 제외된 특수품목은 일반 행으로 합치기
+    const exists=combined.find(e=>
+      e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr);
+    if(!exists) combined.push({...item,items:itemText?[itemText]:[]});
+    else if(itemText) exists.items.push(itemText);
+  }
+  return;
+}
         const exists=combined.find(e=>
           !specialItems.includes(itemName)&&
           e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr&&
