@@ -165,7 +165,9 @@
     function resetCargoAccum() {
   if(!confirm("화물·화택·쇼핑몰 당일 누적 데이터를 초기화하시겠습니까?\n(화물송품장(당일), 화물택배송품장(당일), 쇼핑몰품목만(당일) 데이터가 삭제됩니다)")) return;
   localStorage.removeItem("cargoAccumData");
+  localStorage.removeItem("cargoAccumDate");      // ★ 추가
   localStorage.removeItem("cargoExAccumData");
+  localStorage.removeItem("cargoExAccumDate");    // ★ 추가
   localStorage.removeItem("shopItemAccumData");
   localStorage.removeItem("shopItemAccumDate");
   alert("화물·화택·쇼핑몰 당일 데이터가 초기화되었습니다.");

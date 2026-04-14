@@ -240,6 +240,13 @@
 
   // ── 누적 데이터 로드 ──
   function reloadFromAccum() {
+  // ★ 날짜 체크 - 날짜 바뀌면 자동 리셋
+  const today = new Date().toLocaleDateString('ko-KR');
+  const savedDate = localStorage.getItem("cargoExAccumDate");
+    if(savedDate && savedDate !== today){
+    localStorage.removeItem("cargoExAccumData");
+  }
+    localStorage.setItem("cargoExAccumDate", today);
     const saved=localStorage.getItem(ACCUM_KEY);
     const data=saved?JSON.parse(saved):[];
     const pagesNeeded=Math.max(1,Math.ceil(data.length/ROWS_PER_PAGE));
