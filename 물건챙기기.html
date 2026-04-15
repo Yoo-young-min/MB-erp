@@ -298,6 +298,7 @@
           if(!mapped){ const norm=normFull(origName); for(const [k,v] of shopToEcount) if(normFull(k)===norm){mapped=v;break;} }
           finalName=mapped||origName;
         }
+        
         addItem(finalName,origQty);
         return;
       }
@@ -321,36 +322,25 @@
     });
 
     if(itemMap.size===0){ if(showAlert) alert("집계된 주문 데이터가 없어요!"); return; }
+    console.log("itemMap.size:", itemMap.size, [...itemMap.entries()].slice(0,3));
 
     const sorted=[...itemMap.entries()].sort((a,b)=>{
       const posA=ecountToPos.get(a[0])||"ZZZZ";
       const posB=ecountToPos.get(b[0])||"ZZZZ";
       return posA.localeCompare(posB,"ko");
     });
+    console.log("sorted길이:", sorted.length, "prefixes:", [...new Set(sorted.map(([k])=>(ecountToPos.get(k)||"")[0]||"없음"))].sort());
 
-    const prefixSet=new Set();
-    sorted.forEach(([item])=>{ const pos=ecountToPos.get(item)||""; if(pos) prefixSet.add(pos[0].toUpperCase()); });
-    const prefixes=[...prefixSet].sort();
-
-    const group0=[],group1=[],group2=[],group3=[];
-    if(prefixes.length>=2){
-      sorted.forEach(([item,qty])=>{
-        const pos=ecountToPos.get(item)||"", prefix=pos?pos[0].toUpperCase():"";
-        const idx=prefixes.indexOf(prefix);
-        if(idx===0) group0.push([item,qty]);
-        else if(idx===1) group1.push([item,qty]);
-        else if(idx===2) group2.push([item,qty]);
-        else group3.push([item,qty]);
-      });
-    } else {
-      const colSize=Math.ceil(sorted.length/4);
-      sorted.forEach(([item,qty],i)=>{
-        if(i<colSize) group0.push([item,qty]);
-        else if(i<colSize*2) group1.push([item,qty]);
-        else if(i<colSize*3) group2.push([item,qty]);
-        else group3.push([item,qty]);
-      });
-    }
+    // ★ A,B,C,D 고정 배치
+const group0=[],group1=[],group2=[],group3=[];
+sorted.forEach(([item,qty])=>{
+  const pos=ecountToPos.get(item)||"", prefix=pos?pos[0].toUpperCase():"";
+  if(prefix==="A") group0.push([item,qty]);
+  else if(prefix==="B") group1.push([item,qty]);
+  else if(prefix==="C") group2.push([item,qty]);
+  else if(prefix==="D") group3.push([item,qty]);
+  else group3.push([item,qty]); // 위치 없으면 D열에
+});
 
     const tbody=document.getElementById("orderTable");
     const rows=tbody.querySelectorAll("tr");
