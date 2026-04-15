@@ -324,11 +324,27 @@
     if(itemMap.size===0){ if(showAlert) alert("집계된 주문 데이터가 없어요!"); return; }
     console.log("itemMap.size:", itemMap.size, [...itemMap.entries()].slice(0,3));
 
-    const sorted=[...itemMap.entries()].sort((a,b)=>{
-      const posA=ecountToPos.get(a[0])||"ZZZZ";
-      const posB=ecountToPos.get(b[0])||"ZZZZ";
-      return posA.localeCompare(posB,"ko");
-    });
+    function naturalSort(a, b) {
+  const re = /(\d+)/g;
+  const aParts = a.split(re);
+  const bParts = b.split(re);
+  for(let i=0; i<Math.max(aParts.length, bParts.length); i++){
+    const aVal = aParts[i]||"", bVal = bParts[i]||"";
+    const aNum = parseInt(aVal), bNum = parseInt(bVal);
+    if(!isNaN(aNum)&&!isNaN(bNum)){
+      if(aNum!==bNum) return aNum-bNum;
+    } else {
+      if(aVal!==bVal) return aVal.localeCompare(bVal,"ko");
+    }
+  }
+  return 0;
+}
+
+const sorted=[...itemMap.entries()].sort((a,b)=>{
+  const posA=ecountToPos.get(a[0])||"ZZZZ";
+  const posB=ecountToPos.get(b[0])||"ZZZZ";
+  return naturalSort(posA, posB);
+});
     console.log("sorted길이:", sorted.length, "prefixes:", [...new Set(sorted.map(([k])=>(ecountToPos.get(k)||"")[0]||"없음"))].sort());
 
     // ★ A,B,C,D 고정 배치
