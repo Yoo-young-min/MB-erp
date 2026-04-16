@@ -120,7 +120,7 @@
     localStorage.removeItem("shopItemAccumData");
     localStorage.removeItem("shopItemAccumDate");
   }
-
+  localStorage.setItem("shopItemAccumDate", today);
   const productRaw = localStorage.getItem("productListData");
   const productData = productRaw ? JSON.parse(productRaw) : [];
   const excludedRaw = localStorage.getItem("packExcludedKeys");
