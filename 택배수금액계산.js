@@ -118,7 +118,7 @@ function calculateShippingRatioCorrect() {
   specialData.forEach(sp => {
     const col8 = (sp[7] || "").trim();
     if (col8) excludeSet.add(col8);
-    const name = (sp[0] || "").trim(), divide = Number(sp[1]);
+    const name = (sp[0] || "").trim(), divide = Number((sp[1]||"").replace(/,/g,""));
     if (name && divide > 0) divideMap.set(name, divide);
   });
 

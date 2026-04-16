@@ -217,7 +217,7 @@ const _round = parseInt(localStorage.getItem("packRound")||"1");
 const _today = new Date().toLocaleDateString('ko-KR');
 const _savedDate = localStorage.getItem("shopItemAccumDate");
 if(_savedDate && _savedDate !== _today) localStorage.removeItem("shopItemAccumData");
-localStorage.setItem("shopItemAccumDate", _today);
+
 const _shopRaw = localStorage.getItem("shopOrderData");
 const _excludedSet = new Set(JSON.parse(localStorage.getItem("packExcludedKeys")||"[]"));
 if(_shopRaw){
