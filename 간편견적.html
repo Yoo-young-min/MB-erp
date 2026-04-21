@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>박스 간편 견적</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+:root{
+  --bg:#f5f0e8;--white:#fffdf9;--brown:#3d2b1f;--brown-l:#7a5c48;
+  --accent:#c8702a;--accent2:#e8a055;--gold:#d4a843;
+  --border:#d6c9b8;--text:#2c1f15;--muted:#8a7060;--green:#4a7c59;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text);min-height:100vh;}
+
+/* 헤더 */
+.header{background:var(--brown);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;}
+.header-l{display:flex;align-items:center;gap:16px;}
+.logo{font-size:22px;font-weight:900;color:var(--gold);letter-spacing:1px;}
+.sub{color:rgba(255,255,255,.5);font-size:12px;border-left:1px solid rgba(255,255,255,.2);padding-left:16px;}
+
+.hero{background:linear-gradient(135deg,var(--brown) 0%,#5c3d2e 60%,var(--brown-l) 100%);padding:40px 32px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50px;right:-50px;width:260px;height:260px;border-radius:50%;background:rgba(200,112,42,.1);}
+.hero-tag{display:inline-block;background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:3px;padding:4px 12px;border-radius:2px;margin-bottom:14px;}
+.hero h1{font-size:28px;font-weight:900;color:#fff;line-height:1.25;margin-bottom:10px;}
+.hero h1 span{color:var(--gold);}
+.hero p{color:rgba(255,255,255,.6);font-size:13px;line-height:1.8;}
+
+/* 메인 */
+.main{max-width:860px;margin:0 auto;padding:32px 20px 80px;}
+
+/* 카드 */
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:18px;position:relative;}
+.clabel{position:absolute;top:-11px;left:22px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;padding:3px 13px;border-radius:20px;}
+.ctitle{font-size:15px;font-weight:700;color:var(--brown);margin-bottom:18px;display:flex;align-items:center;gap:8px;margin-top:6px;}
+.cicon{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;}
+
+/* 형태 선택 */
+.shape-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;transition:all .2s;}
+.sbtn{border:2px solid var(--border);background:var(--bg);border-radius:9px;padding:16px 10px;cursor:pointer;text-align:center;transition:all .18s;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.sbtn:hover{border-color:var(--accent2);background:#fff;transform:translateY(-2px);}
+.sbtn.on{border-color:var(--accent);background:#fff8f3;box-shadow:0 0 0 3px rgba(200,112,42,.13);}
+.sbtn.on::after{content:'✓';position:absolute;top:5px;right:7px;color:var(--accent);font-size:11px;font-weight:900;}
+.sico{font-size:26px;display:block;margin-bottom:6px;}
+.sname{font-size:13px;font-weight:700;color:var(--brown);display:block;}
+.sdesc{font-size:10px;color:var(--muted);display:block;margin-top:2px;}
+
+/* 용도 */
+.use-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ubtn{border:2px solid var(--border);background:var(--bg);border-radius:9px;padding:16px 18px;cursor:pointer;text-align:left;transition:all .18s;display:flex;align-items:center;gap:12px;}
+.ubtn:hover{border-color:var(--accent2);background:#fff;}
+.ubtn.on{border-color:var(--accent);background:#fff8f3;}
+.uico{font-size:26px;}
+.uname{font-size:14px;font-weight:700;color:var(--brown);}
+.udesc{font-size:11px;color:var(--muted);margin-top:2px;}
+.ubadge{font-size:10px;background:var(--border);color:var(--muted);padding:2px 8px;border-radius:10px;white-space:nowrap;}
+.ubtn.on .ubadge{background:var(--accent);color:#fff;}
+
+/* 크기 */
+.size-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.ig{position:relative;}
+.ilabel{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;}
+.ifield{width:100%;padding:12px 42px 12px 14px;border:2px solid var(--border);border-radius:8px;font-size:20px;font-weight:700;color:var(--brown);background:var(--bg);outline:none;transition:all .18s;-moz-appearance:textfield;}
+.ifield::-webkit-inner-spin-button{display:none;}
+.ifield:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(200,112,42,.1);}
+.iunit{position:absolute;right:12px;bottom:13px;font-size:12px;color:var(--muted);font-weight:500;pointer-events:none;}
+
+/* 계산 버튼 */
+.calc-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:11px;padding:18px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;letter-spacing:.5px;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;}
+.calc-btn:hover{background:#a85e22;transform:translateY(-2px);box-shadow:0 6px 18px rgba(200,112,42,.28);}
+
+/* 결과 */
+.result{display:none;animation:up .35s ease;}
+.result.show{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+.res-header{background:linear-gradient(135deg,var(--brown),#5c3d2e);border-radius:11px;padding:20px 26px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.res-header h2{color:#fff;font-size:18px;font-weight:700;}
+.res-header p{color:rgba(255,255,255,.55);font-size:12px;margin-top:3px;}
+.res-pill{background:rgba(255,255,255,.1);color:var(--gold);font-size:12px;font-weight:500;padding:7px 14px;border-radius:18px;border:1px solid rgba(255,255,255,.2);white-space:nowrap;}
+
+/* 탭 */
+.tabs{display:flex;gap:8px;margin-bottom:14px;}
+.tab{padding:7px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s;}
+.tab.on{background:var(--brown);color:#fff;border-color:var(--brown);}
+
+.panel{display:none;} .panel.on{display:block;}
+
+/* 단가표 */
+.price-tbl{background:var(--white);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:14px;}
+.pthead{background:var(--brown);display:grid;padding:11px 18px;}
+.pthead span{color:rgba(255,255,255,.65);font-size:11px;font-weight:700;letter-spacing:.5px;text-align:center;}
+.pthead span:first-child{text-align:left;}
+.prow{display:grid;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;}
+.prow:last-child{border-bottom:none;}
+.prow:hover{background:var(--bg);}
+.prow.best{background:linear-gradient(90deg,#fff8f3,var(--white));border-left:3px solid var(--accent);}
+.rlabel{font-size:13px;font-weight:700;color:var(--brown);}
+.rsub{font-size:11px;color:var(--muted);margin-top:2px;}
+.pcell{text-align:center;}
+.punit{font-size:17px;font-weight:900;color:var(--accent);}
+.psupply{font-size:13px;font-weight:700;color:var(--brown);}
+.btag{display:inline-block;background:var(--gold);color:var(--brown);font-size:9px;font-weight:900;padding:2px 7px;border-radius:8px;margin-bottom:3px;letter-spacing:.5px;}
+
+/* 목형비 */
+.devbox{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.devleft{display:flex;align-items:center;gap:11px;}
+.devico{width:38px;height:38px;background:var(--brown);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--gold);}
+.devlabel{font-size:14px;font-weight:700;color:var(--brown);}
+.devnote{font-size:11px;color:var(--muted);margin-top:2px;}
+.devamt{font-size:19px;font-weight:900;color:var(--brown);}
+
+/* 주의사항 */
+.notice{background:#fef9ec;border:1px solid var(--gold);border-radius:8px;padding:13px 16px;font-size:12px;color:#7a6030;line-height:1.8;margin-bottom:18px;}
+.notice strong{color:var(--accent);}
+
+/* 문의 */
+.contact{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:26px;}
+.contact h3{font-size:15px;font-weight:700;color:var(--brown);margin-bottom:5px;}
+.contact p{font-size:12px;color:var(--muted);margin-bottom:18px;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.flabel{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;}
+.finp{padding:11px 13px;border:2px solid var(--border);border-radius:7px;font-size:14px;font-family:'Noto Sans KR',sans-serif;color:var(--brown);background:var(--bg);outline:none;transition:border-color .15s;}
+.finp:focus{border-color:var(--accent);background:#fff;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.cta-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.cta-k{background:#FEE500;color:#3A1D1D;border:none;border-radius:9px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.cta-k:hover{filter:brightness(.95);}
+.cta-e{background:var(--brown);color:#fff;border:none;border-radius:9px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.cta-e:hover{background:var(--accent);}
+.copy-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#3A1D1D;color:#FEE500;font-size:13px;font-weight:700;padding:13px 22px;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.2);opacity:0;transition:all .3s;z-index:9999;white-space:pre-line;text-align:center;line-height:1.7;}
+.copy-toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;line-height:2;}
+.tel{color:var(--accent);font-weight:700;font-size:14px;text-decoration:none;}
+
+@media(max-width:580px){
+  .header{padding:16px 20px;}
+  .hero{padding:28px 20px;}
+  .hero h1{font-size:22px;}
+  .main{padding:20px 14px 60px;}
+  .card{padding:20px 16px;}
+  .shape-grid{grid-template-columns:repeat(3,1fr);}
+  .size-row{grid-template-columns:repeat(3,1fr);}
+  .cta-row,.frow2{grid-template-columns:1fr;}
+  .res-header{flex-direction:column;gap:10px;align-items:flex-start;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-l">
+    <span class="logo">BOX</span>
+    <span class="sub">간편 견적</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-tag">QUICK ESTIMATE</div>
+  <h1>내 상자의 <span>제작 단가</span>를<br>바로 확인하세요</h1>
+  <p>용도 · 형태 · 크기만 선택하면<br>수량별 예상 단가를 즉시 안내해드립니다</p>
+</div>
+
+<div class="main">
+
+  <!-- ① 용도 -->
+  <div class="card">
+    <div class="clabel">① 용도 선택</div>
+    <div class="ctitle" style="margin-top:6px;"><div class="cicon">🎁</div>어떤 용도로 사용하시나요?</div>
+    <div class="use-grid">
+      <div class="ubtn on" data-use="답례" onclick="selUse(this)">
+        <span class="uico">🌸</span>
+        <div style="flex:1;"><div class="uname">답례용 (소형)</div><div class="udesc">아이보리 350g 기준</div></div>
+        <span class="ubadge">IV350</span>
+      </div>
+      <div class="ubtn" data-use="선물" onclick="selUse(this)">
+        <span class="uico">🎀</span>
+        <div style="flex:1;"><div class="uname">선물용 (중형)</div><div class="udesc">마닐라240+골판지 기준</div></div>
+        <span class="ubadge">SC240</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 형태 -->
+  <div class="card">
+    <div class="clabel">② 형태 선택</div>
+    <div class="ctitle" style="margin-top:6px;"><div class="cicon">📦</div>어떤 형태의 상자인가요?</div>
+    <div class="shape-grid" id="shape-grid"></div>
+  </div>
+
+  <!-- ③ 크기 -->
+  <div class="card">
+    <div class="clabel">③ 크기 입력</div>
+    <div class="ctitle" style="margin-top:6px;"><div class="cicon">📐</div>상자 내부 기준 치수 (mm)</div>
+    <div class="size-row">
+      <div class="ig">
+        <label class="ilabel">가 로 (W)</label>
+        <input type="number" class="ifield" id="iW" placeholder="150" min="50" max="600">
+        <span class="iunit">mm</span>
+      </div>
+      <div class="ig">
+        <label class="ilabel">세 로 (D)</label>
+        <input type="number" class="ifield" id="iD" placeholder="100" min="50" max="600">
+        <span class="iunit">mm</span>
+      </div>
+      <div class="ig">
+        <label class="ilabel">높 이 (H)</label>
+        <input type="number" class="ifield" id="iH" placeholder="25" min="10" max="300">
+        <span class="iunit">mm</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calc()">🔍 예상 견적 계산하기</button>
+
+  <!-- 결과 -->
+  <div class="result" id="result">
+
+    <div class="res-header">
+      <div><h2>수량별 예상 견적</h2><p>부가세 포함 · 참고용 견적</p></div>
+      <div class="res-pill" id="res-spec">—</div>
+    </div>
+
+    <div class="price-tbl" id="ptbl-result"></div>
+    <div class="devbox" id="dev-result"></div>
+
+    <div class="notice">
+      ⚠ 위 견적은 <strong>참고용 예상 단가</strong>입니다.<br>
+      종이 시세 변동 · 인쇄 도수 · 후가공(박·UV·형압) 추가 시 단가 변동됩니다.<br>
+      정확한 견적은 아래 <strong>세부 견적 문의</strong>를 이용해 주세요.
+    </div>
+
+    <div class="contact">
+      <h3>④ 세부 견적 문의</h3>
+      <p>연락처와 내용을 남겨주시면 빠르게 답변드리겠습니다</p>
+      <div class="frow2">
+        <div class="fg"><label class="flabel">성함</label><input type="text" class="finp" id="c-name" placeholder="홍길동"></div>
+        <div class="fg"><label class="flabel">연락처</label><input type="tel" class="finp" id="c-phone" placeholder="010-0000-0000"></div>
+      </div>
+      <div class="fg"><label class="flabel">이메일</label><input type="email" class="finp" id="c-email" placeholder="example@email.com"></div>
+      <div class="fg" style="margin-top:10px;"><label class="flabel">추가 요청사항</label>
+        <textarea class="finp" id="c-memo" style="min-height:75px;resize:vertical;" placeholder="디자인 파일 보유 여부, 특이사항 등"></textarea>
+      </div>
+      <div class="cta-row">
+        <button class="cta-k" onclick="openKakao()">💬 카카오톡 문의 (내용 자동복사)</button>
+        <button class="cta-e" onclick="sendEmail()">📧 이메일 견적 전송</button>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      전화 문의 <a href="tel:16440139" class="tel">☎ 1644-0139</a><br>
+      디자인 완료 후 약 15~20일 · 초도 개발비 별도
+    </div>
+  </div>
+
+</div><!-- /main -->
+<div class="copy-toast" id="copy-toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  관리자 데이터 로드 (localStorage)
+// ═══════════════════════════════════════════════
+const FALLBACK = {
+  paperD:[
+    {size:'470×640',w:470,h:640,price:200000},
+    {size:'788×545',w:788,h:545,price:230000},
+    {size:'545×394',w:545,h:394,price:150000},
+    {size:'889×597',w:889,h:597,price:260000},
+    {size:'444×597',w:444,h:597,price:180000},
+  ],
+  sc240:[
+    {label:'접이식',pricePerSqm:1300,qty:1200},
+    {label:'손잡이',pricePerSqm:1500,qty:1200},
+  ],
+  wbe:[
+    {label:'접이식',pricePerSqm:400,qty:1100},
+    {label:'손잡이',pricePerSqm:600,qty:1100},
+  ],
+  procD:[
+    {name:'인쇄',price:70000,note:'전 형태'},
+    {name:'소부',price:44000,note:'전 형태'},
+    {name:'코팅',price:70000,note:'전 형태'},
+    {name:'톰슨',price:70000,note:'전 형태'},
+    {name:'접착',price:80000,note:'슬리브·일체형·손잡이만'},
+    {name:'기타(운임·포장)',price:60000,note:'전 형태'},
+  ],
+  procS:[
+    {name:'인쇄',price:70000},
+    {name:'소부',price:48000},
+    {name:'코팅',price:70000},
+    {name:'합지',price:100000},
+    {name:'톰슨',price:100000},
+    {name:'접착',price:100000},
+    {name:'기타(운임·포장)',price:80000},
+  ],
+  devD:[
+    {shape:'접이식',price:170000},{shape:'슬리브2',price:180000},
+    {shape:'슬리브3',price:180000},{shape:'일체형',price:170000},
+    {shape:'손잡이',price:180000},
+  ],
+  devS:[
+    {shape:'접이식',price:170000},{shape:'손잡이',price:180000},
+  ],
+  coefD:[
+    {shape:'접이식',  coef:1.92},
+    {shape:'슬리브2', coef:2.82},
+    {shape:'슬리브3', coef:3.42},
+    {shape:'일체형',  coef:1.92},
+    {shape:'손잡이',  coef:2.56},
+  ],
+};
+
+function getAdminData(){
+  try{const s=localStorage.getItem('box_admin_data');return s?JSON.parse(s):FALLBACK;}
+  catch{return FALLBACK;}
+}
+
+// ═══════════════════════════════════════════════
+//  형태 정의
+// ═══════════════════════════════════════════════
+const SHAPES = {
+  답례: [
+    {key:'접이식',  name:'접이식',   desc:'상하 분리'},
+    {key:'슬리브2', name:'슬리브2구', desc:'내부 2칸'},
+    {key:'슬리브3', name:'슬리브3구', desc:'내부 3칸'},
+    {key:'일체형',  name:'일체형',   desc:'뚜껑 연결'},
+    {key:'손잡이',  name:'손잡이형',  desc:'손잡이 스타일'},
+  ],
+  선물: [
+    {key:'접이식', name:'접이식',  desc:'상하 분리'},
+    {key:'손잡이', name:'손잡이형', desc:'쇼핑백 스타일'},
+  ],
+};
+
+// ═══════════════════════════════════════════════
+//  UI 상태
+// ═══════════════════════════════════════════════
+let S = {use:'답례', shape:'접이식'};
+
+function selUse(el){
+  document.querySelectorAll('.ubtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  S.use = el.dataset.use;
+  renderShapeGrid();
+}
+
+function selShape(el){
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  S.shape = el.dataset.shape;
+}
+
+function renderShapeGrid(){
+  const list = SHAPES[S.use];
+  const cols = list.length;
+  const grid = document.getElementById('shape-grid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.innerHTML = list.map((sh, i) => `
+    <div class="sbtn ${i===0?'on':''}" data-shape="${sh.key}" onclick="selShape(this)">
+      <span class="sname">${sh.name}</span>
+      <span class="sdesc">${sh.desc}</span>
+    </div>`).join('');
+  // 첫 번째 형태 자동 선택
+  S.shape = list[0].key;
+}
+
+// ═══════════════════════════════════════════════
+//  전개도 계산 (엑셀 수식 그대로)
+// ═══════════════════════════════════════════════
+function unfold(W,D,H){
+  const d12=W,e12=H*4,f12=15*2,g12=25, h12=(d12+e12+f12)*2+g12;
+  const j12=D,k12=H*4,l12=15*2,m12=20, o12=(j12+k12+l12)*3+m12;
+
+  const d13=(W+21)+(H*4)+14,f13=15*2,g13=25, h13=(d13+f13)*2+g13;
+  const j13=W+21,k13=(D+14)+(H*4)+14+(W/2+21-7)+20,l13=15*2,m13=20, n13=j13+k13+l13+m13;
+
+  const d14=(W+21)+(H*4)+14,f14=15*2,g14=25, h14=(d14+f14)*2+g14;
+  const j14=W+28,k14=(D+14)+(H*4)+14+(W/3)+20,l14=15*2,m14=20, n14=j14+k14+l14+m14;
+
+  const d15=D+(D*0.67)+H+30,g15=20, h15=d15*3+g15;
+  const j15=(W*2)+(D*2)+40, o15=j15+g15+25;
+
+  const d16=(D/2+10)+(D*0.65)+H+40,g16=20, h16=d16*3+g16;
+  const j16=(W*2)+(D*2)+30, o16=j16+g16+25;
+
+  const d18=W+16,e18=H*4,f18=8*2,g18=30;
+  const h18=((d18+e18+f18)+g18)+60;
+  const j18=D+16,k18=H*4,l18=8*2,m18=20;
+  const o18=((j18+k18+l18)+m18)*2+60;
+
+  const d20=(W+D)*2+20,g20=20, h20=d20+g20;
+  const j20=H+(D*0.7)+((D/2)+10)+80, o20=j20+g20+25;
+
+  return {
+    dr:{
+      접이식: {pW:h12,pH:o12}, 슬리브2:{pW:h13,pH:n13},
+      슬리브3:{pW:h14,pH:n14}, 일체형: {pW:h15,pH:o15}, 손잡이:{pW:h16,pH:o16}
+    },
+    sr:{접이식:{h:h18,o:o18}, 손잡이:{h:h20,o:o20}},
+  };
+}
+
+function matchPaper(pW,pH,paperD){
+  // 정방향 (가로×세로) 수용 가능한 것
+  const fwd=paperD.filter(s=>s.w>=pW&&s.h>=pH);
+  // 뒤집기 (세로→가로 방향) 수용 가능한 것
+  const rev=paperD.filter(s=>s.w>=pH&&s.h>=pW&&!(s.w>=pW&&s.h>=pH));
+  const candidates=[...fwd,...rev];
+  // 수용 가능한 것 중 면적 가장 작은 것
+  if(candidates.length>0) return candidates.reduce((a,b)=>a.w*a.h<b.w*b.h?a:b);
+  // 없으면 전개 긴쪽 기준 가장 가까운 규격
+  const longSide=Math.max(pW,pH);
+  const near=paperD.filter(s=>Math.max(s.w,s.h)>=longSide);
+  if(near.length>0) return near.reduce((a,b)=>a.w*a.h<b.w*b.h?a:b);
+  // 최후 fallback: 가장 큰 규격
+  return paperD.reduce((a,b)=>a.w*a.h>b.w*b.h?a:b);
+}
+
+function calcSeonmulPaper(h,o,sc240data,wbedata){
+  const r_sc = (h/1000)*(o/1000)*sc240data.pricePerSqm*sc240data.qty;
+  const r_wbe = ((h-10)/1000)*((o-10)/1000)*wbedata.pricePerSqm*wbedata.qty;
+  return r_sc + r_wbe;
+}
+
+function procSum(procD, shape){
+  const hasAttach = (shape!=='접이식');
+  return procD.reduce((sum,p)=>{
+    if(p.name==='접착'&&!hasAttach) return sum;
+    return sum+p.price;
+  },0);
+}
+function procSumS(procS){ return procS.reduce((s,p)=>s+p.price,0); }
+
+// ═══════════════════════════════════════════════
+//  메인 계산
+// ═══════════════════════════════════════════════
+const fmt=n=>Math.round(n).toLocaleString('ko-KR');
+
+function calc(){
+  const W=+document.getElementById('iW').value;
+  const D=+document.getElementById('iD').value;
+  const H=+document.getElementById('iH').value;
+  if(!W||!D||!H){alert('가로 · 세로 · 높이를 모두 입력해 주세요.');return;}
+
+  const AD=getAdminData();
+  const UF=unfold(W,D,H);
+  const sh=S.shape;
+  const use=S.use;
+
+  let base, devList, devShape, qtys;
+
+  if(use==='답례'){
+    const uf=UF.dr[sh];
+    const paper=matchPaper(uf.pW,uf.pH,AD.paperD);
+    const paperCost=paper.price*1.35;
+    base=paperCost+procSum(AD.procD,sh);
+    devList=AD.devD;
+    devShape=sh;
+    qtys=[1000,2000,3000];
+  } else {
+    const idx=sh==='손잡이'?1:0;
+    const uf=UF.sr[sh];
+    const raw=calcSeonmulPaper(uf.h,uf.o,AD.sc240[idx],AD.wbe[idx]);
+    base=raw*1.2+procSumS(AD.procS);
+    devList=AD.devS;
+    devShape=sh;
+    qtys=[500,1000];
+  }
+
+  document.getElementById('res-spec').textContent=`${use}·${sh}·${W}×${D}×${H}mm`;
+
+  // 형태별 계수 적용 (답례만)
+  let coef=1.92;
+  if(use==='답례'&&AD.coefD){
+    const ce=AD.coefD.find(r=>r.shape===sh);
+    if(ce) coef=ce.coef;
+  }
+
+  // 단가표 - 선택 형태 1개만
+  const gridCols='grid-template-columns: 1fr 1fr 1fr';
+  const head=`<div class="pthead" style="${gridCols}">
+    <span>수량</span><span>개당 단가</span><span>예상 공급가</span>
+  </div>`;
+
+  const rows=qtys.map((q,qi)=>{
+    const isBest=qi===1;
+    const unit=Math.round((base/q)*coef);
+    const supply=unit*q;
+    return `<div class="prow ${isBest?'best':''}" style="${gridCols}">
+      <div>
+        ${isBest?'<div class="btag">BEST</div>':''}
+        <div class="rlabel">${fmt(q)}개</div>
+        <div class="rsub">${qi===0?'소량':qi===1?'적정':'대량'}</div>
+      </div>
+      <div class="pcell"><div class="punit">${fmt(unit)}원</div></div>
+      <div class="pcell"><div class="psupply">${fmt(supply)}원</div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ptbl-result').innerHTML=head+rows;
+
+  // 목형비 - 선택 형태만
+  const devEntry=devList.find(r=>r.shape===devShape)||devList[0];
+  document.getElementById('dev-result').innerHTML=`
+    <div class="devleft">
+      <div class="devico">🔧</div>
+      <div><div class="devlabel">목형비 (개발비) · ${devShape}</div><div class="devnote" style="color:#c0392b;font-size:13px;font-weight:700;margin-top:3px;">⚠ 첫 작업 시 1회만 청구 · 재주문 면제</div></div>
+    </div>
+    <div class="devamt">${fmt(devEntry.price)}원</div>`;
+
+  const res=document.getElementById('result');
+  res.classList.add('show');
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),80);
+
+  const memo=document.getElementById('c-memo');
+  if(!memo.value) memo.value=`[간편 견적 문의]\n형태: ${sh} / 용도: ${use}용\n크기: ${W}×${D}×${H}mm\n희망 수량: `;
+}
+
+function openKakao(){
+  // 견적 내용 조합
+  const name  = document.getElementById('c-name').value  || '(미입력)';
+  const phone = document.getElementById('c-phone').value || '(미입력)';
+  const W = document.getElementById('iW').value;
+  const D = document.getElementById('iD').value;
+  const H = document.getElementById('iH').value;
+  const memo  = document.getElementById('c-memo').value;
+
+  const txt = [
+    '📦 박스 견적 문의',
+    '─────────────────',
+    `▪ 용도: ${S.use}용`,
+    `▪ 형태: ${S.shape}`,
+    `▪ 크기: ${W}×${D}×${H}mm`,
+    `▪ 성함: ${name}`,
+    `▪ 연락처: ${phone}`,
+    memo ? `▪ 요청사항: ${memo}` : '',
+    '─────────────────',
+    '(간편견적 페이지에서 자동 작성됨)',
+  ].filter(Boolean).join('\n');
+
+  // 클립보드 복사
+  navigator.clipboard.writeText(txt).then(()=>{
+    showCopyToast('✅ 견적 내용이 복사되었습니다!\n카카오톡 채팅창에서 길게 누르기(마우스 우클릭) → 붙여넣기 해주세요 😊');
+  }).catch(()=>{
+    showCopyToast('카카오톡 채팅창이 열립니다.\n내용을 직접 입력해 주세요.');
+  });
+
+  // 채팅창 열기
+  setTimeout(()=>window.open('http://pf.kakao.com/_kVwxaV/chat','_blank'), 400);
+}
+
+function showCopyToast(msg){
+  const t = document.getElementById('copy-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 10000);
+}
+async function sendEmail(){
+  const name  = document.getElementById('c-name').value||'(미입력)';
+  const phone = document.getElementById('c-phone').value||'(미입력)';
+  const email = document.getElementById('c-email').value;
+  const memo  = document.getElementById('c-memo').value;
+  if(!email){alert('이메일 주소를 입력해 주세요.');return;}
+
+  const btn = document.querySelector('.cta-e');
+  btn.textContent='전송 중...'; btn.disabled=true;
+
+  try{
+    const res = await fetch('https://formspree.io/f/mnjlbvkg',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify({
+        성함: name,
+        연락처: phone,
+        이메일: email,
+        문의내용: memo
+      })
+    });
+    if(res.ok){
+      alert('문의가 접수되었습니다!\n빠르게 연락드리겠습니다 😊');
+      document.getElementById('c-name').value='';
+      document.getElementById('c-phone').value='';
+      document.getElementById('c-email').value='';
+      document.getElementById('c-memo').value='';
+    } else {
+      alert('전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  } catch(e){
+    alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  } finally{
+    btn.innerHTML='📧 이메일 견적 전송'; btn.disabled=false;
+  }
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter')calc();});
+
+// 초기 형태 그리드 렌더
+renderShapeGrid();
+</script>
+</body>
+</html>
