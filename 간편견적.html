@@ -174,7 +174,7 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
       </div>
       <div class="ubtn" data-use="선물" onclick="selUse(this)">
         <span class="uico">🎀</span>
-        <div style="flex:1;"><div class="uname">선물용 (중형)</div><div class="udesc">마닐라240+골판지 기준</div></div>
+        <div style="flex:1;"><div class="uname">선물용 (중형)</div><div class="udesc">스노우화이트 240g 기준</div></div>
         <span class="ubadge">SC240</span>
       </div>
     </div>
@@ -260,53 +260,190 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 //  관리자 데이터 로드 (localStorage)
 // ═══════════════════════════════════════════════
 const DATA = {
-  paperD:[
-    {size:'470×640',w:470,h:640,price:200000},
-    {size:'788×545',w:788,h:545,price:230000},
-    {size:'545×394',w:545,h:394,price:150000},
-    {size:'889×597',w:889,h:597,price:260000},
-    {size:'444×597',w:444,h:597,price:180000},
+  "paperD": [
+    {
+      "size": "470×640",
+      "w": 470,
+      "h": 640,
+      "price": 200000
+    },
+    {
+      "size": "788×545",
+      "w": 788,
+      "h": 545,
+      "price": 230000
+    },
+    {
+      "size": "545×394",
+      "w": 545,
+      "h": 394,
+      "price": 150000
+    },
+    {
+      "size": "889×597",
+      "w": 889,
+      "h": 597,
+      "price": 260000
+    },
+    {
+      "size": "444×597",
+      "w": 444,
+      "h": 597,
+      "price": 180000
+    },
+    {
+      "size": "700×600",
+      "w": 700,
+      "h": 600,
+      "price": 210000
+    },
+    {
+      "size": "940×640",
+      "w": 940,
+      "h": 640,
+      "price": 300000
+    }
   ],
-  sc240:[
-    {label:'접이식',pricePerSqm:1300,qty:1200},
-    {label:'손잡이',pricePerSqm:1500,qty:1200},
+  "sc240": [
+    {
+      "label": "접이식",
+      "pricePerSqm": 700,
+      "qty": 1100
+    },
+    {
+      "label": "손잡이",
+      "pricePerSqm": 800,
+      "qty": 1100
+    }
   ],
-  wbe:[
-    {label:'접이식',pricePerSqm:400,qty:1100},
-    {label:'손잡이',pricePerSqm:600,qty:1100},
+  "wbe": [
+    {
+      "label": "접이식",
+      "pricePerSqm": 300,
+      "qty": 1000
+    },
+    {
+      "label": "손잡이",
+      "pricePerSqm": 400,
+      "qty": 1000
+    }
   ],
-  procD:[
-    {name:'인쇄',price:70000,note:'전 형태'},
-    {name:'소부',price:44000,note:'전 형태'},
-    {name:'코팅',price:70000,note:'전 형태'},
-    {name:'톰슨',price:70000,note:'전 형태'},
-    {name:'접착',price:80000,note:'슬리브·일체형·손잡이만'},
-    {name:'기타(운임·포장)',price:60000,note:'전 형태'},
+  "procD": [
+    {
+      "name": "인쇄",
+      "price": 70000,
+      "note": "전 형태"
+    },
+    {
+      "name": "소부",
+      "price": 44000,
+      "note": "전 형태"
+    },
+    {
+      "name": "코팅",
+      "price": 70000,
+      "note": "전 형태"
+    },
+    {
+      "name": "톰슨",
+      "price": 70000,
+      "note": "전 형태"
+    },
+    {
+      "name": "접착",
+      "price": 80000,
+      "note": "슬리브·일체형·손잡이만"
+    },
+    {
+      "name": "기타(운임·포장)",
+      "price": 60000,
+      "note": "전 형태"
+    }
   ],
-  procS:[
-    {name:'인쇄',price:70000},
-    {name:'소부',price:48000},
-    {name:'코팅',price:70000},
-    {name:'합지',price:100000},
-    {name:'톰슨',price:100000},
-    {name:'접착',price:100000},
-    {name:'기타(운임·포장)',price:80000},
+  "procS": [
+    {
+      "name": "인쇄",
+      "price": 70000
+    },
+    {
+      "name": "소부",
+      "price": 48000
+    },
+    {
+      "name": "코팅",
+      "price": 70000
+    },
+    {
+      "name": "합지",
+      "price": 100000
+    },
+    {
+      "name": "톰슨",
+      "price": 100000
+    },
+    {
+      "name": "접착",
+      "price": 100000
+    },
+    {
+      "name": "기타(운임·포장)",
+      "price": 80000
+    }
   ],
-  devD:[
-    {shape:'접이식',price:170000},{shape:'슬리브2',price:180000},
-    {shape:'슬리브3',price:180000},{shape:'일체형',price:170000},
-    {shape:'손잡이',price:180000},
+  "devD": [
+    {
+      "shape": "접이식",
+      "price": 170000
+    },
+    {
+      "shape": "슬리브2",
+      "price": 180000
+    },
+    {
+      "shape": "슬리브3",
+      "price": 180000
+    },
+    {
+      "shape": "일체형",
+      "price": 170000
+    },
+    {
+      "shape": "손잡이",
+      "price": 180000
+    }
   ],
-  devS:[
-    {shape:'접이식',price:170000},{shape:'손잡이',price:180000},
+  "devS": [
+    {
+      "shape": "접이식",
+      "price": 170000
+    },
+    {
+      "shape": "손잡이",
+      "price": 180000
+    }
   ],
-  coefD:[
-    {shape:'접이식',  coef:1.92},
-    {shape:'슬리브2', coef:2.82},
-    {shape:'슬리브3', coef:3.42},
-    {shape:'일체형',  coef:1.92},
-    {shape:'손잡이',  coef:2.56},
-  ],
+  "coefD": [
+    {
+      "shape": "접이식",
+      "coef": 1.92
+    },
+    {
+      "shape": "슬리브2",
+      "coef": 2.82
+    },
+    {
+      "shape": "슬리브3",
+      "coef": 3.42
+    },
+    {
+      "shape": "일체형",
+      "coef": 1.92
+    },
+    {
+      "shape": "손잡이",
+      "coef": 2.56
+    }
+  ]
 };
 
 function getAdminData(){
@@ -322,14 +459,14 @@ function getAdminData(){
 const SHAPES = {
   답례: [
     {key:'접이식',  name:'접이식',   desc:'상하 분리'},
-    {key:'슬리브2', name:'슬리브2구', desc:'내부 2칸'},
-    {key:'슬리브3', name:'슬리브3구', desc:'내부 3칸'},
+    {key:'슬리브2', name:'슬리브2구', desc:'2칸 밴드'},
+    {key:'슬리브3', name:'슬리브3구', desc:'3칸 밴드'},
     {key:'일체형',  name:'일체형',   desc:'뚜껑 연결'},
-    {key:'손잡이',  name:'손잡이형',  desc:'손잡이 스타일'},
+    {key:'손잡이',  name:'손잡이형',  desc:'쇼핑백 스타일'},
   ],
   선물: [
     {key:'접이식', name:'접이식',  desc:'상하 분리'},
-    {key:'손잡이', name:'손잡이형', desc:'손잡이 스타일'},
+    {key:'손잡이', name:'손잡이형', desc:'쇼핑백 스타일'},
   ],
 };
 
