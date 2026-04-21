@@ -95,13 +95,11 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 .prow{display:grid;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;}
 .prow:last-child{border-bottom:none;}
 .prow:hover{background:var(--bg);}
-.prow.best{background:linear-gradient(90deg,#fff8f3,var(--white));border-left:3px solid var(--accent);}
 .rlabel{font-size:13px;font-weight:700;color:var(--brown);}
 .rsub{font-size:11px;color:var(--muted);margin-top:2px;}
 .pcell{text-align:center;}
 .punit{font-size:17px;font-weight:900;color:var(--accent);}
 .psupply{font-size:13px;font-weight:700;color:var(--brown);}
-.btag{display:inline-block;background:var(--gold);color:var(--brown);font-size:9px;font-weight:900;padding:2px 7px;border-radius:8px;margin-bottom:3px;letter-spacing:.5px;}
 
 /* 목형비 */
 .devbox{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -261,7 +259,7 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 // ═══════════════════════════════════════════════
 //  관리자 데이터 로드 (localStorage)
 // ═══════════════════════════════════════════════
-const FALLBACK = {
+const DATA = {
   paperD:[
     {size:'470×640',w:470,h:640,price:200000},
     {size:'788×545',w:788,h:545,price:230000},
@@ -312,8 +310,10 @@ const FALLBACK = {
 };
 
 function getAdminData(){
-  try{const s=localStorage.getItem('box_admin_data');return s?JSON.parse(s):FALLBACK;}
-  catch{return FALLBACK;}
+  try{
+    const s=localStorage.getItem('box_admin_data');
+    return s ? JSON.parse(s) : DATA;
+  }catch{return DATA;}
 }
 
 // ═══════════════════════════════════════════════
@@ -329,7 +329,7 @@ const SHAPES = {
   ],
   선물: [
     {key:'접이식', name:'접이식',  desc:'상하 분리'},
-    {key:'손잡이', name:'손잡이형', desc:'쇼핑백 스타일'},
+    {key:'손잡이', name:'손잡이형', desc:'손잡이 스타일'},
   ],
 };
 
@@ -484,12 +484,10 @@ function calc(){
   </div>`;
 
   const rows=qtys.map((q,qi)=>{
-    const isBest=qi===1;
     const unit=Math.round((base/q)*coef);
     const supply=unit*q;
-    return `<div class="prow ${isBest?'best':''}" style="${gridCols}">
+    return `<div class="prow" style="${gridCols}">
       <div>
-        ${isBest?'<div class="btag">BEST</div>':''}
         <div class="rlabel">${fmt(q)}개</div>
         <div class="rsub">${qi===0?'소량':qi===1?'적정':'대량'}</div>
       </div>
@@ -541,7 +539,7 @@ function openKakao(){
 
   // 클립보드 복사
   navigator.clipboard.writeText(txt).then(()=>{
-    showCopyToast('✅ 견적 내용이 복사되었습니다!\n카카오톡 채팅창에서 길게 누르기(마우스 우클릭) → 붙여넣기 해주세요 😊');
+    showCopyToast('✅ 견적 내용이 복사되었습니다!\n카카오톡 채팅창에서 마우스 우클릭 → 붙여넣기 해주세요 😊');
   }).catch(()=>{
     showCopyToast('카카오톡 채팅창이 열립니다.\n내용을 직접 입력해 주세요.');
   });
@@ -554,7 +552,7 @@ function showCopyToast(msg){
   const t = document.getElementById('copy-toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 10000);
+  setTimeout(()=>t.classList.remove('show'), 8000);
 }
 async function sendEmail(){
   const name  = document.getElementById('c-name').value||'(미입력)';
