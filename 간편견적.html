@@ -133,15 +133,40 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 .tel{color:var(--accent);font-weight:700;font-size:14px;text-decoration:none;}
 
 @media(max-width:580px){
-  .header{padding:16px 20px;}
-  .hero{padding:28px 20px;}
-  .hero h1{font-size:22px;}
-  .main{padding:20px 14px 60px;}
-  .card{padding:20px 16px;}
-  .shape-grid{grid-template-columns:repeat(3,1fr);}
-  .size-row{grid-template-columns:repeat(3,1fr);}
+  .header{padding:14px 16px;}
+  .hero{padding:24px 16px;}
+  .hero h1{font-size:20px;}
+  .hero p{font-size:12px;}
+  .main{padding:16px 12px 60px;}
+  .card{padding:18px 14px;}
+  .clabel{font-size:10px;padding:2px 10px;}
+  .use-grid{grid-template-columns:1fr;}
+  .ubtn{padding:12px 14px;}
+  .uname{font-size:13px;}
+  .udesc{font-size:10px;}
+  .shape-grid{grid-template-columns:repeat(3,1fr);gap:7px;}
+  .sbtn{padding:10px 6px;}
+  .sname{font-size:11px;}
+  .sdesc{font-size:9px;}
+  .size-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .ifield{font-size:16px;padding:10px 30px 10px 10px;}
+  .ilabel{font-size:10px;}
+  .iunit{font-size:11px;right:8px;bottom:11px;}
+  .calc-btn{font-size:14px;padding:15px;}
+  .res-header{flex-direction:column;gap:8px;align-items:flex-start;padding:16px 18px;}
+  .res-header h2{font-size:16px;}
+  .res-pill{font-size:11px;padding:5px 10px;}
+  .punit{font-size:15px;}
+  .psupply{font-size:12px;}
+  .rlabel{font-size:12px;}
+  .pthead span{font-size:10px;}
+  .devbox{flex-direction:column;align-items:flex-start;gap:8px;}
+  .devlabel{font-size:13px;}
+  .devamt{font-size:17px;}
   .cta-row,.frow2{grid-template-columns:1fr;}
-  .res-header{flex-direction:column;gap:10px;align-items:flex-start;}
+  .cta-k,.cta-e{font-size:13px;padding:12px;}
+  .contact h3{font-size:14px;}
+  .finp{font-size:13px;padding:10px 11px;}
 }
 </style>
 </head>
@@ -625,7 +650,7 @@ function calc(){
     return `<div class="prow" style="${gridCols}">
       <div>
         <div class="rlabel">${fmt(q)}개</div>
-        <div class="rsub">${qi===0?'소량':qi===1?'적정':'대량'}</div>
+        
       </div>
       <div class="pcell"><div class="punit">${fmt(unit)}원</div></div>
       <div class="pcell"><div class="psupply">${fmt(supply)}원</div></div>
@@ -703,7 +728,7 @@ function showCopyToast(msg){
   const t = document.getElementById('copy-toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 8000);
+  setTimeout(()=>t.classList.remove('show'), 30000);
 }
 async function sendEmail(){
   const name  = document.getElementById('c-name').value||'(미입력)';
