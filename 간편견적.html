@@ -225,12 +225,12 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 
     <div class="notice">
       ⚠ 위 견적은 <strong>참고용 예상 단가</strong>입니다.<br>
-      종이 시세 변동 · 인쇄 도수 · 후가공(박·UV·형압) 추가 시 단가 변동됩니다.<br>
-      정확한 견적은 아래 <strong>세부 견적 문의</strong>를 이용해 주세요.
+         &nbsp;&nbsp;&nbsp;&nbsp;종이 시세 변동 · 인쇄 도수 · 후가공(박·UV·형압) 추가 시 단가 변동됩니다.<br>
+         &nbsp;&nbsp;&nbsp;&nbsp;정확한 견적은 아래 <strong>세부 견적 문의</strong>를 이용해 주세요.
     </div>
 
     <div class="contact">
-      <h3>④ 세부 견적 문의</h3>
+      <h3>★ 세부 견적 문의</h3>
       <p>연락처와 내용을 남겨주시면 빠르게 답변드리겠습니다</p>
       <div class="frow2">
         <div class="fg"><label class="flabel">성함</label><input type="text" class="finp" id="c-name" placeholder="홍길동"></div>
@@ -640,7 +640,7 @@ function calc(){
   document.getElementById('dev-result').innerHTML=`
     <div class="devleft">
       <div class="devico">🔧</div>
-      <div><div class="devlabel">목형비 (개발비) · ${devShape}</div><div class="devnote" style="color:#c0392b;font-size:13px;font-weight:700;margin-top:3px;">⚠ 첫 작업 시 1회만 청구 · 재주문시 면제</div></div>
+      <div><div class="devlabel">목형비 (※ 필수 개발비) · ${devShape}</div><div class="devnote" style="color:#c0392b;font-size:13px;font-weight:700;margin-top:3px;">⚠ 첫 작업 시 1회만 청구 · 재주문시 면제</div></div>
     </div>
     <div class="devamt">${fmt(devEntry.price)}원</div>`;
 
