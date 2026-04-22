@@ -246,10 +246,9 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
       </div>
     </div>
 
-    <div class="footer-note">
-      전화 문의 <a href="tel:16440139" class="tel">☎ 1644-0139</a><br>
-      디자인 완료 후 약 15~20일 · 초도 개발비 별도
-    </div>
+    <div class="footer-note" style="font-size:16px;">
+  전화 문의 <a href="tel:16440139" class="tel">☎ 1644-0139</a>
+  </div>
   </div>
 
 </div><!-- /main -->
@@ -638,11 +637,26 @@ function calc(){
   // 목형비 - 선택 형태만
   const devEntry=devList.find(r=>r.shape===devShape)||devList[0];
   document.getElementById('dev-result').innerHTML=`
-    <div class="devleft">
-      <div class="devico">🔧</div>
-      <div><div class="devlabel">목형비 (※ 필수 개발비) · ${devShape}</div><div class="devnote" style="color:#c0392b;font-size:13px;font-weight:700;margin-top:3px;">⚠ 첫 작업 시 1회만 청구 · 재주문시 면제</div></div>
-    </div>
-    <div class="devamt">${fmt(devEntry.price)}원</div>`;
+    <div style="width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="devleft">
+          <div class="devico">🔧</div>
+          <div>
+            <div class="devlabel">목형비 별도 (※ 필수 개발비) · ${devShape}</div>
+            <div class="devnote" style="color:#c0392b;font-size:13px;font-weight:700;margin-top:3px;">⚠ 첫 작업 시 1회만 청구 · 재주문시 면제</div>
+          </div>
+        </div>
+        <div class="devamt">${fmt(devEntry.price)}원</div>
+      </div>
+      <div style="display:flex;align-items:center;
+            color:var(--brown);border-top:1px solid var(--border);padding-top:8px;">
+  
+  <div class="devico" style="margin-right:6px;">🕐</div>
+  <div class="devlabel">&nbsp;작업시간 : 디자인 완료 후 약 15~20일</div>
+
+</div>
+      </div>
+    </div>`;
 
   const res=document.getElementById('result');
   res.classList.add('show');
