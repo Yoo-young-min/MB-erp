@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>단가 관리 | 관리자</title>
@@ -66,21 +64,21 @@ tr:nth-child(even) td{background:var(--row);}
 <div class="layout">
 <div class="sidebar">
   <div class="snav-group">종이</div>
-  <div class="snav-item on"  data-sec="s-paper-d" onclick="go(this)">📄 답례 지대 단가</div>
-  <div class="snav-item"     data-sec="s-paper-s" onclick="go(this)">📄 선물 종이 단가</div>
+  <div class="snav-item" data-sec="s-paper-d" onclick="go(this)">📄 답례 지대 단가</div>
+  <div class="snav-item" data-sec="s-paper-s" onclick="go(this)">📄 선물 종이 단가</div>
   <div class="snav-group">공정비</div>
-  <div class="snav-item"     data-sec="s-proc-d"  onclick="go(this)">🔧 답례 공정비</div>
-  <div class="snav-item"     data-sec="s-proc-s"  onclick="go(this)">🔧 선물 공정비</div>
+  <div class="snav-item" data-sec="s-proc-d" onclick="go(this)">🔧 답례 공정비</div>
+  <div class="snav-item" data-sec="s-proc-s" onclick="go(this)">🔧 선물 공정비</div>
   <div class="snav-group">기타</div>
-  <div class="snav-item"     data-sec="s-dev"     onclick="go(this)">🗂️ 목형비</div>
-  <div class="snav-item"     data-sec="s-coef"    onclick="go(this)">✖️ 형태별 단가 계수</div>
-  <div class="snav-item"     data-sec="s-io"      onclick="go(this)">📤 내보내기/불러오기</div>
+  <div class="snav-item on" data-sec="s-dev" onclick="go(this)">🗂️ 목형비</div>
+  <div class="snav-item" data-sec="s-coef" onclick="go(this)">✖️ 형태별 단가 계수</div>
+  <div class="snav-item" data-sec="s-io" onclick="go(this)">📤 내보내기/불러오기</div>
 </div>
 
 <div class="content">
 
   <!-- 답례 지대 -->
-  <div class="sec on" id="s-paper-d">
+  <div class="sec" id="s-paper-d">
     <div class="sec-title">📄 답례 지대 단가 (IV350)</div>
     <div class="sec-desc">
       전개 가로 이상인 규격 중 <b>가장 가까운 규격</b>이 자동 선택됩니다. 규격은 자유롭게 추가/삭제할 수 있습니다.<br>
@@ -88,12 +86,84 @@ tr:nth-child(even) td{background:var(--row);}
     </div>
     <div class="card">
       <div class="card-head">
-        답례용 지대 규격 <span id="paper-d-count" style="color:var(--accent);font-weight:700;"></span>
+        답례용 지대 규격 <span id="paper-d-count" style="color:var(--accent);font-weight:700;">9종</span>
         <button onclick="addPaperD()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">+ 규격 추가</button>
       </div>
       <table>
         <thead><tr><th>#</th><th>규격명 (자동)</th><th>가로(mm)</th><th>세로(mm)</th><th>단가(원/매)</th><th style="width:40px;"></th></tr></thead>
-        <tbody id="tb-paper-d"></tbody>
+        <tbody id="tb-paper-d">
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">1</td>
+      <td style="font-weight:700;color:var(--brown);">470×640</td>
+      <td><input class="num-inp" type="number" value="470" oninput="D.paperD[0].w=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="640" oninput="D.paperD[0].h=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="200000" oninput="D.paperD[0].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(0)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">2</td>
+      <td style="font-weight:700;color:var(--brown);">788×545</td>
+      <td><input class="num-inp" type="number" value="788" oninput="D.paperD[1].w=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="545" oninput="D.paperD[1].h=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="230000" oninput="D.paperD[1].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(1)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">3</td>
+      <td style="font-weight:700;color:var(--brown);">545×394</td>
+      <td><input class="num-inp" type="number" value="545" oninput="D.paperD[2].w=+this.value;autoSize(2);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="394" oninput="D.paperD[2].h=+this.value;autoSize(2);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="150000" oninput="D.paperD[2].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(2)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">4</td>
+      <td style="font-weight:700;color:var(--brown);">889×597</td>
+      <td><input class="num-inp" type="number" value="889" oninput="D.paperD[3].w=+this.value;autoSize(3);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="597" oninput="D.paperD[3].h=+this.value;autoSize(3);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="260000" oninput="D.paperD[3].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(3)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">5</td>
+      <td style="font-weight:700;color:var(--brown);">444×597</td>
+      <td><input class="num-inp" type="number" value="444" oninput="D.paperD[4].w=+this.value;autoSize(4);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="597" oninput="D.paperD[4].h=+this.value;autoSize(4);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="180000" oninput="D.paperD[4].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(4)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">6</td>
+      <td style="font-weight:700;color:var(--brown);">700×600</td>
+      <td><input class="num-inp" type="number" value="700" oninput="D.paperD[5].w=+this.value;autoSize(5);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="600" oninput="D.paperD[5].h=+this.value;autoSize(5);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="210000" oninput="D.paperD[5].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(5)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">7</td>
+      <td style="font-weight:700;color:var(--brown);">940×640</td>
+      <td><input class="num-inp" type="number" value="940" oninput="D.paperD[6].w=+this.value;autoSize(6);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="640" oninput="D.paperD[6].h=+this.value;autoSize(6);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="300000" oninput="D.paperD[6].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(6)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">8</td>
+      <td style="font-weight:700;color:var(--brown);">0×0</td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[7].w=+this.value;autoSize(7);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[7].h=+this.value;autoSize(7);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[7].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(7)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr>
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">9</td>
+      <td style="font-weight:700;color:var(--brown);">0×0</td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[8].w=+this.value;autoSize(8);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[8].h=+this.value;autoSize(8);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">mm</span></td>
+      <td><input class="num-inp" type="number" value="0" oninput="D.paperD[8].price=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+      <td><button onclick="delPaperD(8)" title="삭제" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='var(--danger)';this.style.background='#fff0ee'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button></td>
+    </tr></tbody>
       </table>
     </div>
   </div>
@@ -109,17 +179,29 @@ tr:nth-child(even) td{background:var(--row);}
     </div>
     <div class="grid2">
       <div class="card">
-        <div class="card-head">SC240 단가 & 매수</div>
+        <div class="card-head">SC240 단가 &amp; 매수</div>
         <table>
           <thead><tr><th>형태</th><th>단가(원/㎡)</th><th>매수</th></tr></thead>
-          <tbody id="tb-sc240"></tbody>
+          <tbody id="tb-sc240">
+    <tr><td><b>접이식</b></td>
+    <td><input class="num-inp" type="number" value="700" oninput="D['sc240'][0]['pricePerSqm']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원/㎡</span></td>
+    <td><input class="num-inp" type="number" value="1100" oninput="D['sc240'][0]['qty']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">매</span></td></tr>
+    <tr><td><b>손잡이</b></td>
+    <td><input class="num-inp" type="number" value="800" oninput="D['sc240'][1]['pricePerSqm']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원/㎡</span></td>
+    <td><input class="num-inp" type="number" value="1100" oninput="D['sc240'][1]['qty']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">매</span></td></tr></tbody>
         </table>
       </div>
       <div class="card">
-        <div class="card-head">WB/E 골판지 단가 & 매수</div>
+        <div class="card-head">WB/E 골판지 단가 &amp; 매수</div>
         <table>
           <thead><tr><th>형태</th><th>단가(원/㎡)</th><th>매수</th></tr></thead>
-          <tbody id="tb-wbe"></tbody>
+          <tbody id="tb-wbe">
+    <tr><td><b>접이식</b></td>
+    <td><input class="num-inp" type="number" value="300" oninput="D['wbe'][0]['pricePerSqm']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원/㎡</span></td>
+    <td><input class="num-inp" type="number" value="1000" oninput="D['wbe'][0]['qty']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">매</span></td></tr>
+    <tr><td><b>손잡이</b></td>
+    <td><input class="num-inp" type="number" value="400" oninput="D['wbe'][1]['pricePerSqm']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원/㎡</span></td>
+    <td><input class="num-inp" type="number" value="1000" oninput="D['wbe'][1]['qty']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">매</span></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -133,7 +215,25 @@ tr:nth-child(even) td{background:var(--row);}
       <div class="card-head">공정비 항목</div>
       <table>
         <thead><tr><th>공정</th><th>단가(원)</th><th>적용</th></tr></thead>
-        <tbody id="tb-proc-d"></tbody>
+        <tbody id="tb-proc-d">
+    <tr><td><b>인쇄</b></td>
+    <td><input class="num-inp" type="number" value="70000" oninput="D['procD'][0]['price']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">전 형태</td></tr>
+    <tr><td><b>소부</b></td>
+    <td><input class="num-inp" type="number" value="44000" oninput="D['procD'][1]['price']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">전 형태</td></tr>
+    <tr><td><b>코팅</b></td>
+    <td><input class="num-inp" type="number" value="70000" oninput="D['procD'][2]['price']=+this.value;autoSize(2);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">전 형태</td></tr>
+    <tr><td><b>톰슨</b></td>
+    <td><input class="num-inp" type="number" value="70000" oninput="D['procD'][3]['price']=+this.value;autoSize(3);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">전 형태</td></tr>
+    <tr><td><b>접착</b></td>
+    <td><input class="num-inp" type="number" value="80000" oninput="D['procD'][4]['price']=+this.value;autoSize(4);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">슬리브·일체형·손잡이만</td></tr>
+    <tr><td><b>기타(운임·포장)</b></td>
+    <td><input class="num-inp" type="number" value="60000" oninput="D['procD'][5]['price']=+this.value;autoSize(5);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td>
+    <td style="font-size:11px;color:var(--muted);">전 형태</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -146,13 +246,27 @@ tr:nth-child(even) td{background:var(--row);}
       <div class="card-head">공정비 항목</div>
       <table>
         <thead><tr><th>공정</th><th>단가(원)</th></tr></thead>
-        <tbody id="tb-proc-s"></tbody>
+        <tbody id="tb-proc-s">
+    <tr><td><b>인쇄</b></td>
+    <td><input class="num-inp" type="number" value="70000" oninput="D['procS'][0]['price']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>소부</b></td>
+    <td><input class="num-inp" type="number" value="48000" oninput="D['procS'][1]['price']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>코팅</b></td>
+    <td><input class="num-inp" type="number" value="70000" oninput="D['procS'][2]['price']=+this.value;autoSize(2);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>합지</b></td>
+    <td><input class="num-inp" type="number" value="100000" oninput="D['procS'][3]['price']=+this.value;autoSize(3);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>톰슨</b></td>
+    <td><input class="num-inp" type="number" value="100000" oninput="D['procS'][4]['price']=+this.value;autoSize(4);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>접착</b></td>
+    <td><input class="num-inp" type="number" value="100000" oninput="D['procS'][5]['price']=+this.value;autoSize(5);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td><b>기타(운임·포장)</b></td>
+    <td><input class="num-inp" type="number" value="80000" oninput="D['procS'][6]['price']=+this.value;autoSize(6);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr></tbody>
       </table>
     </div>
   </div>
 
   <!-- 목형비 -->
-  <div class="sec" id="s-dev">
+  <div class="sec on" id="s-dev">
     <div class="sec-title">🗂️ 목형비 (개발비)</div>
     <div class="sec-desc">첫 작업 시 1회만 청구, 재주문 시 면제됩니다.</div>
     <div class="grid2">
@@ -160,14 +274,28 @@ tr:nth-child(even) td{background:var(--row);}
         <div class="card-head">답례용</div>
         <table>
           <thead><tr><th>형태</th><th>목형비(원)</th></tr></thead>
-          <tbody id="tb-dev-d"></tbody>
+          <tbody id="tb-dev-d">
+    <tr><td>접이식</td>
+    <td><input class="num-inp" type="number" value="170000" oninput="D['devD'][0]['price']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td>슬리브2</td>
+    <td><input class="num-inp" type="number" value="180000" oninput="D['devD'][1]['price']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td>슬리브3</td>
+    <td><input class="num-inp" type="number" value="180000" oninput="D['devD'][2]['price']=+this.value;autoSize(2);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td>일체형</td>
+    <td><input class="num-inp" type="number" value="170000" oninput="D['devD'][3]['price']=+this.value;autoSize(3);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td>손잡이</td>
+    <td><input class="num-inp" type="number" value="180000" oninput="D['devD'][4]['price']=+this.value;autoSize(4);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr></tbody>
         </table>
       </div>
       <div class="card">
         <div class="card-head">선물용</div>
         <table>
           <thead><tr><th>형태</th><th>목형비(원)</th></tr></thead>
-          <tbody id="tb-dev-s"></tbody>
+          <tbody id="tb-dev-s">
+    <tr><td>접이식</td>
+    <td><input class="num-inp" type="number" value="170000" oninput="D['devS'][0]['price']=+this.value;autoSize(0);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr>
+    <tr><td>손잡이</td>
+    <td><input class="num-inp" type="number" value="180000" oninput="D['devS'][1]['price']=+this.value;autoSize(1);this.classList.add('mod')" onblur="this.classList.remove('mod')"><span class="won">원</span></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -185,7 +313,32 @@ tr:nth-child(even) td{background:var(--row);}
       <div class="card-head">답례용 형태별 계수 <small>기본값 1.35 → 형태별로 조정</small></div>
       <table>
         <thead><tr><th>형태</th><th>계수</th><th>의미</th></tr></thead>
-        <tbody id="tb-coef-d"></tbody>
+        <tbody id="tb-coef-d">
+    <tr>
+      <td><b>접이식</b></td>
+      <td><input class="num-inp" type="number" step="0.01" value="1.92" oninput="D.coefD[0].coef=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')" style="width:90px;"></td>
+      <td style="font-size:11px;color:var(--muted);">단가 = 기본값 ÷ 수량 × 1.92</td>
+    </tr>
+    <tr>
+      <td><b>슬리브2</b></td>
+      <td><input class="num-inp" type="number" step="0.01" value="2.82" oninput="D.coefD[1].coef=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')" style="width:90px;"></td>
+      <td style="font-size:11px;color:var(--muted);">단가 = 기본값 ÷ 수량 × 2.82</td>
+    </tr>
+    <tr>
+      <td><b>슬리브3</b></td>
+      <td><input class="num-inp" type="number" step="0.01" value="3.42" oninput="D.coefD[2].coef=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')" style="width:90px;"></td>
+      <td style="font-size:11px;color:var(--muted);">단가 = 기본값 ÷ 수량 × 3.42</td>
+    </tr>
+    <tr>
+      <td><b>일체형</b></td>
+      <td><input class="num-inp" type="number" step="0.01" value="1.92" oninput="D.coefD[3].coef=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')" style="width:90px;"></td>
+      <td style="font-size:11px;color:var(--muted);">단가 = 기본값 ÷ 수량 × 1.92</td>
+    </tr>
+    <tr>
+      <td><b>손잡이</b></td>
+      <td><input class="num-inp" type="number" step="0.01" value="2.56" oninput="D.coefD[4].coef=+this.value;this.classList.add('mod')" onblur="this.classList.remove('mod')" style="width:90px;"></td>
+      <td style="font-size:11px;color:var(--muted);">단가 = 기본값 ÷ 수량 × 2.56</td>
+    </tr></tbody>
       </table>
     </div>
   </div>
@@ -268,6 +421,18 @@ const DEFAULTS = {
       "w": 940,
       "h": 640,
       "price": 300000
+    },
+    {
+      "size": "0×0",
+      "w": 0,
+      "h": 0,
+      "price": 0
+    },
+    {
+      "size": "0×0",
+      "w": 0,
+      "h": 0,
+      "price": 0
     }
   ],
   "sc240": [
@@ -371,7 +536,7 @@ const DEFAULTS = {
     },
     {
       "shape": "일체형",
-      "price": 170000
+      "price": 180000
     },
     {
       "shape": "손잡이",
@@ -604,5 +769,5 @@ function toast(msg){
 
 renderAll();
 </script>
-</body>
-</html>
+
+</body></html>

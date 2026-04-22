@@ -405,7 +405,7 @@ const DATA = {
     },
     {
       "shape": "일체형",
-      "price": 170000
+      "price": 180000
     },
     {
       "shape": "손잡이",
@@ -459,14 +459,14 @@ function getAdminData(){
 const SHAPES = {
   답례: [
     {key:'접이식',  name:'접이식',   desc:'상하 분리'},
-    {key:'슬리브2', name:'슬리브2구', desc:'내부 2칸'},
-    {key:'슬리브3', name:'슬리브3구', desc:'내부 3칸'},
+    {key:'슬리브2', name:'슬리브2구', desc:'2칸 밴드'},
+    {key:'슬리브3', name:'슬리브3구', desc:'3칸 밴드'},
     {key:'일체형',  name:'일체형',   desc:'뚜껑 연결'},
-    {key:'손잡이',  name:'손잡이형',  desc:'손잡이 스타일'},
+    {key:'손잡이',  name:'손잡이형',  desc:'쇼핑백 스타일'},
   ],
   선물: [
     {key:'접이식', name:'접이식',  desc:'상하 분리'},
-    {key:'손잡이', name:'손잡이형', desc:'손잡이 스타일'},
+    {key:'손잡이', name:'손잡이형', desc:'쇼핑백 스타일'},
   ],
 };
 
@@ -626,7 +626,7 @@ function calc(){
     return `<div class="prow" style="${gridCols}">
       <div>
         <div class="rlabel">${fmt(q)}개</div>
-        
+        <div class="rsub">${qi===0?'소량':qi===1?'적정':'대량'}</div>
       </div>
       <div class="pcell"><div class="punit">${fmt(unit)}원</div></div>
       <div class="pcell"><div class="psupply">${fmt(supply)}원</div></div>
