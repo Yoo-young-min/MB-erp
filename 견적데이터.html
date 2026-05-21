@@ -7,785 +7,513 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0f1117;
-    --surface: #181c27;
-    --surface2: #1e2435;
-    --border: #2a3048;
-    --accent: #4f8ef7;
-    --accent2: #7c5af7;
-    --green: #3ecf8e;
-    --yellow: #f5c842;
-    --red: #f75a68;
-    --text: #e8eaf0;
-    --text2: #8890a8;
-    --text3: #555e7a;
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--surface:#181c27;--surface2:#1e2435;--border:#2a3048;
+    --accent:#4f8ef7;--green:#3ecf8e;--yellow:#f5c842;--red:#f75a68;
+    --text:#e8eaf0;--text2:#8890a8;--text3:#555e7a;
   }
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-  body {
-    font-family: 'Noto Sans KR', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-  }
+  .hdr{background:linear-gradient(135deg,#12162090,#1a1f3090);border-bottom:1px solid var(--border);
+    padding:14px 20px;display:flex;align-items:center;gap:11px;
+    position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+  .htit{font-size:16px;font-weight:700}
+  .hsub{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-top:1px}
+  .hbadge{margin-left:auto;background:var(--surface2);border:1px solid var(--border);
+    border-radius:20px;padding:3px 12px;font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
+  .hbadge b{color:var(--green)}
 
-  /* ── 헤더 ── */
-  .header {
-    background: linear-gradient(135deg, #12162080 0%, #1a1f3080 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 32px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    backdrop-filter: blur(10px);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .header-icon { font-size: 24px; }
-  .header-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-  .header-sub { font-size: 12px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
-  .header-badge {
-    margin-left: auto;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 11px;
-    color: var(--text3);
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .header-badge span { color: var(--green); font-weight: 700; }
+  .main{display:flex;height:calc(100vh - 53px)}
 
-  /* ── 메인 레이아웃 ── */
-  .main { display: flex; height: calc(100vh - 65px); }
+  /* 사이드바 */
+  .sb{width:310px;min-width:310px;background:var(--surface);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;overflow:hidden}
 
-  /* ── 사이드바 ── */
-  .sidebar {
-    width: 340px;
-    min-width: 340px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  .upz{margin:11px 11px 8px;border:2px dashed var(--border);border-radius:10px;
+    padding:14px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+  .upz:hover,.upz.drag{border-color:var(--accent);background:#4f8ef708}
+  .upz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+  .upico{font-size:22px;margin-bottom:4px}
+  .uptxt{font-size:12px;color:var(--text2);line-height:1.5}
+  .uptxt strong{color:var(--accent)}
+  .uphnt{font-size:9px;color:var(--text3);margin-top:3px;font-family:'IBM Plex Mono',monospace}
 
-  /* 업로드 존 */
-  .upload-zone {
-    margin: 16px;
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    padding: 20px 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-  }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #4f8ef708; }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-  .upload-icon { font-size: 28px; margin-bottom: 8px; }
-  .upload-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
-  .upload-text strong { color: var(--accent); }
-  .upload-hint { font-size: 11px; color: var(--text3); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .pw{margin:0 11px 8px;display:none}
+  .pb{height:3px;background:var(--surface2);border-radius:3px;overflow:hidden}
+  .pf{height:100%;background:linear-gradient(90deg,var(--accent),#7c5af7);width:0%;transition:width .3s}
+  .pl{font-size:9px;color:var(--text3);margin-top:3px;font-family:'IBM Plex Mono',monospace}
 
-  /* 진행바 */
-  .progress-wrap { margin: 0 16px 12px; display: none; }
-  .progress-bar { height: 4px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; border-radius: 4px; }
-  .progress-label { font-size: 11px; color: var(--text3); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .shw{margin:0 11px 7px;display:none}
+  .shlbl{font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-bottom:3px}
+  .shlist{display:flex;flex-wrap:wrap;gap:2px;max-height:54px;overflow-y:auto}
+  .shbtn{padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+    cursor:pointer;font-size:10px;color:var(--text2);white-space:nowrap;transition:all .15s}
+  .shbtn:hover{border-color:var(--accent);color:var(--text)}
+  .shbtn.active{border-color:var(--accent);color:var(--accent);background:#4f8ef718}
 
-  /* 검색창 */
-  /* 시트 선택 */
-  .sheet-select-wrap { margin: 0 16px 8px; }
-  .sheet-select-label { font-size: 10px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; margin-bottom: 4px; }
-  .sheet-list { display: flex; flex-wrap: wrap; gap: 3px; max-height: 68px; overflow-y: auto; }
-  .sheet-list::-webkit-scrollbar { width: 3px; }
-  .sheet-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .sheet-btn {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 8px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--text2);
-    font-family: 'Noto Sans KR', sans-serif;
-    white-space: nowrap;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: all 0.15s;
-  }
-  .sheet-btn:hover { border-color: var(--accent); color: var(--text); background: #4f8ef710; }
-  .sheet-btn.active { border-color: var(--accent); color: var(--accent); background: #4f8ef718; }
-  .sheet-icon { font-size: 10px; flex-shrink: 0; }
-  .sheet-name { overflow: hidden; text-overflow: ellipsis; }
+  .srw{padding:0 11px 7px}
+  .srb{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);
+    border-radius:9px;padding:0 9px;gap:6px;transition:border-color .2s}
+  .srb:focus-within{border-color:var(--accent)}
+  .sri{flex:1;background:none;border:none;outline:none;color:var(--text);
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;padding:8px 0}
+  .sri::placeholder{color:var(--text3)}
+  .src{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px;display:none}
+  .src:hover{color:var(--text)}
 
-  .search-wrap { padding: 0 16px 12px; }
-  .search-box {
-    display: flex;
-    align-items: center;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0 12px;
-    gap: 8px;
-    transition: border-color 0.2s;
-  }
-  .search-box:focus-within { border-color: var(--accent); }
-  .search-icon { font-size: 14px; color: var(--text3); flex-shrink: 0; }
-  .search-input {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    padding: 10px 0;
-  }
-  .search-input::placeholder { color: var(--text3); }
-  .search-clear { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 4px; display: none; }
-  .search-clear:hover { color: var(--text); }
+  .rcnt{padding:0 11px 5px;font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
 
-  /* 결과 카운트 */
-  .result-count { padding: 0 16px 8px; font-size: 11px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+  .il{flex:1;overflow-y:auto;padding:0 5px 12px}
+  .il::-webkit-scrollbar{width:3px}
+  .il::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-  /* 품목 목록 */
-  .item-list { flex: 1; overflow-y: auto; padding: 0 8px 16px; }
-  .item-list::-webkit-scrollbar { width: 4px; }
-  .item-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  /* 품목 그룹 헤더 */
+  .ghdr{padding:9px 8px 3px;font-size:11px;font-weight:700;color:var(--text2);
+    border-top:1px solid var(--border);margin-top:6px;display:flex;align-items:baseline;gap:5px}
+  .ghdr:first-child{border-top:none;margin-top:0}
+  .ghdr mark{background:none;color:var(--accent);font-weight:700}
+  .gcnt{font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace;font-weight:400}
 
-  .item-card {
-    padding: 10px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid transparent;
-    margin-bottom: 3px;
-  }
-  .item-card:hover { background: var(--surface2); border-color: var(--border); }
-  .item-card.active { background: #4f8ef712; border-color: #4f8ef740; }
+  /* ★ 건별 카드 1건씩 */
+  .ic{padding:5px 8px 5px 14px;border-radius:6px;cursor:pointer;transition:all .12s;
+    border:1px solid transparent;margin-bottom:1px;display:flex;align-items:center;gap:8px}
+  .ic:hover{background:var(--surface2);border-color:var(--border)}
+  .ic.active{background:#4f8ef710;border-color:#4f8ef738}
+  .ic-left{flex:1;min-width:0}
+  .ic-meta{font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+  .ic-info{font-size:11px;color:var(--text2)}
+  .ic-unit{font-size:13px;font-weight:700;font-family:'IBM Plex Mono',monospace;white-space:nowrap;flex-shrink:0}
+  .ulo{color:var(--green)}.umd{color:var(--accent)}.uhi{color:var(--red)}
 
-  .item-card-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .item-card-name mark { background: none; color: var(--accent); font-weight: 700; }
-  .item-card-meta { display: flex; gap: 8px; align-items: center; }
-  .badge {
-    font-size: 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 500;
-  }
-  .badge-count { background: #4f8ef718; color: var(--accent); }
-  .badge-avg { background: #3ecf8e18; color: var(--green); }
-  .badge-single { background: var(--surface2); color: var(--text3); }
+  .estat{padding:36px 12px;text-align:center;color:var(--text3)}
+  .estat .ei{font-size:30px;margin-bottom:7px;opacity:.3}
+  .estat .et{font-size:12px;line-height:1.8}
 
-  /* 빈 상태 */
-  .empty-state { padding: 40px 16px; text-align: center; color: var(--text3); }
-  .empty-state .es-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
-  .empty-state .es-text { font-size: 13px; line-height: 1.7; }
+  /* 상세 패널 */
+  .dp{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .demp{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:10px}
+  .demp .di{font-size:44px;opacity:.1}
+  .demp .dt{font-size:15px;color:var(--text2);font-weight:500}
+  .demp .dd{font-size:11px;text-align:center;line-height:1.8}
+  .dc{flex:1;overflow-y:auto;padding:22px 26px;display:none}
+  .dc::-webkit-scrollbar{width:3px}
+  .dc::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-  /* ── 상세 패널 ── */
-  .detail-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  .dname{font-size:19px;font-weight:700;letter-spacing:-.4px;margin-bottom:5px}
+  .dchips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;
+    border-radius:20px;border:1px solid var(--border);color:var(--text2)}
 
-  /* 초기 화면 */
-  .detail-empty {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text3);
-    gap: 16px;
-  }
-  .detail-empty .de-icon { font-size: 56px; opacity: 0.15; }
-  .detail-empty .de-title { font-size: 18px; color: var(--text2); font-weight: 500; }
-  .detail-empty .de-desc { font-size: 13px; text-align: center; line-height: 1.8; }
+  .sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .scd{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+  .scd.sa{border-color:#4f8ef760;background:#1a2540}
+  .scd.sg{border-color:#3ecf8e60;background:#0f2a20}
+  .scd.sy{border-color:#f5c84260;background:#2a2010}
+  .slbl{font-size:10px;color:#c8cfe0;margin-bottom:4px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.3px}
+  .sval{font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .sval.ca{color:#7eb8ff}.sval.cg{color:#5ddfaa}.sval.cy{color:#fad95a}
+  .ssub{font-size:10px;color:#c8cfe0;margin-top:3px}
 
-  /* 상세 콘텐츠 */
-  .detail-content { flex: 1; overflow-y: auto; padding: 28px 32px; display: none; }
-  .detail-content::-webkit-scrollbar { width: 4px; }
-  .detail-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .stit{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;
+    letter-spacing:1px;margin-bottom:8px;font-family:'IBM Plex Mono',monospace}
 
-  /* 상세 헤더 */
-  .detail-header { margin-bottom: 28px; }
-  .detail-name { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; margin-bottom: 8px; }
-  .detail-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip {
-    font-size: 11px;
-    font-family: 'IBM Plex Mono', monospace;
-    padding: 3px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--text2);
-  }
+  .rw{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+  .rlr{display:flex;justify-content:space-between;margin-bottom:6px}
+  .rlb{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text2)}
+  .rtr{height:5px;background:var(--surface2);border-radius:5px;position:relative}
+  .rfi{position:absolute;top:0;height:100%;border-radius:5px;
+    background:linear-gradient(90deg,var(--green),var(--accent),var(--yellow),var(--red));left:0;width:100%}
+  .rds{position:relative;margin-top:4px;height:14px}
+  .rdt{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);
+    transform:translateX(-50%);cursor:pointer;top:2px}
+  .rdt:hover::after{content:attr(data-tip);position:absolute;bottom:11px;left:50%;
+    transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);
+    padding:2px 6px;border-radius:3px;font-size:9px;color:var(--text);
+    font-family:'IBM Plex Mono',monospace;white-space:nowrap;z-index:10}
+  .ravg{position:absolute;width:2px;height:14px;background:var(--yellow);
+    transform:translateX(-50%);top:-2px;border-radius:2px}
 
-  /* 요약 카드들 */
-  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
-  .summary-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-  }
-  .summary-card.accent { border-color: #4f8ef740; background: #4f8ef708; }
-  .summary-card.green { border-color: #3ecf8e40; background: #3ecf8e08; }
-  .summary-card.yellow { border-color: #f5c84240; background: #f5c84208; }
-  .sc-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
-  .sc-value { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
-  .sc-value.accent { color: var(--accent); }
-  .sc-value.green { color: var(--green); }
-  .sc-value.yellow { color: var(--yellow); }
-  .sc-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-
-  /* 이력 섹션 */
-  .section-title { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace; }
-
-  /* 이력 테이블 */
-  .history-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
-  .history-table th {
-    text-align: left;
-    font-size: 11px;
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--text3);
-    font-weight: 500;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-  }
-  .history-table td {
-    padding: 10px 12px;
-    font-size: 13px;
-    border-bottom: 1px solid #1e243540;
-    vertical-align: top;
-  }
-  .history-table tr:hover td { background: var(--surface); }
-  .td-num { color: var(--text3); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-  .td-qty { font-family: 'IBM Plex Mono', monospace; color: var(--text2); }
-  .td-total { font-family: 'IBM Plex Mono', monospace; color: var(--text); }
-  .td-unit { font-family: 'IBM Plex Mono', monospace; font-weight: 700; }
-  .td-unit.high { color: var(--red); }
-  .td-unit.mid { color: var(--yellow); }
-  .td-unit.low { color: var(--green); }
-  .td-process { font-size: 11px; color: var(--text3); max-width: 200px; }
-  .proc-tag {
-    display: inline-block;
-    background: var(--surface2);
-    border-radius: 3px;
-    padding: 1px 5px;
-    margin: 1px 2px;
-    font-size: 10px;
-    color: var(--text3);
-  }
-
-  /* 단가 범위 바 */
-  .price-range-section { margin-bottom: 28px; }
-  .price-range-bar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .range-labels { display: flex; justify-content: space-between; margin-bottom: 10px; }
-  .range-label { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2); }
-  .range-track { height: 8px; background: var(--surface2); border-radius: 8px; position: relative; overflow: visible; }
-  .range-fill { position: absolute; top: 0; height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--green), var(--accent), var(--yellow), var(--red)); }
-  .range-dots { position: relative; margin-top: 6px; height: 20px; }
-  .range-dot {
-    position: absolute;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    transform: translateX(-50%);
-    cursor: pointer;
-    top: 4px;
-  }
-  .range-dot:hover::after {
-    content: attr(data-tip);
-    position: absolute;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    white-space: nowrap;
-    z-index: 10;
-  }
-  .range-avg-line {
-    position: absolute;
-    width: 2px;
-    height: 20px;
-    background: var(--yellow);
-    transform: translateX(-50%);
-    top: -4px;
-    border-radius: 2px;
-  }
-
-  /* 공정별 비교 */
-  .process-breakdown { margin-bottom: 20px; }
-  .proc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .proc-name { width: 130px; font-size: 12px; color: var(--text2); flex-shrink: 0; }
-  .proc-bar-wrap { flex: 1; height: 6px; background: var(--surface2); border-radius: 6px; overflow: hidden; }
-  .proc-bar { height: 100%; border-radius: 6px; background: var(--accent2); }
-  .proc-price { width: 80px; text-align: right; font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--text2); }
+  .tbl{width:100%;border-collapse:collapse;margin-bottom:16px}
+  .tbl th{text-align:left;font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text3);
+    font-weight:500;padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+  .tbl td{padding:7px 8px;font-size:11px;border-bottom:1px solid #1e243522;vertical-align:middle}
+  .tbl tr:hover td{background:var(--surface)}
+  .tbl tr.me td{background:#4f8ef710}
+  .tn{color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:9px}
+  .tq{font-family:'IBM Plex Mono',monospace;color:var(--text2)}
+  .tt{font-family:'IBM Plex Mono',monospace;color:var(--text)}
+  .tu{font-family:'IBM Plex Mono',monospace;font-weight:700}
+  .tu-hi{color:var(--red)}.tu-md{color:var(--accent)}.tu-lo{color:var(--green)}
+  .tlink{cursor:pointer;color:var(--accent);text-decoration:underline}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-icon">📦</div>
+<div class="hdr">
   <div>
-    <div class="header-title">상자 견적 단가 검색</div>
-    <div class="header-sub">Box Cost Analyzer</div>
+    <div class="htit">📦 상자 견적 단가 검색</div>
+    <div class="hsub">Box Cost Analyzer</div>
   </div>
-  <div class="header-badge">품목 <span id="totalCount">0</span>건 로드됨</div>
+  <div class="hbadge">전체 <b id="totalCount">0</b>건</div>
 </div>
 
 <div class="main">
-  <!-- 사이드바 -->
-  <div class="sidebar">
-    <!-- 업로드 -->
-    <div class="upload-zone" id="uploadZone">
-      <input type="file" id="fileInput" accept=".xlsx,.xls" />
-      <div class="upload-icon">📂</div>
-      <div class="upload-text"><strong>Excel 파일 여기에 드롭</strong><br>또는 클릭해서 선택</div>
-      <div class="upload-hint">*.xlsx / *.xls</div>
+  <div class="sb">
+    <!-- 파일 업로드 -->
+    <div class="upz" id="upz">
+      <input type="file" id="fi" accept=".xlsx,.xls"/>
+      <div class="upico">📂</div>
+      <div class="uptxt"><strong>Excel 파일 드롭</strong><br>또는 클릭해서 선택</div>
+      <div class="uphnt">*.xlsx / *.xls</div>
     </div>
+    <div class="pw" id="pw"><div class="pb"><div class="pf" id="pf"></div></div><div class="pl" id="pl"></div></div>
+    <div class="shw" id="shw"><div class="shlbl">📋 시트 선택</div><div class="shlist" id="shlist"></div></div>
 
-    <!-- 진행바 -->
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-label" id="progressLabel">파일 읽는 중...</div>
-    </div>
-
-    <!-- 시트 선택 -->
-    <div class="sheet-select-wrap" id="sheetSelectWrap" style="display:none">
-      <div class="sheet-select-label">📋 시트 선택</div>
-      <div class="sheet-list" id="sheetList"></div>
-    </div>
-
-    <!-- 검색 -->
-    <div class="search-wrap">
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" id="searchInput" placeholder="품목명 검색..." type="text" />
-        <button class="search-clear" id="searchClear">✕</button>
+    <div class="srw">
+      <div class="srb">
+        <span style="font-size:11px;color:var(--text3);flex-shrink:0">🔍</span>
+        <input class="sri" id="si" placeholder="품목명 검색..."/>
+        <button class="src" id="sc">✕</button>
       </div>
     </div>
-
-    <div class="result-count" id="resultCount"></div>
-
-    <!-- 품목 목록 -->
-    <div class="item-list" id="itemList">
-      <div class="empty-state">
-        <div class="es-icon">📋</div>
-        <div class="es-text">Excel 파일을 업로드하면<br>품목 목록이 여기에 표시됩니다</div>
-      </div>
+    <div class="rcnt" id="rcnt"></div>
+    <div class="il" id="il">
+      <div class="estat"><div class="ei">📋</div><div class="et">Excel 파일을 업로드하면<br>목록이 표시됩니다</div></div>
     </div>
   </div>
 
-  <!-- 상세 패널 -->
-  <div class="detail-panel">
-    <div class="detail-empty" id="detailEmpty">
-      <div class="de-icon">📊</div>
-      <div class="de-title">품목을 선택하세요</div>
-      <div class="de-desc">왼쪽에서 품목을 클릭하면<br>과거 이력과 평균 단가를 확인할 수 있습니다</div>
+  <div class="dp">
+    <div class="demp" id="demp">
+      <div class="di">📊</div>
+      <div class="dt">건을 선택하세요</div>
+      <div class="dd">왼쪽에서 건을 클릭하면<br>공정 내역과 동일품목 이력을 확인합니다</div>
     </div>
-    <div class="detail-content" id="detailContent"></div>
+    <div class="dc" id="dc"></div>
   </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-// 데이터 파싱
-// ─────────────────────────────────────────────
-let allItems = [];   // { name, instances: [{qty, total, unitPrice, processes}] }
-let grouped = {};    // { name: [{...}] }
-let currentGroup = null;
+let allItems = [], grouped = {}, loadedWb = null, currentRow = null;
 
-function parseWorkbook(wb, sheetName) {
-  const ws = wb.Sheets[sheetName || wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+// ════════════════════════════════════════════
+// 파싱 핵심:
+// XLSX.js에서 셀값 읽는 방식 = ws[주소].v (캐시된 계산값)
+// sheet_to_json raw:true 로 읽으면 수식셀도 .v 값으로 옴
+// 단, 빈 행 사이에 있는 합계행(I열+K열)을 cur flush 전에 읽어야 함
+// → 다음 품목헤더 만날 때만 flush
+// ════════════════════════════════════════════
+const ITEM_RE = /^\s*(?:\*{0,2}[^가-힣]*\/\/\s*)?\s*(?:\d+[.\)]\s*|[①-⑳]\s*)?(.+?)\s+([\d,]+)\s*(?:매|개)\s*$/;
+
+function normalName(raw) {
+  let s = raw.trim();
+  s = s.replace(/^\*{0,2}[^가-힣]*\/\/\s*/, '');
+  s = s.replace(/^\d+[.\)]\s*/, '');
+  s = s.replace(/\s+[\d,]+\s*(?:매|개)\s*$/, '');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function gv(row, i) { return (row && row.length > i) ? row[i] : null; }
+
+function asN(v) {
+  if (typeof v === 'number' && isFinite(v) && v > 0) return v;
+  if (typeof v === 'string') {
+    const n = parseFloat(v.replace(/[,원\s]/g, ''));
+    return (!isNaN(n) && n > 0) ? n : null;
+  }
+  return null;
+}
+
+function parseSheet(wb, sheetName) {
+  // cellFormula:false, raw:true → 수식 결과 캐시값(.v)을 숫자로 읽음
+  const ws = wb.Sheets[sheetName];
+
+  // XLSX.utils.sheet_to_json 대신 셀 직접 접근으로 정확히 읽기
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  const maxRow = range.e.r;
+  const rows = [];
+
+  for (let r = 0; r <= maxRow; r++) {
+    const row = [];
+    for (let c = 0; c <= 12; c++) {
+      const addr = XLSX.utils.encode_cell({r, c});
+      const cell = ws[addr];
+      // .v = 실제 계산값 (수식이든 상수든)
+      row.push(cell ? cell.v : null);
+    }
+    rows.push(row);
+  }
 
   const items = [];
   let cur = null;
 
-  const itemRe = /^(\d+)\.\s+(.+?)\s+([\d,]+)\s*매/;
+  function flush() {
+    if (!cur) return;
+    if (!cur.unit && cur.total && cur.qty)
+      cur.unit = Math.round(cur.total / cur.qty * 100) / 100;
+    if (cur.total && cur.total > 1000)
+      items.push(Object.assign({}, cur));
+    cur = null;
+  }
 
-  rows.forEach((row, ri) => {
-    const bVal = row[1];
-    if (bVal && typeof bVal === 'string') {
-      const bv = bVal.trim();
-      const m = bv.match(itemRe);
-      if (m) {
-        if (cur) items.push(cur);
-        cur = {
-          num: parseInt(m[1]),
-          name: m[2].trim(),
-          qty: parseInt(m[3].replace(/,/g, '')),
-          processes: [],
-          total: null,
-          unitPrice: null
-        };
-        return;
+  for (let ri = 0; ri < rows.length; ri++) {
+    const row = rows[ri];
+    const b = gv(row, 1);
+    const bStr = (b && typeof b === 'string') ? b.trim() : '';
+
+    // 품목 헤더 감지 → flush 후 새 cur
+    const m = bStr ? bStr.match(ITEM_RE) : null;
+    if (m) {
+      flush();
+      let qty = parseInt(m[2].replace(/,/g, ''));
+      const j9 = asN(gv(row, 9));
+      if ((!qty || isNaN(qty)) && j9) qty = Math.round(j9);
+      cur = { row: ri + 1, name: normalName(bStr), qty: qty || null,
+              total: null, unit: null, processes: [] };
+      continue;
+    }
+
+    // cur 살아있는 동안 — 빈 행 포함 모든 행 스캔
+    if (cur) {
+      const i8  = asN(gv(row, 8));   // I열: 최종합계
+      const k10 = asN(gv(row, 10));  // K열: 매단가 (후기형)
+      const h7  = asN(gv(row, 7));   // H열: 소계
+      const j9  = asN(gv(row, 9));   // J열: 매단가 (초기형)
+      const g6  = asN(gv(row, 6));   // G열: 공정금액 (후기형)
+      const f5  = asN(gv(row, 5));   // F열: R단가
+
+      // ① I열 최종합계 (가장 신뢰) + K열/J열 단가
+      if (i8 && i8 > 1000) {
+        cur.total = Math.round(i8);
+        if (k10 && k10 > 0.1 && k10 < 500000)
+          cur.unit = Math.round(k10 * 100) / 100;
+        else if (j9 && j9 > 0.1 && j9 < 500000 && j9 !== cur.qty)
+          cur.unit = Math.round(j9 * 100) / 100;
       }
-      if (cur) {
-        // 공정 파싱: F열(5) = 단가, D열(3) = 수량
-        const fVal = row[5];
-        if (bv && typeof fVal === 'number' && fVal > 100) {
-          cur.processes.push({ name: bv, price: Math.round(fVal) });
-        }
-        // 합계: I열(8), 단가: J열(9)
-        const iVal = row[8];
-        const jVal = row[9];
-        if (typeof iVal === 'number' && iVal > 50000) cur.total = Math.round(iVal);
-        if (typeof jVal === 'number' && jVal > 0) cur.unitPrice = Math.round(jVal * 10) / 10;
+      // ② H열만 있으면 소계/합계
+      if (h7 && h7 > 1000 && !cur.total) cur.total = Math.round(h7);
 
-        // H열에 합계가 있는 경우
-        const hVal = row[7];
-        if (typeof hVal === 'number' && hVal > 100000 && !cur.total) cur.total = Math.round(hVal);
+      // ③ 공정 (B열 있을 때만)
+      if (bStr && bStr.length < 35 && !bStr.includes('잡비') && !bStr.includes('%')) {
+        const amt = g6 || h7;
+        if (amt && amt > 0)
+          cur.processes.push({ name: bStr, amt: Math.round(amt), unitPrice: f5 });
       }
     }
-  });
-  if (cur) items.push(cur);
-
-  // 단가 계산
-  items.forEach(item => {
-    if (item.total && item.qty) {
-      item.unitPrice = Math.round(item.total / item.qty * 10) / 10;
-    }
-  });
-
-  // 유효 필터
-  return items.filter(i => i.total && i.total > 10000 && i.qty > 0);
+  }
+  flush();
+  return items;
 }
 
-function groupByName(items) {
+function groupItems(items) {
   const g = {};
-  items.forEach(item => {
-    if (!g[item.name]) g[item.name] = [];
-    g[item.name].push(item);
+  items.forEach(it => {
+    if (!g[it.name]) g[it.name] = [];
+    g[it.name].push(it);
   });
   return g;
 }
 
-// ─────────────────────────────────────────────
+// ════════════════════════════════════════════
 // 파일 로드
-// ─────────────────────────────────────────────
-let loadedWb = null;
+// ════════════════════════════════════════════
+function setProg(p, l) {
+  document.getElementById('pf').style.width = p + '%';
+  document.getElementById('pl').textContent = l;
+  document.getElementById('pw').style.display = 'block';
+}
+function hideProg() { setTimeout(() => document.getElementById('pw').style.display = 'none', 600); }
 
 function loadFile(file) {
-  const pw = document.getElementById('progressWrap');
-  const pf = document.getElementById('progressFill');
-  const pl = document.getElementById('progressLabel');
-  pw.style.display = 'block';
-  pf.style.width = '20%';
-  pl.textContent = '파일 읽는 중...';
-
+  setProg(10, '파일 읽는 중...');
   const reader = new FileReader();
-  reader.onload = (e) => {
-    pf.style.width = '60%';
-    pl.textContent = '시트 목록 확인 중...';
+  reader.onload = e => {
+    setProg(40, '파싱 중...');
     setTimeout(() => {
       try {
         const wb = XLSX.read(e.target.result, { type: 'binary' });
         loadedWb = wb;
-        pf.style.width = '100%';
-        pl.textContent = `${wb.SheetNames.length}개 시트 발견`;
-        setTimeout(() => { pw.style.display = 'none'; }, 800);
-
         if (wb.SheetNames.length === 1) {
-          // 시트가 하나면 바로 파싱
           processSheet(wb, wb.SheetNames[0]);
         } else {
-          // 여러 시트면 선택 UI 표시
-          renderSheetSelector(wb);
+          renderSheetSel(wb);
+          hideProg();
         }
-      } catch(err) {
-        pl.textContent = '오류: ' + err.message;
-        console.error(err);
-      }
-    }, 50);
+      } catch(err) { setProg(100, '오류: ' + err.message); }
+    }, 30);
   };
   reader.readAsBinaryString(file);
 }
 
-function renderSheetSelector(wb) {
-  const wrap = document.getElementById('sheetSelectWrap');
-  const list = document.getElementById('sheetList');
-  wrap.style.display = 'block';
-
-  list.innerHTML = wb.SheetNames.map((name, idx) => `
-    <button class="sheet-btn" data-sheet="${escapeAttr(name)}" onclick="onSheetClick('${escapeAttr(name)}')">
-      <span class="sheet-icon">📄</span>
-      <span class="sheet-name">${name}</span>
-    </button>
-  `).join('');
+function renderSheetSel(wb) {
+  const w = document.getElementById('shw'), l = document.getElementById('shlist');
+  w.style.display = 'block';
+  l.innerHTML = wb.SheetNames.map(n =>
+    `<button class="shbtn" data-s="${esc(n)}" onclick="onSheet('${esc(n)}')">${escH(n)}</button>`
+  ).join('');
 }
-
-function onSheetClick(sheetName) {
-  document.querySelectorAll('.sheet-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.sheet === sheetName);
-  });
-  processSheet(loadedWb, sheetName);
+function onSheet(sn) {
+  document.querySelectorAll('.shbtn').forEach(b => b.classList.toggle('active', b.dataset.s === sn));
+  processSheet(loadedWb, sn);
 }
-
-function processSheet(wb, sheetName) {
-  const pw = document.getElementById('progressWrap');
-  const pf = document.getElementById('progressFill');
-  const pl = document.getElementById('progressLabel');
-  pw.style.display = 'block';
-  pf.style.width = '30%';
-  pl.textContent = `"${sheetName}" 파싱 중...`;
-
+function processSheet(wb, sn) {
+  setProg(20, `"${sn}" 파싱 중...`);
   setTimeout(() => {
     try {
-      const items = parseWorkbook(wb, sheetName);
-      pf.style.width = '90%';
-      pl.textContent = `${items.length}건 처리 중...`;
-      setTimeout(() => {
-        allItems = items;
-        grouped = groupByName(items);
-        pf.style.width = '100%';
-        pl.textContent = `완료! ${Object.keys(grouped).length}개 품목 로드됨`;
-        document.getElementById('totalCount').textContent = Object.keys(grouped).length;
-        renderList('');
-        setTimeout(() => { pw.style.display = 'none'; }, 1000);
-      }, 100);
-    } catch(err) {
-      pl.textContent = '오류: ' + err.message;
-      console.error(err);
-    }
-  }, 50);
+      const items = parseSheet(wb, sn);
+      allItems = items;
+      grouped = groupItems(items);
+      document.getElementById('totalCount').textContent = items.length.toLocaleString();
+      setProg(100, `완료! ${Object.keys(grouped).length}종 ${items.length}건`);
+      hideProg();
+      renderList('');
+    } catch(err) { setProg(100, '오류: ' + err.message); console.error(err); }
+  }, 30);
 }
 
-// ─────────────────────────────────────────────
-// 사이드바 렌더
-// ─────────────────────────────────────────────
+// ════════════════════════════════════════════
+// 사이드바: 품목 그룹헤더 + 건별 카드 1건씩
+// ════════════════════════════════════════════
 function renderList(query) {
-  const list = document.getElementById('itemList');
-  const q = query.toLowerCase().trim();
+  const el = document.getElementById('il');
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
-  const keys = Object.keys(grouped).filter(k =>
-    !q || k.toLowerCase().includes(q)
-  ).sort((a, b) => a.localeCompare(b, 'ko'));
+  let names = Object.keys(grouped).filter(k =>
+    !tokens.length || tokens.every(t => k.toLowerCase().includes(t))
+  );
+  names.sort((a, b) => grouped[a][0].row - grouped[b][0].row);
 
-  document.getElementById('resultCount').textContent =
-    q ? `"${query}" 검색 결과 ${keys.length}건` : `전체 ${keys.length}개 품목`;
+  const totalCnt = names.reduce((s, n) => s + grouped[n].length, 0);
+  document.getElementById('rcnt').textContent =
+    tokens.length ? `"${query}" — ${names.length}종 ${totalCnt}건` : `전체 ${names.length}종 ${totalCnt}건`;
 
-  if (!keys.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">🔍</div><div class="es-text">검색 결과가 없습니다</div></div>`;
+  if (!names.length) {
+    el.innerHTML = `<div class="estat"><div class="ei">🔍</div><div class="et">검색 결과가 없습니다</div></div>`;
     return;
   }
 
-  list.innerHTML = keys.map(name => {
-    const instances = grouped[name];
-    const prices = instances.map(i => i.unitPrice).filter(Boolean);
-    const avg = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : null;
-    const cnt = instances.length;
+  const allPrices = names.flatMap(n => grouped[n].map(i => i.unit).filter(Boolean));
+  const gMin = allPrices.length ? Math.min(...allPrices) : 0;
+  const gMax = allPrices.length ? Math.max(...allPrices) : 0;
+  const gSpan = gMax - gMin || 1;
 
-    const highlightedName = q
-      ? name.replace(new RegExp(`(${escapeReg(query)})`, 'gi'), '<mark>$1</mark>')
-      : name;
+  let html = '';
+  names.forEach(name => {
+    const insts = grouped[name];
+    let hn = escH(name);
+    if (tokens.length)
+      tokens.forEach(t => { hn = hn.replace(new RegExp(`(${escReg(t)})`, 'gi'), '<mark>$1</mark>'); });
 
-    return `
-      <div class="item-card" data-name="${escapeAttr(name)}" onclick="selectItem('${escapeAttr(name)}')">
-        <div class="item-card-name">${highlightedName}</div>
-        <div class="item-card-meta">
-          ${cnt > 1
-            ? `<span class="badge badge-count">${cnt}회 제작</span><span class="badge badge-avg">평균 ${avg?.toLocaleString()}원</span>`
-            : `<span class="badge badge-single">1회 제작</span>${avg ? `<span class="badge badge-avg">${avg?.toLocaleString()}원</span>` : ''}`
-          }
-        </div>
-      </div>`;
-  }).join('');
-}
+    html += `<div class="ghdr">${hn}<span class="gcnt">(${insts.length}건)</span></div>`;
 
-function escapeReg(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-
-// ─────────────────────────────────────────────
-// 상세 패널
-// ─────────────────────────────────────────────
-function selectItem(name) {
-  currentGroup = name;
-
-  // 활성 표시
-  document.querySelectorAll('.item-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.name === name);
-  });
-
-  const instances = grouped[name];
-  const prices = instances.map(i => i.unitPrice).filter(Boolean);
-  const avg = prices.length ? prices.reduce((a,b)=>a+b,0)/prices.length : 0;
-  const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
-  const totalQty = instances.reduce((s,i)=>s+i.qty,0);
-
-  // 공정별 평균 집계
-  const procMap = {};
-  instances.forEach(inst => {
-    inst.processes.forEach(p => {
-      if (!procMap[p.name]) procMap[p.name] = [];
-      procMap[p.name].push(p.price);
+    // ★ 1건씩 카드
+    insts.forEach((inst, idx) => {
+      const up = inst.unit || 0;
+      const ratio = gSpan > 0 ? (up - gMin) / gSpan : 0.5;
+      const ucls = ratio > 0.66 ? 'uhi' : ratio < 0.33 ? 'ulo' : 'umd';
+      html +=
+        `<div class="ic${inst.row === currentRow ? ' active' : ''}" data-row="${inst.row}" onclick="selectItem(${inst.row})">` +
+          `<div class="ic-left">` +
+            `<div class="ic-meta">${idx + 1}번째 · 행${inst.row}</div>` +
+            `<div class="ic-info">${inst.qty ? inst.qty.toLocaleString() + '매' : '-'} · ${inst.total ? inst.total.toLocaleString() + '원' : '-'}</div>` +
+          `</div>` +
+          `<div class="ic-unit ${ucls}">${up ? up.toLocaleString() + '원' : '-'}</div>` +
+        `</div>`;
     });
   });
-  const procAvg = Object.entries(procMap)
-    .map(([n, prices]) => ({ name: n, avg: Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) }))
-    .sort((a,b) => b.avg - a.avg)
-    .slice(0, 8);
-  const maxProcAvg = procAvg[0]?.avg || 1;
 
-  // 단가 범위 바 계산
-  const rangeItems = instances.filter(i => i.unitPrice);
-  const rangeMin = Math.min(...rangeItems.map(i=>i.unitPrice));
-  const rangeMax = Math.max(...rangeItems.map(i=>i.unitPrice));
-  const rangeSpan = rangeMax - rangeMin || 1;
-
-  const dots = rangeItems.map(i => {
-    const pct = rangeSpan > 0 ? ((i.unitPrice - rangeMin) / rangeSpan * 100) : 50;
-    return `<div class="range-dot" style="left:${pct}%" data-tip="${i.unitPrice.toLocaleString()}원 (${i.qty.toLocaleString()}매)"></div>`;
-  }).join('');
-  const avgPct = rangeSpan > 0 ? ((avg - rangeMin) / rangeSpan * 100) : 50;
-
-  document.getElementById('detailEmpty').style.display = 'none';
-  const dc = document.getElementById('detailContent');
-  dc.style.display = 'block';
-
-  dc.innerHTML = `
-    <div class="detail-header">
-      <div class="detail-name">${name}</div>
-      <div class="detail-chips">
-        <span class="chip">제작 ${instances.length}회</span>
-        <span class="chip">총 ${totalQty.toLocaleString()}매</span>
-        <span class="chip">단가 범위 ${minP.toLocaleString()}~${maxP.toLocaleString()}원</span>
-      </div>
-    </div>
-
-    <!-- 요약 카드 -->
-    <div class="summary-grid">
-      <div class="summary-card accent">
-        <div class="sc-label">평균 단가</div>
-        <div class="sc-value accent">${Math.round(avg).toLocaleString()}<span style="font-size:13px;font-weight:400"> 원</span></div>
-        <div class="sc-sub">/매</div>
-      </div>
-      <div class="summary-card green">
-        <div class="sc-label">최저 단가</div>
-        <div class="sc-value green">${minP.toLocaleString()}<span style="font-size:13px;font-weight:400"> 원</span></div>
-        <div class="sc-sub">최저가 기록</div>
-      </div>
-      <div class="summary-card yellow">
-        <div class="sc-label">최고 단가</div>
-        <div class="sc-value yellow">${maxP.toLocaleString()}<span style="font-size:13px;font-weight:400"> 원</span></div>
-        <div class="sc-sub">최고가 기록</div>
-      </div>
-    </div>
-
-    <!-- 단가 범위 -->
-    ${rangeItems.length > 1 ? `
-    <div class="price-range-section">
-      <div class="section-title">단가 분포</div>
-      <div class="price-range-bar-wrap">
-        <div class="range-labels">
-          <span class="range-label">최저 ${rangeMin.toLocaleString()}원</span>
-          <span class="range-label" style="color:var(--yellow)">평균 ${Math.round(avg).toLocaleString()}원</span>
-          <span class="range-label">최고 ${rangeMax.toLocaleString()}원</span>
-        </div>
-        <div class="range-track">
-          <div class="range-fill" style="left:0;width:100%"></div>
-        </div>
-        <div class="range-dots">
-          ${dots}
-          <div class="range-avg-line" style="left:${avgPct}%" title="평균"></div>
-        </div>
-      </div>
-    </div>` : ''}
-
-    <!-- 공정별 평균 단가 -->
-    ${procAvg.length ? `
-    <div class="process-breakdown">
-      <div class="section-title">공정별 평균 단가 (R당)</div>
-      ${procAvg.map(p => `
-        <div class="proc-row">
-          <div class="proc-name">${p.name}</div>
-          <div class="proc-bar-wrap"><div class="proc-bar" style="width:${Math.round(p.avg/maxProcAvg*100)}%"></div></div>
-          <div class="proc-price">${p.avg.toLocaleString()}원</div>
-        </div>
-      `).join('')}
-    </div>` : ''}
-
-    <!-- 이력 테이블 -->
-    <div class="section-title">제작 이력</div>
-    <table class="history-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>수량</th>
-          <th>총 금액</th>
-          <th>매당 단가</th>
-          <th>주요 공정</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${instances.map((inst, idx) => {
-          const up = inst.unitPrice || 0;
-          const cls = up >= avg * 1.1 ? 'high' : up <= avg * 0.9 ? 'low' : 'mid';
-          const procs = inst.processes.slice(0,5).map(p=>`<span class="proc-tag">${p.name}</span>`).join('');
-          return `
-            <tr>
-              <td class="td-num">${idx+1}</td>
-              <td class="td-qty">${inst.qty.toLocaleString()}매</td>
-              <td class="td-total">${inst.total ? inst.total.toLocaleString()+'원' : '-'}</td>
-              <td class="td-unit ${cls}">${up ? up.toLocaleString()+'원' : '-'}</td>
-              <td class="td-process">${procs || '-'}</td>
-            </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
+  el.innerHTML = html;
 }
 
-// ─────────────────────────────────────────────
-// 이벤트 바인딩
-// ─────────────────────────────────────────────
-const fileInput = document.getElementById('fileInput');
-const uploadZone = document.getElementById('uploadZone');
-const searchInput = document.getElementById('searchInput');
-const searchClear = document.getElementById('searchClear');
+// ════════════════════════════════════════════
+// 상세 패널
+// ════════════════════════════════════════════
+function selectItem(rowNum) {
+  currentRow = rowNum;
+  document.querySelectorAll('.ic').forEach(c => c.classList.toggle('active', +c.dataset.row === rowNum));
 
-fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) loadFile(e.target.files[0]);
-});
+  const item = allItems.find(i => i.row === rowNum);
+  if (!item) return;
 
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('drag');
-  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
-});
+  const same = grouped[item.name] || [];
+  const prices = same.map(i => i.unit).filter(Boolean);
+  const avg  = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+  const minP = prices.length ? Math.min(...prices) : 0;
+  const maxP = prices.length ? Math.max(...prices) : 0;
+  const up   = item.unit || 0;
+  const myIdx = same.findIndex(i => i.row === rowNum);
 
-searchInput.addEventListener('input', () => {
-  const q = searchInput.value;
-  searchClear.style.display = q ? 'block' : 'none';
-  if (Object.keys(grouped).length) renderList(q);
-});
+  const rspan = maxP - minP || 1;
+  const dots = same.filter(i => i.unit).map(i => {
+    const pct = ((i.unit - minP) / rspan * 100).toFixed(1);
+    const isMe = i.row === rowNum;
+    return `<div class="rdt" style="left:${pct}%;background:${isMe ? 'var(--yellow)' : 'var(--accent)'};${isMe ? 'width:8px;height:8px;top:1px;' : ''}" data-tip="${i.unit?.toLocaleString()}원 (행${i.row})"></div>`;
+  }).join('');
+  const avgPct = avg ? ((avg - minP) / rspan * 100).toFixed(1) : 50;
 
-searchClear.addEventListener('click', () => {
-  searchInput.value = '';
-  searchClear.style.display = 'none';
-  renderList('');
-});
+  document.getElementById('demp').style.display = 'none';
+  const dc = document.getElementById('dc');
+  dc.style.display = 'block';
+
+  dc.innerHTML =
+    `<div class="dname">${escH(item.name)}</div>` +
+    `<div class="dchips">` +
+      `<span class="chip">행 ${item.row}</span>` +
+      `<span class="chip">${item.qty ? item.qty.toLocaleString() + '매' : '-'}</span>` +
+      `<span class="chip">합계 ${item.total ? item.total.toLocaleString() + '원' : '-'}</span>` +
+      (same.length > 1 ? `<span class="chip">동일품목 ${same.length}건 중 ${myIdx + 1}번째</span>` : '') +
+    `</div>` +
+
+    `<div class="sgrid">` +
+      `<div class="scd sa"><div class="slbl">이 건 단가</div><div class="sval ca">${up ? up.toLocaleString() : '-'}<span style="font-size:10px;font-weight:400"> 원/매</span></div><div class="ssub">합계÷수량</div></div>` +
+      `<div class="scd sg"><div class="slbl">동일품목 최저</div><div class="sval cg">${minP ? minP.toLocaleString() : '-'}<span style="font-size:10px;font-weight:400"> 원</span></div><div class="ssub">${same.length}건 기준</div></div>` +
+      `<div class="scd sy"><div class="slbl">동일품목 평균</div><div class="sval cy">${avg ? Math.round(avg).toLocaleString() : '-'}<span style="font-size:10px;font-weight:400"> 원</span></div><div class="ssub">최고 ${maxP ? maxP.toLocaleString() : '-'}원</div></div>` +
+    `</div>` +
+
+    (same.length > 1 ?
+      `<div class="stit">동일품목 단가 분포 <span style="color:var(--yellow)">●</span> 현재 건</div>` +
+      `<div class="rw">` +
+        `<div class="rlr"><span class="rlb">최저 ${minP.toLocaleString()}원</span><span class="rlb" style="color:var(--yellow)">평균 ${Math.round(avg).toLocaleString()}원</span><span class="rlb">최고 ${maxP.toLocaleString()}원</span></div>` +
+        `<div class="rtr"><div class="rfi"></div></div>` +
+        `<div class="rds">${dots}<div class="ravg" style="left:${avgPct}%"></div></div>` +
+      `</div>` : '') +
+
+    (item.processes && item.processes.length ?
+      `<div class="stit">공정 내역</div>` +
+      `<table class="tbl"><thead><tr><th>공정명</th><th>R·매 단가</th><th>금액</th></tr></thead><tbody>` +
+      item.processes.map(p =>
+        `<tr><td>${escH(p.name)}</td><td class="tn">${p.unitPrice ? p.unitPrice.toLocaleString() : '기본'}</td><td class="tt">${p.amt ? p.amt.toLocaleString() + '원' : '-'}</td></tr>`
+      ).join('') + `</tbody></table>` : '') +
+
+    (same.length > 1 ?
+      `<div class="stit">동일품목 전체 이력 — ${same.length}건 · 건별 단가</div>` +
+      `<table class="tbl"><thead><tr><th>#</th><th>행</th><th>수량</th><th>합계금액</th><th>매당 단가</th></tr></thead><tbody>` +
+      same.map((inst, idx) => {
+        const u = inst.unit || 0;
+        const cls = avg && u >= avg * 1.1 ? 'tu-hi' : avg && u <= avg * 0.9 ? 'tu-lo' : 'tu-md';
+        const isMe = inst.row === rowNum;
+        return `<tr${isMe ? ' class="me"' : ''}>` +
+          `<td class="tn">${idx + 1}</td>` +
+          `<td class="tn tlink" onclick="selectItem(${inst.row})">${inst.row}</td>` +
+          `<td class="tq">${inst.qty ? inst.qty.toLocaleString() + '매' : '-'}</td>` +
+          `<td class="tt">${inst.total ? inst.total.toLocaleString() + '원' : '-'}</td>` +
+          `<td class="tu ${cls}">${u ? u.toLocaleString() + '원' : '-'}${isMe ? ' ◀' : ''}</td></tr>`;
+      }).join('') + `</tbody></table>` : '');
+}
+
+function escReg(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function esc(s)    { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function escH(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// 이벤트
+document.getElementById('fi').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+const uz = document.getElementById('upz');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('drag'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+const siEl = document.getElementById('si'), scEl = document.getElementById('sc');
+siEl.addEventListener('input', () => { scEl.style.display = siEl.value ? 'block' : 'none'; if (allItems.length) renderList(siEl.value); });
+scEl.addEventListener('click', () => { siEl.value = ''; scEl.style.display = 'none'; renderList(''); });
 </script>
 </body>
 </html>
