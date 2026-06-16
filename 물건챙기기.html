@@ -201,6 +201,15 @@
     noPosEl.className = noPosCount > 0 ? "warn" : "ok";
   }
 
+// ── ★ 흰판 옵션 감지 함수 추가 (collectItems 함수 위에 삽입) ──
+function applyBottomOption(rawName, originalText) {
+  // originalText: 쇼핑몰 원본 품목명 전체 (옵션 괄호 포함)
+  if (/밑판선택\s*:\s*흰색/.test(originalText)) {
+    return rawName + "[흰판]";
+  }
+  return rawName;
+}
+
   // ── 주문 집계 메인 함수 ──
   function collectItems(showAlert) {
     const packRaw=localStorage.getItem("packData");
@@ -298,7 +307,7 @@
           if(!mapped){ const norm=normFull(origName); for(const [k,v] of shopToEcount) if(normFull(k)===norm){mapped=v;break;} }
           finalName=mapped||origName;
         }
-        
+        finalName = applyBottomOption(finalName, originItem);
         addItem(finalName,origQty);
         return;
       }
@@ -317,6 +326,7 @@
         } else {
           ecountName=rawName;
         }
+        ecountName = applyBottomOption(ecountName, itemText);
         addItem(ecountName,qty);
       });
     });
