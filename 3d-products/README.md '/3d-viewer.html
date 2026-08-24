@@ -1,0 +1,2923 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실물형 패키지 시뮬레이터</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1f232c; --line:#2a2f3a;
+    --text:#e9edf3; --muted:#98a2b3; --accent:#5b8cff; --accent2:#3ecf8e; --danger:#e5484d;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh;}
+  #panel{width:460px; min-width:420px; background:var(--panel); border-right:1px solid var(--line); padding:18px; overflow-y:auto; height:100vh;}
+  #panel h1{font-size:16px; margin:0 0 4px;}
+  #panel .sub{color:var(--muted); font-size:11px; margin-bottom:16px;}
+  .section{margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line);}
+  .section h2{font-size:13px; color:var(--accent); margin:0 0 10px; font-weight:600;}
+  select,input[type=text],input[type=number]{width:100%; padding:7px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font-size:12px;}
+  .dims{display:flex; gap:6px;}
+  .dims label{flex:1; font-size:10px; color:var(--muted);}
+  .dims input{margin-top:3px;}
+  .face-row{display:flex; flex-direction:column; align-items:stretch; gap:5px; background:var(--panel2); border:1px solid var(--line); border-radius:7px; padding:6px 7px; margin-bottom:0;}
+  #faceUploadRows{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .face-row .thumb{width:22px; height:22px; border-radius:4px; background:#2a2f3a; background-size:cover; background-position:center; flex-shrink:0;}
+  .face-row .fname{font-size:10px; font-weight:600; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .face-row input[type=file]{font-size:9px; color:var(--muted); width:100%; max-width:100%;}
+  .face-row input[type=file]::file-selector-button{font-size:9px; padding:2px 6px; border-radius:4px; border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer; margin-right:4px;}
+  .face-row input[type=text]{font-size:10px; padding:5px 6px;}
+
+  .btn{padding:8px 10px; border-radius:7px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font-size:12px; cursor:pointer; font-weight:600;}
+  .btn-full{width:100%;}
+  .btn-primary{background:var(--accent); color:#fff; border:none;}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid var(--danger); padding:4px 8px; font-size:11px;}
+  .btn.active{background:var(--accent2); border-color:var(--accent2); color:#08130f;}
+  .row{display:flex; gap:6px; align-items:center;}
+  .row-between{display:flex; justify-content:space-between; align-items:center;}
+  input[type=color]{width:36px; height:30px; padding:0; border:1px solid var(--line); border-radius:6px; background:none;}
+  input[type=range]{width:100%;}
+  .small-label{font-size:10px; color:var(--muted); margin-bottom:3px; display:block;}
+
+  .subtabs{display:flex; gap:5px; margin-bottom:10px;}
+  .subtabs button{flex:1; padding:6px; font-size:11px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); cursor:pointer;}
+  .subtabs button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .subpane{display:none;}
+  .subpane.active{display:block;}
+
+  #miniCanvas{width:100%; aspect-ratio:1; max-height:340px; border-radius:8px; border:1px solid var(--line); background:#2a2f3a; cursor:default; touch-action:none;}
+  #miniCanvas.drawing{cursor:crosshair;}
+  .item-card{background:var(--panel2); border:1px solid var(--line); border-radius:7px; padding:8px; margin-top:8px;}
+  .item-card .ic-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .item-card .ic-head span{font-size:11px; font-weight:600;}
+  .item-card label.small-label{margin-top:6px;}
+
+  #viewer-wrap{flex:1; position:relative;}
+  #viewer{width:100%; height:100vh; display:block; cursor:grab;}
+  #viewer:active{cursor:grabbing;}
+  #hint{position:absolute; bottom:60px; left:50%; transform:translateX(-50%); color:#ffffff; font-size:16px; font-weight:600; background:rgba(0,0,0,.85); padding:12px 20px; border-radius:20px; pointer-events:none; z-index:6; max-width:90%; text-align:center;}
+  #loadingOverlay{position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(245,245,245,0.55); pointer-events:none; z-index:5;}
+  #loadingOverlay.show{display:flex;}
+  #loadingOverlay .spinner{width:38px; height:38px; border-radius:50%; border:4px solid rgba(91,140,255,0.25); border-top-color:#5b8cff; animation:spin 0.8s linear infinite;}
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <h1>📦 실물형 패키지 시뮬레이터</h1>
+  <div class="sub">사각형 · 접시형 · 트레이형 + 면별 이미지·색상·선·텍스트 편집</div>
+
+  <div class="section">
+    <h2>1. 상자 형태 / 치수 (mm)</h2>
+    <select id="shapeSelect">
+      <option value="box">사각형</option>
+      <option value="dish">접시형</option>
+      <option value="dishDouble">접시형(이중고)</option>
+      <option value="tray">트레이형</option>
+      <option value="house">하우스형</option>
+      <option value="handle">손잡이형(기본)</option>
+      <option value="handleWave">손잡이형(아치물결)</option>
+      <option value="handleTopWave">손잡이형(손잡이물결)</option>
+      <option value="handleArchGripWave">손잡이형(아치손잡이물결)</option>
+      <option value="handleRing">손잡이형(원형)</option>
+      <option value="handleTrumpet">손잡이형(나팔형)</option>
+      <option value="handleBulk">손잡이형(벌크형)</option>
+      <option value="shoppingBag">쇼핑백형</option>
+      <option value="sleeve">슬리브형</option>
+    </select>
+    <div class="dims" style="margin-top:8px;">
+      <label>가로(W)<input type="number" id="dimW" value="260"></label>
+      <label>세로(D)<input type="number" id="dimD" value="140"></label>
+      <label>높이(H)<input type="number" id="dimH" value="120"></label>
+    </div>
+    <div class="dims" id="dimBandWrap" style="margin-top:8px; display:none;">
+      <label>이중고 높이(B)<input type="number" id="dimBand" value="7"></label>
+    </div>
+    <div class="row" id="houseRopeWrap" style="margin-top:8px; display:none; align-items:center;">
+      <label class="small-label" style="flex:1; margin:0;">줄(끈) 색상</label>
+      <input type="color" id="ropeColor" value="#c9a06a">
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. 면 이미지 업로드</h2>
+    <div id="faceUploadRows"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. 면 편집</h2>
+    <label class="small-label">편집할 면</label>
+    <select id="editFaceSelect" style="margin-bottom:10px;"></select>
+
+    <div class="subtabs">
+      <button class="active" data-pane="paneImage">이미지</button>
+      <button data-pane="paneColor">색상</button>
+      <button data-pane="paneLine">선</button>
+      <button data-pane="paneText">텍스트</button>
+    </div>
+
+    <div id="paneImage" class="subpane active">
+      <div class="hint-small" style="margin-bottom:8px;">파란 박스를 드래그하면 이동, 모서리 4개 점은 비율 고정 크기조절, 상하좌우 중간 4개 점은 그 방향으로만 폭/높이가 조절돼요.</div>
+      <canvas id="imgAdjustCanvas" width="320" height="320" style="width:100%; aspect-ratio:1; max-height:340px; border-radius:8px; border:1px solid var(--line); background:#2a2f3a; touch-action:none;"></canvas>
+      <button class="btn btn-full" id="resetFitBtn" style="margin-top:8px;">화면에 꽉 차게 다시 맞추기</button>
+      <button class="btn btn-full btn-danger" id="clearImageBtn" style="margin-top:6px;">이미지 삭제</button>
+    </div>
+
+    <div id="paneColor" class="subpane">
+      <div class="row">
+        <input type="color" id="colorPicker" value="#c9a06a">
+        <button class="btn" id="fillColorBtn" style="flex:1;">이 면에 색상 채우기</button>
+      </div>
+      <button class="btn btn-full" id="clearColorBtn" style="margin-top:6px;">색상 삭제 (이미지로 복원)</button>
+    </div>
+
+    <div id="paneLine" class="subpane">
+      <div class="row" style="margin-bottom:8px;">
+        <input type="color" id="lineColor" value="#ff3b30">
+        <button class="btn" id="drawModeBtn" style="flex:1;">✏ 그리기 모드 켜기</button>
+      </div>
+      <label class="small-label">선 두께</label>
+      <input type="range" id="lineWidth" min="1" max="24" value="4">
+      <canvas id="miniCanvas" width="320" height="320" style="margin-top:8px;"></canvas>
+      <div id="lineList"></div>
+    </div>
+
+    <div id="paneText" class="subpane">
+      <label class="small-label">텍스트 내용</label>
+      <input type="text" id="textInput" value="문구를 입력하세요">
+      <div class="row" style="margin-top:6px;">
+        <input type="color" id="textColor" value="#ffffff">
+        <button class="btn" id="addTextBtn" style="flex:1;">텍스트 추가</button>
+      </div>
+      <div id="textList"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4. 작업 저장 / 불러오기</h2>
+    <div class="sub" style="margin-bottom:8px;">현재 작업을 파일로 저장해 두었다가 나중에 다시 불러와 수정할 수 있어요.</div>
+    <div class="row">
+      <button class="btn" id="saveProjectBtn" style="flex:1;">💾 저장하기</button>
+      <button class="btn" id="loadProjectBtn" style="flex:1;">📂 불러오기</button>
+      <input type="file" id="projectFileInput" accept=".json,application/json" style="display:none;">
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5. 쇼핑몰에 연결하기</h2>
+    <div class="sub" style="margin-bottom:8px;">
+      면 이미지를 "URL로 등록"한 경우에만 임베드 코드에 반영돼요. 내 컴퓨터에서 올린 파일은 브라우저 메모리에만 있어서 다른 사람 화면엔 안 보여요.
+    </div>
+    <button class="btn btn-primary btn-full" id="genEmbedBtn">임베드 코드 생성</button>
+    <textarea id="embedCode" readonly placeholder="여기에 <iframe> 코드가 생성됩니다" style="width:100%; height:90px; margin-top:8px; background:var(--panel2); color:var(--accent2); border:1px solid var(--line); border-radius:6px; padding:8px; font-size:11px; font-family:monospace; resize:vertical;"></textarea>
+    <button class="btn btn-full" id="copyEmbedBtn" style="margin-top:6px;">코드 복사</button>
+  </div>
+</div>
+
+<div id="viewer-wrap">
+  <canvas id="viewer"></canvas>
+  <div id="hint">마우스나 손으로 터치하여 자유롭게 회전 · 확대/축소해보세요</div>
+  <div id="loadingOverlay"><div class="spinner"></div></div>
+  <button id="viewerLoadBtn" style="position:absolute; top:14px; left:14px; z-index:5; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer;">📂 프로젝트 불러오기</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
+<script>
+if(typeof THREE === 'undefined'){
+  document.body.innerHTML = '<div style="padding:40px;color:#fff;font-family:sans-serif;">⚠ 3D 라이브러리를 불러오지 못했어요. 새 탭에서 파일을 직접 열어보세요.</div>';
+  throw new Error('THREE not loaded');
+}
+
+// ===================== 면 정의 =====================
+const FACE_DEFS = {
+  box:  [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(우)'}, {key:'side2',label:'측면2(좌)'}, {key:'top',label:'상단'}, {key:'bottom',label:'바닥'} ],
+  dish: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(우)'}, {key:'side2',label:'측면2(좌)'}, {key:'innerBottom',label:'내부 바닥'}, {key:'outerBottom',label:'바닥(외부)'}, {key:'innerFront',label:'내부 전면'}, {key:'innerBack',label:'내부 후면'}, {key:'innerSide1',label:'내부 측면1(우)'}, {key:'innerSide2',label:'내부 측면2(좌)'} ],
+  tray: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(우)'}, {key:'side2',label:'측면2(좌)'}, {key:'innerBottom',label:'내부 바닥'}, {key:'outerBottom',label:'바닥(외부)'}, {key:'innerFront',label:'내부 전면'}, {key:'innerBack',label:'내부 후면'}, {key:'innerSide1',label:'내부 측면1(우)'}, {key:'innerSide2',label:'내부 측면2(좌)'} ],
+  dishDouble: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(우)'}, {key:'side2',label:'측면2(좌)'}, {key:'frontBand',label:'전면(이중고)'}, {key:'backBand',label:'후면(이중고)'}, {key:'side1Band',label:'측면1 이중고'}, {key:'side2Band',label:'측면2 이중고'}, {key:'innerFront',label:'내부 전면'}, {key:'innerBack',label:'내부 후면'}, {key:'innerSide1',label:'내부 측면1(우)'}, {key:'innerSide2',label:'내부 측면2(좌)'}, {key:'innerBottom',label:'내부 바닥'}, {key:'outerBottom',label:'바닥(외부)'} ],
+  house: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontSlope',label:'정면 경사면'}, {key:'backSlope',label:'후면 경사면'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'top',label:'상단'}, {key:'bottom',label:'하단'} ],
+  handle: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleTopWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleArchGripWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleRing: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'top',label:'상단'}, {key:'bottom',label:'하단'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'} ],
+  handleTrumpet: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleBulk: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontSlope',label:'정면 경사면'}, {key:'backSlope',label:'후면 경사면'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'top',label:'상단'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  shoppingBag: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'bottom',label:'바닥'} ],
+  sleeve: [ {key:'front',label:'슬리브 전면'}, {key:'back',label:'슬리브 후면'}, {key:'top',label:'슬리브 상단'}, {key:'bottom',label:'슬리브 하단'}, {key:'trayLeft',label:'트레이 좌측 단면'}, {key:'trayRight',label:'트레이 우측 단면'} ],
+};
+const TEX_SIZE = 1024; // 텍스처 캔버스의 긴 변 최대 픽셀 수 (옅고 촘촘한 무늬도 살리기 위해 512→1024로 상향)
+
+// ===================== 면 비율(실제 mm 치수 기준) 계산 =====================
+function getDims(){
+  return {
+    W: parseFloat(dimW.value)||260,
+    D: parseFloat(dimD.value)||140,
+    H: parseFloat(dimH.value)||120,
+    B: parseFloat(dimBand && dimBand.value)||7,
+  };
+}
+function getShapeConfig(shape){
+  return shape==='dish' ? {taper:0, hScale:1.0} : {taper:0.18, hScale:1.0};
+}
+// 하우스형 지붕 - 경사 길이 60mm, 꺾이는 각도 28도로 고정 (mm 단위로 통일해서 계산 - 단위 혼동으로 이미지가 찌그러지던 버그 방지)
+const HOUSE_SLOPE_LEN_MM = 60;
+const HOUSE_SLOPE_DEG = 28;
+const HOUSE_SLOPE_RAD = HOUSE_SLOPE_DEG * Math.PI/180;
+const HOUSE_INSET_MM = HOUSE_SLOPE_LEN_MM * Math.sin(HOUSE_SLOPE_RAD);
+const HOUSE_RISE_MM = HOUSE_SLOPE_LEN_MM * Math.cos(HOUSE_SLOPE_RAD);
+// 손잡이형(기본) 구조 상수
+const HANDLE_TOP_RATIO = 0.5;   // 정면/후면 상단이 세로(D)의 50%씩 안쪽으로 꺾여 중앙에서 만남
+const HANDLE_ARC_RATIO = 0.7;   // 측면 아치가 높이(H)의 70%만큼 위로 솟아오름
+const HANDLE_RISE_MM = 50;      // 손잡이 자체 높이(약 50mm)
+const HANDLE_ARC_SEGMENTS = 80; // 아치 곡선 매끄러움 정도 (물결형은 봉우리가 5개라 훨씬 촘촘해야 매끈함)
+const HANDLE_TILT_DEG = 30;     // 측면 경사면이 안쪽으로 기울어지는 각도
+const HANDLE_TILT_RAD = HANDLE_TILT_DEG * Math.PI/180;
+// 손잡이형(원형) 구조 상수
+const RING_SPAN_RATIO = 0.42; // 손잡이 양쪽 다리 사이 간격 = 가로(W)의 이 비율만큼
+const RING_BAND_MM = 15;      // 손잡이 밴드(고리) 폭
+const RING_LEG_MM = 12;       // 아치가 시작되기 전 곧게 선 다리 부분 높이
+// 손잡이형(벌크형) 구조 상수
+const BULK_FRUSTUM_RATIO = 1.0; // 사다리꼴 경사면이 올라가는 높이 = 상자 높이(H)의 이 비율
+const BULK_TOP_RATIO = 0.45;    // 사다리꼴 위쪽 작은 사각형의 가로/세로 = 원래 상자의 이 비율
+const BULK_BAND_MM = 20;        // 손잡이 밴드(고리) 폭
+const BULK_HANDLE_RISE_MM = 45; // 손잡이 자체 높이
+const BULK_CORNER_MM = 10;      // 손잡이 위쪽 모서리 라운드 반지름
+// 손잡이형(나팔형) 구조 상수
+// 각 면의 "가로/세로" 실측 비율(width/height)을 mm 치수로부터 계산.
+// 트레이형처럼 위가 넓은 사다리꼴 면은 위/아래 평균 폭으로 근사함.
+function faceAspect(shape, key){
+  const {W,D,H,B} = getDims();
+  if(shape==='box'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    return W/D; // top/bottom
+  }
+  if(shape==='house'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    if(key==='frontSlope'||key==='backSlope') return W/HOUSE_SLOPE_LEN_MM;
+    if(key==='side1Slope'||key==='side2Slope') return D/HOUSE_SLOPE_LEN_MM;
+    if(key==='top') return Math.max(0.01,W-2*HOUSE_INSET_MM)/Math.max(0.01,D-2*HOUSE_INSET_MM);
+    return W/D; // bottom
+  }
+  if(shape==='handle' || shape==='handleWave' || shape==='handleTopWave' || shape==='handleArchGripWave' || shape==='handleTrumpet'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    if(key==='frontTop'||key==='backTop') return Math.max(0.01,W)/Math.max(0.01,D*HANDLE_TOP_RATIO);
+    if(key==='side1Slope'||key==='side2Slope') return Math.max(0.01,D)/Math.max(0.01,H*HANDLE_ARC_RATIO);
+    if(key==='handleFront'||key==='handleBack') return Math.max(0.01,W)/HANDLE_RISE_MM;
+    return W/D; // bottom
+  }
+  if(shape==='handleRing'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    if(key==='top') return W/D;
+    if(key==='handleFront'||key==='handleBack'){
+      const span = W*RING_SPAN_RATIO;
+      const totalH = span/2 + RING_LEG_MM; // 반지름(=span/2) + 다리 높이
+      return Math.max(0.01, span)/Math.max(0.01, totalH);
+    }
+    return W/D; // bottom
+  }
+  if(shape==='handleBulk'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    const frustumH = H*BULK_FRUSTUM_RATIO;
+    if(key==='frontSlope'||key==='backSlope') return Math.max(0.01,W)/Math.max(0.01,frustumH);
+    if(key==='side1Slope'||key==='side2Slope') return Math.max(0.01,D)/Math.max(0.01,frustumH);
+    if(key==='top') return Math.max(0.01,W*BULK_TOP_RATIO)/Math.max(0.01,D*BULK_TOP_RATIO);
+    if(key==='handleFront'||key==='handleBack'){
+      const span = W*BULK_TOP_RATIO;
+      const totalH = BULK_HANDLE_RISE_MM;
+      return Math.max(0.01, span)/Math.max(0.01, totalH);
+    }
+    return W/D; // bottom
+  }
+  if(shape==='shoppingBag'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    return W/D; // bottom
+  }
+  if(shape==='sleeve'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='top'||key==='bottom') return W/D;
+    if(key==='trayLeft'||key==='trayRight') return D/H;
+    return W/H;
+  }
+  if(shape==='dishDouble'){
+    if(key==='front'||key==='back') return W/H;
+    if(key==='side1'||key==='side2') return D/H;
+    if(key==='frontBand'||key==='backBand') return W/B;
+    if(key==='side1Band'||key==='side2Band') return D/B;
+    if(key==='innerFront'||key==='innerBack') return Math.max(0.01,W-2*B)/H;
+    if(key==='innerSide1'||key==='innerSide2') return Math.max(0.01,D-2*B)/H;
+    if(key==='innerBottom') return Math.max(0.01,W-2*B)/Math.max(0.01,D-2*B);
+    return W/D; // outerBottom
+  }
+  const cfg = getShapeConfig(shape);
+  const wallH = H*cfg.hScale;
+  if(key==='front'||key==='back'||key==='innerFront'||key==='innerBack'){
+    const topW = W + wallH*cfg.taper*2;
+    return ((W+topW)/2) / wallH;
+  }
+  if(key==='side1'||key==='side2'||key==='innerSide1'||key==='innerSide2'){
+    const topD = D + wallH*cfg.taper*2;
+    return ((D+topD)/2) / wallH;
+  }
+  return W/D; // innerBottom/outerBottom
+}
+function faceCanvasDims(shape, key){
+  let aspect = faceAspect(shape, key);
+  if(!isFinite(aspect) || aspect<=0) aspect = 1;
+  let cw, ch;
+  if(aspect >= 1){ cw = TEX_SIZE; ch = Math.max(32, Math.round(TEX_SIZE/aspect)); }
+  else { ch = TEX_SIZE; cw = Math.max(32, Math.round(TEX_SIZE*aspect)); }
+  return {cw, ch};
+}
+
+// ===================== 면별 상태 저장소 =====================
+const faceStateByShape = { box:{}, dish:{}, tray:{}, dishDouble:{}, house:{}, handle:{}, handleWave:{}, handleTopWave:{}, handleArchGripWave:{}, handleRing:{}, handleTrumpet:{}, handleBulk:{}, shoppingBag:{}, sleeve:{} };
+function ensureFaceState(shape, key){
+  if(!faceStateByShape[shape][key]){
+    const {cw,ch} = faceCanvasDims(shape, key);
+    const canvas = document.createElement('canvas');
+    canvas.width = cw; canvas.height = ch;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    if(typeof renderer !== 'undefined' && renderer.capabilities){
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    }
+    const isInnerWall = (key==='innerFront'||key==='innerBack'||key==='innerSide1'||key==='innerSide2');
+    const isTrayFace = (key==='trayLeft'||key==='trayRight');
+    faceStateByShape[shape][key] = {
+      canvas, ctx: canvas.getContext('2d'), texture,
+      baseImage: null, useColor:(isInnerWall||isTrayFace), color: isInnerWall ? '#ffffff' : (isTrayFace ? '#1a1a1a' : '#c9a06a'),
+      imgBox: null, imgAspect: 1,
+      lines: [], texts: []
+    };
+    redrawFace(shape, key);
+  }
+  return faceStateByShape[shape][key];
+}
+// 치수가 바뀌면 실제 면 비율도 바뀌므로 캔버스 크기를 다시 맞춤 (내용은 유지)
+function syncFaceCanvasSize(shape, key){
+  const state = faceStateByShape[shape] && faceStateByShape[shape][key];
+  if(!state) return false;
+  const {cw,ch} = faceCanvasDims(shape, key);
+  if(state.canvas.width!==cw || state.canvas.height!==ch){
+    state.canvas.width = cw;
+    state.canvas.height = ch;
+    redrawFace(shape, key);
+    return true;
+  }
+  return false;
+}
+function syncAllFaceCanvasSizes(){
+  Object.keys(faceStateByShape).forEach(shape=>{
+    Object.keys(faceStateByShape[shape]).forEach(key=>{
+      const changed = syncFaceCanvasSize(shape, key);
+      if(changed && shape===shapeSelect.value) updateThumb(key);
+    });
+  });
+}
+// 편집용 미리보기 캔버스(이미지 조절/선 그리기)를 현재 편집중인 면의 실제 비율에 맞춤
+function syncPreviewCanvasesToFace(state){
+  if(!state) return;
+  const cw = state.canvas.width, ch = state.canvas.height;
+  [miniCanvas, imgAdjustCanvas].forEach(cv=>{
+    if(cv.width!==cw) cv.width = cw;
+    if(cv.height!==ch) cv.height = ch;
+    cv.style.aspectRatio = cw+' / '+ch;
+  });
+}
+
+// canvasAspect(가로/세로)를 기준으로 이미지를 "여백 없이 최대한 꽉 차게(contain)" 배치하는 박스를 계산
+function computeContainBox(img, canvasAspect){
+  canvasAspect = canvasAspect || 1;
+  const ir = img.width / img.height;
+  if(ir > canvasAspect){
+    const hFrac = canvasAspect/ir;
+    return { x:0, y:(1-hFrac)/2, w:1, h:hFrac };
+  }
+  const wFrac = ir/canvasAspect;
+  return { x:(1-wFrac)/2, y:0, w:wFrac, h:1 };
+}
+function drawImageAtBox(ctx, img, cw, ch, box){
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0,0,cw,ch);
+  ctx.clip();
+  ctx.drawImage(img, box.x*cw, box.y*ch, box.w*cw, box.h*ch);
+  ctx.restore();
+}
+
+function drawFaceContent(state, ctx, cw, ch){
+  cw = cw || ctx.canvas.width;
+  ch = ch || ctx.canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  // 기본 면 색: 흰색 (회색빛이 배경과 겹쳐 흐릿해 보이는 문제 해결)
+  ctx.fillStyle = state.useColor ? state.color : '#ffffff';
+  ctx.fillRect(0,0,cw,ch);
+  if(state.baseImage && !state.useColor && state.imgBox){
+    drawImageAtBox(ctx, state.baseImage, cw, ch, state.imgBox);
+  }
+  const lineScale = Math.min(cw,ch);
+  state.lines.forEach(line=>{
+    ctx.strokeStyle = line.color;
+    ctx.lineWidth = line.width/320*lineScale;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    line.points.forEach((p,i)=>{
+      const x=p.x*cw, y=p.y*ch;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  });
+  state.texts.forEach(t=>{
+    ctx.fillStyle = t.color;
+    ctx.font = `bold ${Math.max(8,t.size*ch)}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(t.content, t.x*cw, t.y*ch);
+  });
+}
+
+function redrawFace(shape, key){
+  const state = faceStateByShape[shape][key];
+  if(!state) return;
+  drawFaceContent(state, state.ctx, state.canvas.width, state.canvas.height);
+  state.texture.needsUpdate = true;
+  if(shape === shapeSelect.value && key === editFaceSelect.value){
+    drawFaceContent(state, miniCtx, miniCanvas.width, miniCanvas.height);
+  }
+}
+
+// ===================== Three.js 씬 =====================
+const canvas = document.getElementById('viewer');
+const wrap = document.getElementById('viewer-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+const camera = new THREE.PerspectiveCamera(42, wrap.clientWidth/wrap.clientHeight, 0.1, 100);
+camera.position.set(3.6, 2.6, 4.2);
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+renderer.outputEncoding = THREE.sRGBEncoding; // 텍스처(sRGB)와 렌더러 출력 색공간을 맞춰서 색이 과하게 진하거나 흐리게 나오는 왜곡을 바로잡음
+renderer.toneMapping = THREE.LinearToneMapping; // 색조/채도는 그대로 두고 밝기만 조절하는 방식(필름 톤매핑처럼 색이 뿌옇게 변하지 않음)
+renderer.toneMappingExposure = 1.0; // 면이 조명 영향을 안 받는 재질로 바뀌어서, 노출값도 중립(원본 그대로)으로 되돌림
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 1.2; controls.maxDistance = 20;
+controls.enablePan = false; // 드래그로 화면이 밀리지 않고, 항상 상자 중심을 축으로만 회전하도록 고정
+controls.autoRotate = false; // 임베드(고객용) 화면에서만 자동회전 켜짐 - 아래 initFromQuery 참고
+controls.autoRotateSpeed = 1.2;
+controls.addEventListener('start', ()=>{ controls.autoRotate = false; });
+let viewerForceAutoRotate = true; // 뷰어 전용 파일: 카메라 애니메이션이 끝나도 자동회전을 강제로 유지
+// 기존 dirL, dirL2 코드를 지우고 아래 3줄로 교체합니다.
+const dirL = new THREE.DirectionalLight(0xffffff, 0.75); 
+dirL.position.set(5, 12, 7); 
+scene.add(dirL);
+
+// 전체적으로 부드러운 빛을 채워 그늘이 너무 짙어지는 것을 방지합니다.
+// (예전엔 환경광이 실수로 2개(0.75+0.65=1.4) 들어가 있어서 연한 색이 하얗게 날아갔음 - 하나로 정리)
+const ambL = new THREE.AmbientLight(0xffffff, 1.2); 
+scene.add(ambL);
+
+let boxGroup = new THREE.Group();
+scene.add(boxGroup);
+
+// ---- 바닥 그림자 (입체감을 위한 옅은 타원형 그림자, 실제 라이팅 그림자가 아닌 이미지 기반 가짜 그림자) ----
+function createShadowTexture(){
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  grad.addColorStop(0,    'rgba(0,0,0,0.20)');
+  grad.addColorStop(0.35, 'rgba(0,0,0,0.12)');
+  grad.addColorStop(0.65, 'rgba(0,0,0,0.05)');
+  grad.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(c);
+}
+const shadowMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({ map: createShadowTexture(), transparent:true, depthWrite:false })
+);
+shadowMesh.rotation.x = -Math.PI/2;
+shadowMesh.renderOrder = -1;
+scene.add(shadowMesh);
+
+// ---- 굵은 크리스(접힘 표시) 선용 - 일반 LineBasicMaterial은 두께 조절이 브라우저에서 잘 안 먹혀서 전용 라이브러리 사용 ----
+const creaseLineMat = new THREE.LineMaterial({ color: 0x999999, linewidth: 3, worldUnits:false });
+creaseLineMat.depthTest = true;
+creaseLineMat.depthWrite = true;
+creaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+const creaseLineGeo = new THREE.LineSegmentsGeometry();
+const creaseLines = new THREE.LineSegments2(creaseLineGeo, creaseLineMat);
+creaseLines.visible = false;
+scene.add(creaseLines);
+
+// 귀퉁이 사선 전용 - 카메라 각도에 따라 서서히 페이드(투명도 변화)되며 위/옆 전환이 부드럽게 보이도록 함
+const cornerFadeLineMat = new THREE.LineMaterial({ color: 0x999999, linewidth: 3, worldUnits:false, transparent:true, opacity:1 });
+cornerFadeLineMat.depthTest = true;
+cornerFadeLineMat.depthWrite = false;
+cornerFadeLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+const cornerFadeLineGeo = new THREE.LineSegmentsGeometry();
+const cornerFadeLines = new THREE.LineSegments2(cornerFadeLineGeo, cornerFadeLineMat);
+cornerFadeLines.visible = false;
+scene.add(cornerFadeLines);
+let houseCornerFadeActive = false; // 하우스형일 때만 true
+const FADE_ANGLE_LOW = 1.40;  // 라디안(약 80도) 이하 - 완전히 안 보임(위에서 보는 각도)
+const FADE_ANGLE_HIGH = 1.45; // 라디안(약 83도) 이상 - 완전히 보임(옆에서 보는 각도)
+function smoothstep(edge0, edge1, x){
+  const t = Math.min(1, Math.max(0, (x-edge0)/(edge1-edge0)));
+  return t*t*(3-2*t);
+}
+function updateShadowForShape(shape, w, d, h){
+  const bottomY = (shape === 'box') ? -h/2 : 0;
+  shadowMesh.position.set(0, bottomY - 0.002, 0);
+  shadowMesh.scale.set(w*2.6, d*2.6, 1);
+  // 상자 크기에 비해 카메라가 너무 바짝 붙지 않도록 최소 확대 거리를 상자 크기에 맞춰 조절
+  // (작고 납작한 상자일수록 극단적으로 가까이 가면 원근감 때문에 앞쪽만 커 보여 아래로 쏠린 것처럼 보임)
+  controls.minDistance = Math.max(w, d, h) * 1.3;
+}
+
+// ---- 하우스형 전용 U자형 줄(끈) - 정면/후면 경사면 좌우에서 시작해 바닥 20mm 위까지 U자로 늘어짐 ----
+// 줄(끈) 표면에 꼬인 새끼줄 결을 표현하는 범프 텍스처 (색은 그대로 두고 입체 굴곡만 추가)
+function createRopeBumpTexture(){
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0,0,size,size);
+  const stripeCount = 6;
+  const stripeW = size/stripeCount;
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = stripeW*0.45;
+  for(let i=-stripeCount; i<stripeCount*2; i++){
+    ctx.beginPath();
+    ctx.moveTo(i*stripeW, size);
+    ctx.lineTo(i*stripeW+size, 0);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#f5f5f5';
+  ctx.lineWidth = stripeW*0.18;
+  for(let i=-stripeCount; i<stripeCount*2; i++){
+    ctx.beginPath();
+    ctx.moveTo(i*stripeW+stripeW*0.5, size);
+    ctx.lineTo(i*stripeW+stripeW*0.5+size, 0);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(24, 3); // 길이 방향으로 촘촘히, 둘레 방향으로 꼬임 가닥 몇 개 정도
+  return tex;
+}
+const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: 0.75, metalness: 0.05 });
+ropeMat.bumpMap = createRopeBumpTexture();
+ropeMat.bumpScale = 0.06;
+const frontRope = new THREE.Mesh(new THREE.BufferGeometry(), ropeMat);
+const backRope = new THREE.Mesh(new THREE.BufferGeometry(), ropeMat);
+frontRope.visible = false; backRope.visible = false;
+scene.add(frontRope); scene.add(backRope);
+// 줄이 시작되는 자리 뒤에 있는 검정 원형 구멍 (지름 6mm) - 사실감을 위한 장식
+const ropeHoleMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const ropeHoleGeo = new THREE.CircleGeometry(0.03, 24); // 지름 6mm = 반지름 3mm
+const ropeHoles = [0,1,2,3].map(()=>{
+  const m = new THREE.Mesh(ropeHoleGeo, ropeHoleMat);
+  m.visible = false;
+  scene.add(m);
+  return m;
+});
+function buildRopeCurve(sign, h, y1, inset, hd){
+  const halfGap = 0.55; // 110mm의 절반(55mm) - 시작점 두 개 간격
+  const midY = (h + y1) / 2;
+  const zAtSlope = hd - 0.5*inset; // 경사면 중간 높이에서의 z위치
+  const zWall = hd;
+  const pts = [
+    new THREE.Vector3(-halfGap, midY, sign*zAtSlope), // 좌측 시작점 (전면 경사면 좌측 중앙)
+    new THREE.Vector3(-halfGap, h, sign*zWall),
+    new THREE.Vector3(-0.28, 0.32, sign*zWall),
+    new THREE.Vector3(0, 0.2, sign*zWall), // 바닥에서 20mm 위, U자 맨 아래
+    new THREE.Vector3(0.28, 0.32, sign*zWall),
+    new THREE.Vector3(halfGap, h, sign*zWall),
+    new THREE.Vector3(halfGap, midY, sign*zAtSlope), // 우측 시작점
+  ];
+  return new THREE.CatmullRomCurve3(pts);
+}
+function placeRopeHole(mesh, x, y, z, sign){
+  mesh.position.set(x, y, z + sign*0.002); // 면보다 살짝 바깥쪽(끈 쪽)에 배치해서 안 가려지게 함
+  const defaultNormal = new THREE.Vector3(0,0,1);
+  const desiredNormal = new THREE.Vector3(0, Math.sin(HOUSE_SLOPE_RAD), sign*Math.cos(HOUSE_SLOPE_RAD)).normalize();
+  mesh.quaternion.setFromUnitVectors(defaultNormal, desiredNormal);
+  mesh.visible = true;
+}
+function updateHouseRope(w, h, y1, inset, hd){
+  const curveF = buildRopeCurve(1, h, y1, inset, hd);
+  const curveB = buildRopeCurve(-1, h, y1, inset, hd);
+  const radius = 0.025; // 줄 굵기 (지름 5mm = 반지름 2.5mm)
+  frontRope.geometry.dispose();
+  backRope.geometry.dispose();
+  frontRope.geometry = new THREE.TubeGeometry(curveF, 60, radius, 16, false);
+  backRope.geometry = new THREE.TubeGeometry(curveB, 60, radius, 16, false);
+  ropeMat.color.set(ropeColorInput ? ropeColorInput.value : '#c9a06a');
+  frontRope.visible = true;
+  backRope.visible = true;
+  // 줄 시작점 4곳(전면 좌/우, 후면 좌/우) 뒤에 검정 구멍 배치
+  const halfGap = 0.55;
+  const midY = (h + y1) / 2;
+  const zAtSlope = hd - 0.5*inset;
+  placeRopeHole(ropeHoles[0], -halfGap, midY, zAtSlope, 1);
+  placeRopeHole(ropeHoles[1], halfGap, midY, zAtSlope, 1);
+  placeRopeHole(ropeHoles[2], -halfGap, midY, -zAtSlope, -1);
+  placeRopeHole(ropeHoles[3], halfGap, midY, -zAtSlope, -1);
+}
+
+// 쇼핑백형 전용 손잡이 끈 - 시작점은 벽 꼭대기에서 20mm 아래, U자 맨 아래 지점은 전면 높이의 1/3 지점까지 내려감
+function buildShoppingBagRopeCurve(sign, startY, hd, h, hw){
+  const halfGap = Math.min(0.55, hw*0.6);
+  const dipY = h*2/3; // 전면(벽) 높이의 2/3 지점까지 처짐
+  const N = 10;
+  const pts = [];
+  for(let i=0;i<=N;i++){
+    const t = i/N; // 0~1
+    const x = -halfGap + t*(2*halfGap);
+    const s = Math.abs(t-0.5)*2; // 중앙(0)~양끝(1)
+    const y = dipY + (startY-dipY)*(s*s); // 포물선 형태로 자연스럽게 처지는 U자
+    pts.push(new THREE.Vector3(x, y, sign*hd));
+  }
+  return new THREE.CatmullRomCurve3(pts);
+}
+function placeFlatRopeHole(mesh, x, y, z, sign){
+  mesh.position.set(x, y, z + sign*0.002); // 면보다 살짝 바깥쪽(끈 쪽)에 배치
+  // 원 지오메트리는 기본적으로 +Z를 바라보므로, 후면(sign=-1)은 180도 돌려서 바깥(−Z)을 보게 함
+  if(sign < 0){
+    mesh.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.PI);
+  } else {
+    mesh.quaternion.identity();
+  }
+  mesh.visible = true;
+}
+function updateShoppingBagRope(w, h, hd){
+  const hw = w/2;
+  const startY = h - 0.2; // 상단(벽 꼭대기)에서 20mm 아래
+  const curveF = buildShoppingBagRopeCurve(1, startY, hd, h, hw);
+  const curveB = buildShoppingBagRopeCurve(-1, startY, hd, h, hw);
+  const radius = 0.025;
+  frontRope.geometry.dispose();
+  backRope.geometry.dispose();
+  frontRope.geometry = new THREE.TubeGeometry(curveF, 60, radius, 16, false);
+  backRope.geometry = new THREE.TubeGeometry(curveB, 60, radius, 16, false);
+  ropeMat.color.set(ropeColorInput ? ropeColorInput.value : '#c9a06a');
+  frontRope.visible = true;
+  backRope.visible = true;
+  // 검정 원 구멍을 끈 시작점 바로 뒤에 배치
+  const halfGap = Math.min(0.55, hw*0.6);
+  placeFlatRopeHole(ropeHoles[0], -halfGap, startY, hd, 1);
+  placeFlatRopeHole(ropeHoles[1], halfGap, startY, hd, 1);
+  placeFlatRopeHole(ropeHoles[2], -halfGap, startY, -hd, -1);
+  placeFlatRopeHole(ropeHoles[3], halfGap, startY, -hd, -1);
+}
+
+function matFor(state, side){
+  // MeshBasicMaterial은 조명 계산을 아예 하지 않아서, 업로드한 이미지 색이 조명/그림자 영향 없이
+  // 캔버스 썸네일과 정확히 동일하게 나옴 (그림자 때문에 어두워지거나 밝은 부분이 날아가는 문제 원천 해결)
+  return new THREE.MeshBasicMaterial({ 
+    map: state.texture, 
+    side: side || THREE.DoubleSide
+  });
+}
+// 사다리꼴(경사면)처럼 위/아래 폭이 크게 다른 면에 이미지를 씌울 때, 단순 사각형(삼각형 2개) UV로는
+// 이미지가 비스듬히 찌그러져 보이는 문제가 생김 - 잘게 나눠서(그리드) 실제 위치 기준으로 매핑해 방지함
+function trapezoidGeom(botLeft, botRight, topLeft, topRight, expectedNormal, segs){
+  segs = segs || 12;
+  const positions = [], uvs = [];
+  for(let j=0;j<=segs;j++){
+    const v = j/segs;
+    const leftPt = [0,1,2].map(k => botLeft[k]+(topLeft[k]-botLeft[k])*v);
+    const rightPt = [0,1,2].map(k => botRight[k]+(topRight[k]-botRight[k])*v);
+    for(let i=0;i<=segs;i++){
+      const u = i/segs;
+      positions.push(leftPt[0]+(rightPt[0]-leftPt[0])*u, leftPt[1]+(rightPt[1]-leftPt[1])*u, leftPt[2]+(rightPt[2]-leftPt[2])*u);
+      uvs.push(u, v);
+    }
+  }
+  const indices = [];
+  for(let j=0;j<segs;j++){
+    for(let i=0;i<segs;i++){
+      const a=j*(segs+1)+i, b=a+1, c=a+(segs+1), d=c+1;
+      indices.push(a,b,c, b,d,c);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions),3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs),2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  if(expectedNormal){
+    const na = geo.attributes.normal;
+    const dot = na.getX(0)*expectedNormal[0]+na.getY(0)*expectedNormal[1]+na.getZ(0)*expectedNormal[2];
+    if(dot < 0){
+      const arr = geo.index.array;
+      for(let k=0;k<arr.length;k+=3){ const t=arr[k+1]; arr[k+1]=arr[k+2]; arr[k+2]=t; }
+      geo.index.needsUpdate = true;
+      geo.computeVertexNormals();
+    }
+  }
+  return geo;
+}
+function quadGeom(p0,p1,p2,p3, expectedNormal, flipV = false){
+  let indices = [0,1,2, 0,2,3];
+  if(expectedNormal){
+    const v0 = new THREE.Vector3(...p0);
+    const v1 = new THREE.Vector3(...p1);
+    const v2 = new THREE.Vector3(...p2);
+    const normal = new THREE.Vector3().subVectors(v1,v0).cross(new THREE.Vector3().subVectors(v2,v0));
+    if(normal.dot(new THREE.Vector3(...expectedNormal)) < 0){
+      indices = [0,2,1, 0,3,2]; 
+    }
+  }
+  const positions = new Float32Array([...p0, ...p1, ...p2, ...p3]);
+  
+  // flipV가 true일 경우 상하 UV 좌표를 반전시켜 텍스처 뒤집힘 해결
+  const uvs = flipV 
+    ? new Float32Array([0,1, 1,1, 1,0, 0,0])
+    : new Float32Array([0,0, 1,0, 1,1, 0,1]);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs,2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// 곡선(아치/타원) 형태의 평평한 면을 만드는 팬(fan) 지오메트리 - 중심점 하나 + 테두리(rim) 점들
+// uvFn(point) => [u,v] 로 각 점의 텍스처 좌표를 계산해서 넘겨줌
+function fanGeom(center, rimPoints, expectedNormal, uvFn){
+  const n = rimPoints.length;
+  const positions = new Float32Array((n+1)*3);
+  const uvs = new Float32Array((n+1)*2);
+  positions[0]=center[0]; positions[1]=center[1]; positions[2]=center[2];
+  const cuv = uvFn(center);
+  uvs[0]=cuv[0]; uvs[1]=cuv[1];
+  for(let i=0;i<n;i++){
+    positions[(i+1)*3]=rimPoints[i][0];
+    positions[(i+1)*3+1]=rimPoints[i][1];
+    positions[(i+1)*3+2]=rimPoints[i][2];
+    const uv = uvFn(rimPoints[i]);
+    uvs[(i+1)*2]=uv[0]; uvs[(i+1)*2+1]=uv[1];
+  }
+  let flip = false;
+  if(expectedNormal && n>=2){
+    const v0=new THREE.Vector3(...center);
+    const v1=new THREE.Vector3(...rimPoints[0]);
+    const v2=new THREE.Vector3(...rimPoints[1]);
+    const normal=new THREE.Vector3().subVectors(v1,v0).cross(new THREE.Vector3().subVectors(v2,v0));
+    if(normal.dot(new THREE.Vector3(...expectedNormal))<0) flip = true;
+  }
+  const indices = [];
+  for(let i=0;i<n-1;i++){
+    if(flip) indices.push(0, i+2, i+1);
+    else indices.push(0, i+1, i+2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs,2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// 곡선 하나를 따라가는 띠(strip) 지오메트리 - 아래쪽 기준선(basePoints)과 위쪽 곡선(topPoints) 한 쌍씩을 이어붙임
+function stripGeom(basePoints, topPoints, expectedNormal, uvFn){
+  const n = basePoints.length;
+  const positions = new Float32Array(n*2*3);
+  const uvs = new Float32Array(n*2*2);
+  for(let i=0;i<n;i++){
+    positions[i*6]=basePoints[i][0]; positions[i*6+1]=basePoints[i][1]; positions[i*6+2]=basePoints[i][2];
+    positions[i*6+3]=topPoints[i][0]; positions[i*6+4]=topPoints[i][1]; positions[i*6+5]=topPoints[i][2];
+    if(uvFn){
+      const uv0 = uvFn(basePoints[i]);
+      const uv1 = uvFn(topPoints[i]);
+      uvs[i*4]=uv0[0]; uvs[i*4+1]=uv0[1];
+      uvs[i*4+2]=uv1[0]; uvs[i*4+3]=uv1[1];
+    } else {
+      const u = i/(n-1);
+      uvs[i*4]=u; uvs[i*4+1]=0;
+      uvs[i*4+2]=u; uvs[i*4+3]=1;
+    }
+  }
+  let flip = false;
+  if(expectedNormal && n>=2){
+    const v0=new THREE.Vector3(...basePoints[0]);
+    const v1=new THREE.Vector3(...basePoints[1]);
+    const v2=new THREE.Vector3(...topPoints[0]);
+    const normal=new THREE.Vector3().subVectors(v1,v0).cross(new THREE.Vector3().subVectors(v2,v0));
+    if(normal.dot(new THREE.Vector3(...expectedNormal))<0) flip = true;
+  }
+  const indices = [];
+  for(let i=0;i<n-1;i++){
+    const b0=i*2, t0=i*2+1, b1=(i+1)*2, t1=(i+1)*2+1;
+    if(flip) indices.push(b0,t1,b1, b0,t0,t1);
+    else indices.push(b0,b1,t1, b0,t1,t0);
+  }
+  const geo2 = new THREE.BufferGeometry();
+  geo2.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  geo2.setAttribute('uv', new THREE.BufferAttribute(uvs,2));
+  geo2.setIndex(indices);
+  geo2.computeVertexNormals();
+  return geo2;
+}
+
+function rebuildBox(){
+  while(boxGroup.children.length>0){
+    const m = boxGroup.children[0];
+    boxGroup.remove(m);
+    m.geometry.dispose();
+  }
+  const shape = shapeSelect.value;
+  const w = (parseFloat(dimW.value)||260)/100;
+  const d = (parseFloat(dimD.value)||140)/100;
+  const h = (parseFloat(dimH.value)||120)/100;
+  const st = faceStateByShape[shape];
+  FACE_DEFS[shape].forEach(f=> ensureFaceState(shape, f.key));
+  updateShadowForShape(shape, w, d, h);
+  creaseLines.visible = false; // 하우스형이 아니면 크리스 라인 숨김 (하우스형 분기에서 다시 켬)
+  houseCornerFadeActive = false;
+  cornerFadeLines.visible = false;
+  frontRope.visible = false; backRope.visible = false;
+  ropeHoles.forEach(m=> m.visible = false);
+  if(houseRopeWrap) houseRopeWrap.style.display = (shape==='house') ? 'flex' : 'none';
+
+  const lineMat = new THREE.LineBasicMaterial({ 
+    color: shape==='sleeve' ? 0x999999 : 0xbbbbbb, // 슬리브형은 공통 색보다 살짝 더 진하게
+    depthTest: true
+  });
+  const lineVertices = [];
+
+  if(shape === 'box'){
+    // [1] 사각형 메쉬 및 라인
+    const geom = new THREE.BoxGeometry(w,h,d);
+    const mats = [
+      matFor(st.side1), matFor(st.side2),
+      matFor(st.top),   matFor(st.bottom),
+      matFor(st.front), matFor(st.back),
+    ];
+    boxGroup.add(new THREE.Mesh(geom, mats));
+
+    const hw = w/2, hh = h/2, hd = d/2;
+    lineVertices.push(
+      // 수직 4개
+      -hw, -hh,  hd,  -hw,  hh,  hd,
+       hw, -hh,  hd,   hw,  hh,  hd,
+       hw, -hh, -hd,   hw,  hh, -hd,
+      -hw, -hh, -hd,  -hw,  hh, -hd,
+      // 상단 4개
+      -hw,  hh,  hd,   hw,  hh,  hd,
+       hw,  hh,  hd,   hw,  hh, -hd,
+       hw,  hh, -hd,  -hw,  hh, -hd,
+      -hw,  hh, -hd,  -hw,  hh,  hd,
+      // 하단 4개
+      -hw, -hh,  hd,   hw, -hh,  hd,
+       hw, -hh,  hd,   hw, -hh, -hd,
+       hw, -hh, -hd,  -hw, -hh, -hd,
+      -hw, -hh, -hd,  -hw, -hh,  hd
+    );
+
+  } else if(shape === 'house'){
+    // [1b] 하우스형 메쉬 - 몸통(사각형) + 안쪽으로 기울어진 지붕(모임지붕) + 평평한 상단
+    const hw = w/2, hd = d/2;
+    const slopeLen = HOUSE_SLOPE_LEN_MM/100, inset = HOUSE_INSET_MM/100, rise = HOUSE_RISE_MM/100;
+    const y1 = h + rise;
+    const topHW = Math.max(0.01, hw-inset), topHD = Math.max(0.01, hd-inset);
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const wFL=[-hw,h,hd], wFR=[hw,h,hd], wBR=[hw,h,-hd], wBL=[-hw,h,-hd];
+    // 측면 경사면 자체의 기울어진 끝점 (안쪽으로 좁아짐, x=±topHW)
+    const sFL=[-topHW,y1,topHD], sFR=[topHW,y1,topHD], sBR=[topHW,y1,-topHD], sBL=[-topHW,y1,-topHD];
+    // 정면/후면 경사면은 좁아지지 않고 폭(W) 그대로 유지됨 (측면 경사면만 안쪽으로 좁아짐)
+    const fpTL=[-hw,y1,hd-inset], fpTR=[hw,y1,hd-inset];
+    const bpTL=[-hw,y1,-hd+inset], bpTR=[hw,y1,-hd+inset];
+    // 상단은 정면/후면 경사면 폭(W)까지 그대로 이어짐 (측면 경사면이 만든 깊이만 좁아짐)
+    const tFL=fpTL, tFR=fpTR, tBR=bpTR, tBL=bpTL;
+
+    // 몸통 4면 (바닥~벽 꼭대기)
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,wFR,wFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,wBL,wBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,wBR,wFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,wFL,wBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+
+    // 지붕 경사면 4면 (벽 꼭대기 ~ 상단 시작점) - 정면/후면은 직사각형, 측면만 안쪽으로 기울어짐
+    boxGroup.add(new THREE.Mesh(quadGeom(wFL,wFR,fpTR,fpTL, [0,0,1]),  matFor(st.frontSlope, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(wBR,wBL,bpTL,bpTR, [0,0,-1]), matFor(st.backSlope,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(wFR,wBR,sBR,sFR, [1,0,0]),  matFor(st.side1Slope, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(wBL,wFL,sFL,sBL, [-1,0,0]), matFor(st.side2Slope, THREE.FrontSide)));
+
+    // 상단 (평평한 지붕 꼭대기, 정면/후면 경사면 폭까지 연장됨)
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,tBR,tBL, [0,1,0]), matFor(st.top)));
+    // 하단 (바닥, 박스형처럼 단일 면) - 접시형/트레이형 바닥과 동일하게 뒤집힘 보정 적용
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom)));
+
+    // 구분선
+    lineVertices.push(
+      // 몸통 세로 모서리 (바닥~벽 꼭대기)
+      bFL[0],0,bFL[2], wFL[0],h,wFL[2],
+      bFR[0],0,bFR[2], wFR[0],h,wFR[2],
+      bBR[0],0,bBR[2], wBR[0],h,wBR[2],
+      bBL[0],0,bBL[2], wBL[0],h,wBL[2],
+      // 정면/후면 경사면의 곧은 모서리 (직사각형 테두리, 측면의 기울어진 사선은 표시 안 함)
+      wFL[0],h,wFL[2], fpTL[0],y1,fpTL[2],
+      wFR[0],h,wFR[2], fpTR[0],y1,fpTR[2],
+      wBR[0],h,wBR[2], bpTR[0],y1,bpTR[2],
+      wBL[0],h,wBL[2], bpTL[0],y1,bpTL[2],
+      // 바닥 테두리
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      bBR[0],0,bBR[2], bBL[0],0,bBL[2],
+      bBL[0],0,bBL[2], bFL[0],0,bFL[2],
+      // 벽 꼭대기(=지붕 시작) 테두리
+      wFL[0],h,wFL[2], wFR[0],h,wFR[2],
+      wFR[0],h,wFR[2], wBR[0],h,wBR[2],
+      wBR[0],h,wBR[2], wBL[0],h,wBL[2],
+      wBL[0],h,wBL[2], wFL[0],h,wFL[2],
+      // 상단 테두리
+      tFL[0],y1,tFL[2], tFR[0],y1,tFR[2],
+      tFR[0],y1,tFR[2], tBR[0],y1,tBR[2],
+      tBR[0],y1,tBR[2], tBL[0],y1,tBL[2],
+      tBL[0],y1,tBL[2], tFL[0],y1,tFL[2]
+    );
+
+    // 굵게 표시할 크리스(접힘) 라인 전용 배열
+    const creaseVertices = [];
+    const cornerFadeVertices = [];
+    const CREASE_OFF = 0.008; // 면(이미지가 업로드된 경우 포함)보다 확실히 앞에 보이도록 넉넉하게 띄움
+    function nudge(p, nx, ny, nz){
+      return [p[0]+nx*CREASE_OFF, p[1]+ny*CREASE_OFF, p[2]+nz*CREASE_OFF];
+    }
+    function pushCrease(p0, p1){
+      creaseVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]);
+    }
+    function pushCornerFade(p0, p1){
+      cornerFadeVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]);
+    }
+
+    // 1. 상단 직사각형 가로 중앙선 (확장된 상단 폭에 맞춤)
+    pushCrease(nudge([-hw,y1,0],0,1,0), nudge([hw,y1,0],0,1,0));
+
+    // 2. 측면 경사면(마름모) 크리스 라인
+    const cornerOff = Math.min(0.15, topHD); // 15mm, 폭이 좁으면 안쪽으로 넘지 않게 제한
+    const downLen = 0.2; // 20mm
+    // 측면 경사면1 (x=+hw 쪽): 위 변 중앙 → 직각 아래로 20mm
+    const s1TopMid = [topHW, y1, 0];
+    const s1DownPt = [topHW + downLen*(inset/slopeLen), y1 - downLen*(rise/slopeLen), 0];
+    pushCrease(nudge(s1TopMid,1,0,0), nudge(s1DownPt,1,0,0));
+    // 측면 경사면1: 하단 양쪽 모서리 → 상단 모서리에서 안쪽으로 15mm 지점 (귀퉁이 사선 - 각도에 따라 페이드)
+    const s1A = [topHW,y1,(topHD-cornerOff)], s1B = [topHW,y1,(-topHD+cornerOff)];
+    pushCornerFade(nudge(wFR,1,0,0), nudge(s1A,1,0,0));
+    pushCornerFade(nudge(wBR,1,0,0), nudge(s1B,1,0,0));
+    // 두 지점(15mm 안쪽 끝)을 서로 연결 - 위에서 볼 때만 상단면에 가려 안 보이도록 아래로 밀어넣음
+    pushCrease([s1A[0],s1A[1]-0.01,s1A[2]], [s1B[0],s1B[1]-0.01,s1B[2]]);
+    // 15mm 지점에서 상단(지붕 꼭대기)의 실제 바깥쪽 모서리까지 꺾여서 이어짐 (귀퉁이 사선 - 각도에 따라 페이드)
+    pushCornerFade(nudge(s1A,1,0,0), nudge(fpTR,1,0,0));
+    pushCornerFade(nudge(s1B,1,0,0), nudge(bpTR,1,0,0));
+    // 측면 경사면2 (x=-hw 쪽): 위 변 중앙 → 직각 아래로 20mm
+    const s2TopMid = [-topHW, y1, 0];
+    const s2DownPt = [-topHW - downLen*(inset/slopeLen), y1 - downLen*(rise/slopeLen), 0];
+    pushCrease(nudge(s2TopMid,-1,0,0), nudge(s2DownPt,-1,0,0));
+    // 측면 경사면2: 하단 양쪽 모서리 → 상단 모서리에서 안쪽으로 15mm 지점 (귀퉁이 사선 - 각도에 따라 페이드)
+    const s2A = [-topHW,y1,(topHD-cornerOff)], s2B = [-topHW,y1,(-topHD+cornerOff)];
+    pushCornerFade(nudge(wFL,-1,0,0), nudge(s2A,-1,0,0));
+    pushCornerFade(nudge(wBL,-1,0,0), nudge(s2B,-1,0,0));
+    // 두 지점(15mm 안쪽 끝)을 서로 연결 - 위에서 볼 때만 상단면에 가려 안 보이도록 아래로 밀어넣음
+    pushCrease([s2A[0],s2A[1]-0.01,s2A[2]], [s2B[0],s2B[1]-0.01,s2B[2]]);
+    // 15mm 지점에서 상단(지붕 꼭대기)의 실제 바깥쪽 모서리까지 꺾여서 이어짐 (귀퉁이 사선 - 각도에 따라 페이드)
+    pushCornerFade(nudge(s2A,-1,0,0), nudge(fpTL,-1,0,0));
+    pushCornerFade(nudge(s2B,-1,0,0), nudge(bpTL,-1,0,0));
+
+    // 3. 하단 직사각형 크리스 라인 (가로 50% 중앙선 + 네 모서리로 연장)
+    const bLP = [-w*0.25, 0, 0], bRP = [w*0.25, 0, 0];
+    pushCrease(nudge(bLP,0,-1,0), nudge(bRP,0,-1,0));
+    pushCrease(nudge(bLP,0,-1,0), nudge(bFL,0,-1,0));
+    pushCrease(nudge(bLP,0,-1,0), nudge(bBL,0,-1,0));
+    pushCrease(nudge(bRP,0,-1,0), nudge(bFR,0,-1,0));
+    pushCrease(nudge(bRP,0,-1,0), nudge(bBR,0,-1,0));
+
+    creaseLineGeo.setPositions(creaseVertices);
+    creaseLines.visible = true;
+    cornerFadeLineGeo.setPositions(cornerFadeVertices);
+    houseCornerFadeActive = true; // animate()에서 카메라 각도 보고 서서히 페이드
+
+    updateHouseRope(w, h, y1, inset, hd);
+
+  } else if(shape === 'handle' || shape === 'handleWave' || shape === 'handleTopWave' || shape === 'handleArchGripWave' || shape === 'handleTrumpet'){
+    // [1c] 손잡이형 메쉬 - 몸통 + 정면/후면상단(안쪽 접힘) + 측면 아치(반원 또는 물결/나팔형) + 직사각(또는 물결 테두리) 손잡이
+    const isWave = shape === 'handleWave' || shape === 'handleArchGripWave';
+    const isHandleTopWave = shape === 'handleTopWave' || shape === 'handleArchGripWave';
+    const isTrumpet = shape === 'handleTrumpet';
+    const hw = w/2, hd = d/2;
+    const topInward = d * HANDLE_TOP_RATIO;
+    const sideArcRise = h * HANDLE_ARC_RATIO;
+    // 손잡이 높이(50mm 고정)가 아치 봉우리 높이보다 크면 손잡이가 아치 밖으로 삐져나오므로,
+    // 상자 높이가 작을 때도 항상 아치 안에 들어오도록 아치 높이의 85%를 넘지 않게 자동으로 줄임
+    const handleRise = Math.min(HANDLE_RISE_MM/100, sideArcRise*0.85);
+    const handleBaseY = h; // 손잡이는 아치 위가 아니라 상자 본체 꼭대기에서 바로 수직으로 붙음
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const wFL=[-hw,h,hd], wFR=[hw,h,hd], wBR=[hw,h,-hd], wBL=[-hw,h,-hd];
+
+    // 몸통 4면
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,wFR,wFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,wBL,wBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,wBR,wFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,wFL,wBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+
+    // 정면 상단 / 후면 상단 (벽 꼭대기에서 안쪽으로 꺾여 중앙(z=0)에서 만남)
+    const ftOuterL=[-hw,h,hd], ftOuterR=[hw,h,hd], ftInnerR=[hw,h,hd-topInward], ftInnerL=[-hw,h,hd-topInward];
+    boxGroup.add(new THREE.Mesh(quadGeom(ftOuterL,ftOuterR,ftInnerR,ftInnerL, [0,1,0]), matFor(st.frontTop, THREE.FrontSide)));
+    const btOuterR=[hw,h,-hd], btOuterL=[-hw,h,-hd], btInnerL=[-hw,h,-hd+topInward], btInnerR=[hw,h,-hd+topInward];
+    boxGroup.add(new THREE.Mesh(quadGeom(btOuterR,btOuterL,btInnerL,btInnerR, [0,1,0]), matFor(st.backTop, THREE.FrontSide)));
+
+    // 측면 아치 (반원형 + 안쪽 30도 기울기) - 손잡이가 지나가는 자리만 좁게 구멍을 뚫음(앞쪽/뒤쪽 두 조각)
+    // 물결형(아치물결)일 때는 매끈한 반원 대신 5개의 봉우리(가운데 큰 것 하나 + 좌우로 작아지는 4개)로 높이를 결정함
+    function waveLocalRiseFactor(zFrac){ // zFrac: -1(뒤쪽 끝) ~ +1(앞쪽 끝)
+      const z = Math.max(-1, Math.min(1, zFrac));
+      const bumpCount = 5;
+      const heightScales = [0.5, 0.75, 1.0, 0.75, 0.5]; // 작은-중간-큰-중간-작은 (대칭)
+      // 경계(계곡) 높이 - 이미지 참고해서 또렷하게 구분되도록 적당히 낮춤 (너무 높으면 뭉개짐, 너무 낮으면 뾰족해짐)
+      const boundaryFloors = [0, 0.5, 0.74, 0.74, 0.5, 0];
+      const segW = 2/bumpCount;
+      let idx = Math.floor((z+1)/segW);
+      idx = Math.max(0, Math.min(bumpCount-1, idx));
+      const segCenter = -1 + segW*(idx+0.5);
+      const localT = (z - segCenter)/(segW/2); // 이 구간 내에서 -1~1
+      const bumpProfile = Math.sqrt(Math.max(0, 1-localT*localT)); // 반원(원형) 굴곡
+      const leftFloor = boundaryFloors[idx], rightFloor = boundaryFloors[idx+1];
+      const floorHere = leftFloor + (rightFloor-leftFloor)*((localT+1)/2);
+      return floorHere + (heightScales[idx]-floorHere)*bumpProfile;
+    }
+    const TRUMPET_FLAT_HALF_ANGLE = 0.15; // 평평한(가운데를 매끄럽게 지나가는) 구간의 절반 각도 폭
+    const TRUMPET_TOP_HALF_WIDTH = 0.10;  // 상단 폭 20mm의 절반
+    function localRiseAt(angle){
+      if(isTrumpet){
+        // 높이도 Z와 같은 3구간 구조: 벽에서 매끄럽게 올라가다가, 평평한 구간(flatStart~flatEnd)에서는 완전히 고정(진짜 평평한 사각형)
+        const flatStart = Math.PI/2 - TRUMPET_FLAT_HALF_ANGLE, flatEnd = Math.PI/2 + TRUMPET_FLAT_HALF_ANGLE;
+        if(angle > flatStart && angle < flatEnd) return sideArcRise; // 평평한 구간: 높이 고정
+        const s = angle <= Math.PI/2 ? angle/flatStart : (Math.PI-angle)/(Math.PI-flatEnd);
+        return sideArcRise*(1-Math.cos(Math.min(1,s)*Math.PI/2));
+      }
+      const zFrac = Math.cos(angle);
+      return isWave ? sideArcRise*waveLocalRiseFactor(zFrac) : sideArcRise*Math.sin(angle);
+    }
+    function arcPoint(xSign, angle){
+      const localRise = localRiseAt(angle);
+      const xMag = hw - localRise*Math.tan(HANDLE_TILT_RAD); // 다른 손잡이형과 동일한 공식 (값만 나팔형 높이를 사용)
+      const xPos = xSign*xMag;
+      let z;
+      if(isTrumpet){
+        // 나팔(트럼펫) 벨 실루엣: 벽(넓게, 수평 접선) → 완만한 곡선으로 좁아짐 → 가운데(평평한 20mm 폭)를 매끄럽게 통과 → 대칭으로 다시 넓어짐
+        // (예전 버전은 정중앙에서 Z값이 갑자기 +10mm→-10mm로 튀는 불연속 버그가 있었음 - 이번엔 선형으로 매끄럽게 이어지도록 수정)
+        const flatStart = Math.PI/2 - TRUMPET_FLAT_HALF_ANGLE, flatEnd = Math.PI/2 + TRUMPET_FLAT_HALF_ANGLE;
+        if(angle <= flatStart){
+          const s = angle/flatStart;
+          z = hd - (hd-TRUMPET_TOP_HALF_WIDTH)*Math.sin(s*Math.PI/2);
+        } else if(angle >= flatEnd){
+          const s = (Math.PI-angle)/(Math.PI-flatEnd);
+          z = -(hd - (hd-TRUMPET_TOP_HALF_WIDTH)*Math.sin(s*Math.PI/2));
+        } else {
+          const s = (angle-flatStart)/(flatEnd-flatStart); // 0~1
+          z = TRUMPET_TOP_HALF_WIDTH - 2*TRUMPET_TOP_HALF_WIDTH*s; // +top~-top 사이를 선형으로 매끄럽게 통과
+        }
+      } else {
+        z = hd*Math.cos(angle);
+      }
+      return [xPos, h + localRise, z];
+    }
+    function buildArcSide(xSign, angleFrom, angleTo, segments){
+      const basePts = [], topPts = [];
+      for(let i=0;i<=segments;i++){
+        const t = i/segments;
+        const angle = angleFrom + t*(angleTo-angleFrom);
+        const top = arcPoint(xSign, angle);
+        basePts.push([xSign*hw, h, top[2]]); // 벽 꼭대기 기준선 - 아치와 같은 깊이(Z)값을 써서 기둥이 수직이 되도록 함
+        topPts.push(top);
+      }
+      return {basePts, topPts};
+    }
+    // 구멍 폭 - 손잡이가 지나갈 정도로 좁게 (아치 깊이의 8% 이내로 제한) - 일반형과 동일한 단순 공식
+    const holeHalfWidthZ = Math.min(hd*0.02, 0.015); // 전체 폭 약 3mm
+    let gapStart, gapEnd;
+    if(isTrumpet){
+      // 나팔형은 Z가 곡선을 따르므로, 실제 아치 점(arcPoint)의 Z값을 기준으로 목표 폭에 맞는 각도를 이분탐색으로 찾음
+      let lo = 0, hi = Math.PI/2;
+      for(let i=0;i<30;i++){
+        const mid = (lo+hi)/2;
+        const zHere = arcPoint(1, mid)[2];
+        if(zHere > holeHalfWidthZ) lo = mid; else hi = mid;
+      }
+      gapStart = (lo+hi)/2;
+      gapEnd = Math.PI - gapStart;
+    } else {
+      const holeDeltaAngle = Math.asin(Math.min(1, holeHalfWidthZ/Math.max(0.0001,hd)));
+      gapStart = Math.PI/2 - holeDeltaAngle; gapEnd = Math.PI/2 + holeDeltaAngle;
+    }
+    const segHalf = Math.max(2, Math.round(HANDLE_ARC_SEGMENTS/2));
+    // 뒤쪽 절반은 공식으로 다시 계산하지 않고, 앞쪽 절반을 그대로 거울처럼 뒤집어서(z 부호만 반전) 만듦
+    // → 이렇게 하면 계산상 미세한 차이 없이 100% 좌우 대칭이 보장됨
+    function mirrorArcSide(side){
+      return {
+        basePts: side.basePts.slice().reverse().map(p=>[p[0],p[1],-p[2]]),
+        topPts:  side.topPts.slice().reverse().map(p=>[p[0],p[1],-p[2]]),
+      };
+    }
+    const s1F = buildArcSide(1, 0, gapStart, segHalf);
+    const s1B = mirrorArcSide(s1F);
+    // 모든 조각(앞/뒤/덮개/바닥덮개)이 실제 위치(깊이·높이) 기준으로 같은 UV를 쓰도록 해서 이미지가 조각마다 끊기지 않고 이어지게 함
+    function archUV(p){
+      const u = (p[2]+hd)/(2*hd);
+      const v = Math.max(0, Math.min(1, (p[1]-h)/Math.max(0.0001, sideArcRise)));
+      return [u, v];
+    }
+    // 아치 안쪽면은 항상 흰색으로 - 바깥쪽 이미지가 안쪽에서 비쳐 보이지 않도록 별도 흰색 레이어를 뒤에 겹쳐줌
+    const archInnerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    function addArcPiece(basePts, topPts, expectedNormal, faceKey){
+      const xSign = expectedNormal[0] >= 0 ? 1 : -1;
+      const uvFn = (p) => {
+        const uv = archUV(p);
+        if(xSign > 0) uv[0] = 1 - uv[0]; // 측면1(+X)은 바깥에서 보면 좌우가 반전되므로 미리 뒤집어서 썸네일과 같은 방향으로 보이게 함
+        return uv;
+      };
+      const outerGeo = stripGeom(basePts, topPts, expectedNormal, uvFn);
+      boxGroup.add(new THREE.Mesh(outerGeo, matFor(st[faceKey], THREE.DoubleSide)));
+      // 흰색 안쪽 레이어를 살짝(4mm) 안쪽으로 밀어넣어서, 바깥에서 볼 땐 바깥 면에 가려지고 안에서 볼 땐 이 흰 면이 더 가까워서 보이게 함
+      const nlen = Math.hypot(expectedNormal[0], expectedNormal[1], expectedNormal[2]) || 1;
+      const nx = expectedNormal[0]/nlen*0.004, ny = expectedNormal[1]/nlen*0.004, nz = expectedNormal[2]/nlen*0.004;
+      const innerBase = basePts.map(p=>[p[0]-nx, p[1]-ny, p[2]-nz]);
+      const innerTop = topPts.map(p=>[p[0]-nx, p[1]-ny, p[2]-nz]);
+      const innerGeo = stripGeom(innerBase, innerTop, expectedNormal);
+      boxGroup.add(new THREE.Mesh(innerGeo, archInnerMat));
+    }
+    addArcPiece(s1F.basePts, s1F.topPts, [1,0,0.3], 'side1Slope');
+    addArcPiece(s1B.basePts, s1B.topPts, [1,0,-0.3], 'side1Slope');
+    const s2F = buildArcSide(-1, 0, gapStart, segHalf);
+    const s2B = mirrorArcSide(s2F);
+    addArcPiece(s2F.basePts, s2F.topPts, [-1,0,0.3], 'side2Slope');
+    addArcPiece(s2B.basePts, s2B.topPts, [-1,0,-0.3], 'side2Slope');
+    // 구멍 위쪽을 막는 "덮개" 조각 - 손잡이 높이(handleTopY)까지만 뚫리고 그 위는 아치가 이어져 막힘
+    function arcColumnPoint(xSign, angle, t){
+      const top = arcPoint(xSign, angle);
+      const base = [xSign*hw, h, top[2]];
+      return [base[0]+t*(top[0]-base[0]), base[1]+t*(top[1]-base[1]), base[2]+t*(top[2]-base[2])];
+    }
+    function buildCap(xSign, segments){
+      const lowerPts = [], upperPts = [];
+      for(let i=0;i<=segments;i++){
+        const angle = gapStart + (i/segments)*(gapEnd-gapStart);
+        const localRise = localRiseAt(angle);
+        const tCap = Math.min(1, handleRise/Math.max(0.0001, localRise));
+        lowerPts.push(arcColumnPoint(xSign, angle, tCap)); // 손잡이 높이에 해당하는 지점
+        upperPts.push(arcPoint(xSign, angle)); // 아치 원래 곡선(꼭대기 쪽)
+      }
+      return {lowerPts, upperPts};
+    }
+    const cap1 = buildCap(1, segHalf);
+    addArcPiece(cap1.lowerPts, cap1.upperPts, [1,0.5,0], 'side1Slope');
+    const cap2 = buildCap(-1, segHalf);
+    addArcPiece(cap2.lowerPts, cap2.upperPts, [-1,0.5,0], 'side2Slope');
+    // 구멍 아랫부분 7.5mm 정도도 막는 "바닥 덮개" 조각
+    const BOTTOM_CLOSE_M = 0.075; // 약 7.5mm
+    function buildBottomCap(xSign, segments){
+      const lowerPts = [], upperPts = [];
+      for(let i=0;i<=segments;i++){
+        const angle = gapStart + (i/segments)*(gapEnd-gapStart);
+        const localRise = localRiseAt(angle);
+        const tBottom = Math.min(1, BOTTOM_CLOSE_M/Math.max(0.0001, localRise));
+        lowerPts.push(arcColumnPoint(xSign, angle, 0)); // 기준선(바닥)
+        upperPts.push(arcColumnPoint(xSign, angle, tBottom)); // 7.5mm 높이 지점
+      }
+      return {lowerPts, upperPts};
+    }
+    const botCap1 = buildBottomCap(1, segHalf);
+    addArcPiece(botCap1.lowerPts, botCap1.upperPts, [1,0.5,0], 'side1Slope');
+    const botCap2 = buildBottomCap(-1, segHalf);
+    addArcPiece(botCap2.lowerPts, botCap2.upperPts, [-1,0.5,0], 'side2Slope');
+    const side1ArcPts = [...s1F.topPts, ...s1B.topPts];
+    const side2ArcPts = [...s2F.topPts, ...s2B.topPts];
+    const s1GapIdx = s1F.topPts.length - 1; // 이 인덱스와 다음 인덱스 사이가 구멍(뚫린 구간)이라 안내선을 잇지 않음
+
+    // 구멍 테두리선 (좌우 옆면 + 위/아래 덮개 경계까지, 실제로 뚫린 부분만 정확히 감싸도록) - 바깥/안쪽 둘 다 보이게 살짝 띄움
+    function nudgeX(p, xSign, off){ return [p[0]+xSign*off, p[1], p[2]]; }
+    const HOLE_LN_OFF = 0.006;
+    [1,-1].forEach(off=>{ // +off: 바깥쪽, -off: 안쪽
+      lineVertices.push(
+        nudgeX(botCap1.upperPts[0],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[0][1],botCap1.upperPts[0][2],
+        nudgeX(cap1.lowerPts[0],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[0][1],cap1.lowerPts[0][2],
+        nudgeX(botCap1.upperPts[botCap1.upperPts.length-1],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[botCap1.upperPts.length-1][1],botCap1.upperPts[botCap1.upperPts.length-1][2],
+        nudgeX(cap1.lowerPts[cap1.lowerPts.length-1],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[cap1.lowerPts.length-1][1],cap1.lowerPts[cap1.lowerPts.length-1][2],
+        nudgeX(botCap2.upperPts[0],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[0][1],botCap2.upperPts[0][2],
+        nudgeX(cap2.lowerPts[0],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[0][1],cap2.lowerPts[0][2],
+        nudgeX(botCap2.upperPts[botCap2.upperPts.length-1],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[botCap2.upperPts.length-1][1],botCap2.upperPts[botCap2.upperPts.length-1][2],
+        nudgeX(cap2.lowerPts[cap2.lowerPts.length-1],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[cap2.lowerPts.length-1][1],cap2.lowerPts[cap2.lowerPts.length-1][2]
+      );
+      for(let i=0;i<cap1.lowerPts.length-1;i++){
+        lineVertices.push(
+          nudgeX(cap1.lowerPts[i],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[i][1],cap1.lowerPts[i][2],
+          nudgeX(cap1.lowerPts[i+1],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[i+1][1],cap1.lowerPts[i+1][2],
+          nudgeX(cap2.lowerPts[i],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[i][1],cap2.lowerPts[i][2],
+          nudgeX(cap2.lowerPts[i+1],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[i+1][1],cap2.lowerPts[i+1][2],
+          nudgeX(botCap1.upperPts[i],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[i][1],botCap1.upperPts[i][2],
+          nudgeX(botCap1.upperPts[i+1],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[i+1][1],botCap1.upperPts[i+1][2],
+          nudgeX(botCap2.upperPts[i],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[i][1],botCap2.upperPts[i][2],
+          nudgeX(botCap2.upperPts[i+1],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[i+1][1],botCap2.upperPts[i+1][2]
+        );
+      }
+    });
+
+    // 손잡이 (직사각형 판, 가운데에 스타디움 모양 구멍이 실제로 뚫려있음, 양면 편집 가능)
+    // 가로 길이를 10mm(양쪽 5mm씩) 줄여서 아치보다 살짝 좁게 만듦 - 다른 손잡이형과 동일하게 상자 가로 끝까지 연장되어 아치를 통과함
+    const handleHalfW = Math.max(0.01, hw - 0.05);
+    const handleTopY = handleBaseY + handleRise;
+    const handleCenterY = handleBaseY + handleRise/2;
+    // 구멍(80×20mm, 양끝 반원+가운데 직사각형 "스타디움" 모양) 윤곽선 점들 만들기
+    function buildStadiumPts(halfW, halfH, segs){
+      const rectHalfW = Math.max(0, halfW-halfH);
+      const pts = [];
+      for(let i=0;i<=segs;i++){ const a=-Math.PI/2+(i/segs)*Math.PI; pts.push([rectHalfW+halfH*Math.cos(a), halfH*Math.sin(a)]); }
+      for(let i=0;i<=segs;i++){ const a=Math.PI/2+(i/segs)*Math.PI; pts.push([-rectHalfW+halfH*Math.cos(a), halfH*Math.sin(a)]); }
+      return pts;
+    }
+    const holeHalfW = 0.4, holeHalfH = 0.1; // 80×20mm
+    const holeCenterLocalY = handleRise/2 - 0.1; // 손잡이 세로 중앙에서 10mm 아래로 내림
+    const stadiumPts = buildStadiumPts(holeHalfW, holeHalfH, 14);
+    // Three.Shape으로 "테두리(위쪽 모서리 둥글게, 또는 물결) + 구멍" 모양을 만들어서 실제로 뚫린 형태로 triangulation
+    // reverse=true면 뒷면용으로 감김 방향을 반대로 해서(회전 없이) 텍스처가 좌우反전 없이 자연스럽게 들어가게 함
+    const handleOuterR = Math.min(0.08, handleRise*0.3); // 상단 라운드 반지름
+    function buildHandleOuter(){
+      if(isHandleTopWave){
+        // 손잡이 윗부분 테두리 전체에 아치와 비슷한 5봉우리 물결을 적용하되,
+        // 양쪽 끝은 아치 구멍과 맞닿는 높이(handleRise)까지 올라오고, 그 위쪽 모서리는 둥글게 처리
+        const segs = 60;
+        const pts = [];
+        pts.push([-handleHalfW, 0]);
+        pts.push([handleHalfW, 0]);
+        const heightScales = [1.0, 1.0, 1.0, 1.0, 1.0]; // 모든 봉우리(양 끝 포함)를 100%로 - 아치 구멍과 정확히 맞닿도록
+        const boundaryFloors = [1.0, 0.82, 0.9, 0.9, 0.82, 1.0]; // 양 끝단은 봉우리와 동일한 100%, 안쪽 계곡만 살짝 낮춤
+        const bumpCount = 5, segW = 2/bumpCount;
+        function handleTopFactor(xFrac){
+          let idx = Math.floor((xFrac+1)/segW);
+          idx = Math.max(0, Math.min(bumpCount-1, idx));
+          const segCenter = -1 + segW*(idx+0.5);
+          const localT = (xFrac-segCenter)/(segW/2);
+          const bumpProfile = Math.cos(localT*Math.PI/2); // 반원보다 꼭대기가 더 둥글고 완만한 코사인 굴곡
+          const leftFloor = boundaryFloors[idx], rightFloor = boundaryFloors[idx+1];
+          const floorHere = leftFloor + (rightFloor-leftFloor)*((localT+1)/2);
+          return floorHere + (heightScales[idx]-floorHere)*bumpProfile;
+        }
+        // 오른쪽 위 모서리 라운드 (물결이 이미 끝부분에서 평평(100%)하므로 자연스럽게 이어짐)
+        pts.push([handleHalfW, handleRise-handleOuterR]);
+        for(let i=1;i<=8;i++){
+          const a=(i/8)*(Math.PI/2);
+          pts.push([handleHalfW-handleOuterR+handleOuterR*Math.cos(a), handleRise-handleOuterR+handleOuterR*Math.sin(a)]);
+        }
+        // 물결 곡선 (라운드 처리한 만큼 안쪽부터 시작, 오른쪽에서 왼쪽으로)
+        const xTrim = (handleHalfW-handleOuterR)/handleHalfW; // 라운드 구간을 뺀 나머지 범위(정규화)
+        for(let i=segs;i>=0;i--){
+          const t = i/segs;
+          const xFrac = xTrim*(2*t-1); // +xTrim ~ -xTrim
+          const x = xFrac*handleHalfW;
+          const y = handleRise*handleTopFactor(xFrac);
+          pts.push([x, y]);
+        }
+        // 왼쪽 위 모서리 라운드
+        for(let i=1;i<=8;i++){
+          const a=Math.PI/2+(i/8)*(Math.PI/2);
+          pts.push([-handleHalfW+handleOuterR+handleOuterR*Math.cos(a), handleRise-handleOuterR+handleOuterR*Math.sin(a)]);
+        }
+        return pts;
+      }
+      const segs = 8;
+      const pts = [];
+      pts.push([-handleHalfW, 0]);
+      pts.push([handleHalfW, 0]);
+      pts.push([handleHalfW, handleRise-handleOuterR]);
+      for(let i=1;i<=segs;i++){
+        const a=(i/segs)*(Math.PI/2);
+        pts.push([handleHalfW-handleOuterR+handleOuterR*Math.cos(a), handleRise-handleOuterR+handleOuterR*Math.sin(a)]);
+      }
+      for(let i=1;i<=segs;i++){
+        const a=Math.PI/2+(i/segs)*(Math.PI/2);
+        pts.push([-handleHalfW+handleOuterR+handleOuterR*Math.cos(a), handleRise-handleOuterR+handleOuterR*Math.sin(a)]);
+      }
+      return pts;
+    }
+    function buildHandleShapeGeo(reverse){
+      const outer = buildHandleOuter();
+      const outerOrdered = reverse ? outer.slice().reverse() : outer;
+      const shape = new THREE.Shape();
+      shape.moveTo(outerOrdered[0][0], outerOrdered[0][1]);
+      for(let i=1;i<outerOrdered.length;i++) shape.lineTo(outerOrdered[i][0], outerOrdered[i][1]);
+      shape.lineTo(outerOrdered[0][0], outerOrdered[0][1]);
+      const holeOrdered = reverse ? stadiumPts.slice().reverse() : stadiumPts;
+      const holePath = new THREE.Path();
+      holePath.moveTo(holeOrdered[0][0], holeCenterLocalY + holeOrdered[0][1]);
+      for(let i=1;i<holeOrdered.length;i++) holePath.lineTo(holeOrdered[i][0], holeCenterLocalY + holeOrdered[i][1]);
+      holePath.lineTo(holeOrdered[0][0], holeCenterLocalY + holeOrdered[0][1]);
+      shape.holes.push(holePath);
+      const geo = new THREE.ShapeGeometry(shape, 12);
+      geo.computeVertexNormals(); // ShapeGeometry는 항상 (0,0,1) 법선을 고정으로 넣어서, 뒷면(감김 반대)용 조명 계산이 틀어지지 않도록 재계산
+      // UV를 실제 위치(x,y) 기준으로 직접 재계산 - 자동 생성 UV가 둥근 모서리 부근에서 늘어지거나 왜곡되는 문제 방지
+      const posAttr = geo.attributes.position;
+      const uvArr = new Float32Array(posAttr.count*2);
+      for(let i=0;i<posAttr.count;i++){
+        const x = posAttr.getX(i), y = posAttr.getY(i);
+        let u = Math.max(0, Math.min(1, (x+handleHalfW)/(2*handleHalfW)));
+        if(!reverse) u = 1-u; // 뒷면(handleBackMesh)은 reverse=false로 만들어지므로, 이 경우에만 좌우를 뒤집어 상자 뒤에서 봐도 썸네일과 같은 방향으로 보이게 함
+        const v = Math.max(0, Math.min(1, y/handleRise));
+        uvArr[i*2]=u; uvArr[i*2+1]=v;
+      }
+      geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+      return geo;
+    }
+    const handleFrontMesh = new THREE.Mesh(buildHandleShapeGeo(true), matFor(st.handleFront, THREE.FrontSide));
+    handleFrontMesh.position.set(0, handleBaseY, 0.002);
+    boxGroup.add(handleFrontMesh);
+    const handleBackMesh = new THREE.Mesh(buildHandleShapeGeo(false), matFor(st.handleBack, THREE.FrontSide));
+    handleBackMesh.position.set(0, handleBaseY, -0.002);
+    boxGroup.add(handleBackMesh);
+
+    if(isTrumpet){
+      // 아치 꼭대기(평평한 상단) 경계를 표시하는 선
+      const flatStart = Math.PI/2 - TRUMPET_FLAT_HALF_ANGLE, flatEnd = Math.PI/2 + TRUMPET_FLAT_HALF_ANGLE;
+      const edge1 = arcPoint(1, flatStart), edge2 = arcPoint(-1, flatStart);
+      lineVertices.push(
+        edge1[0],edge1[1],-TRUMPET_TOP_HALF_WIDTH, edge1[0],edge1[1],TRUMPET_TOP_HALF_WIDTH,
+        edge2[0],edge2[1],-TRUMPET_TOP_HALF_WIDTH, edge2[0],edge2[1],TRUMPET_TOP_HALF_WIDTH
+      );
+    }
+
+    // 손잡이 테두리 실선 (라운드 처리된 실제 윤곽선을 따라, 앞면 + 뒷면 둘 다 보이도록)
+    const handleOuterPts = buildHandleOuter();
+    for(let i=0;i<handleOuterPts.length-1;i++){
+      const p0 = handleOuterPts[i], p1 = handleOuterPts[i+1];
+      lineVertices.push(
+        p0[0],handleBaseY+p0[1],0.003, p1[0],handleBaseY+p1[1],0.003,
+        p0[0],handleBaseY+p0[1],-0.003, p1[0],handleBaseY+p1[1],-0.003
+      );
+    }
+    // 닫는 변(마지막 점 -> 첫 점, 좌측 세로변)
+    {
+      const pLast = handleOuterPts[handleOuterPts.length-1], pFirst = handleOuterPts[0];
+      lineVertices.push(
+        pLast[0],handleBaseY+pLast[1],0.003, pFirst[0],handleBaseY+pFirst[1],0.003,
+        pLast[0],handleBaseY+pLast[1],-0.003, pFirst[0],handleBaseY+pFirst[1],-0.003
+      );
+    }
+    // 구멍 테두리선 (앞/뒤 둘 다, 위/아래 포함 전체 둘레)
+    for(let i=0;i<stadiumPts.length-1;i++){
+      const y0 = handleBaseY + holeCenterLocalY + stadiumPts[i][1];
+      const y1 = handleBaseY + holeCenterLocalY + stadiumPts[i+1][1];
+      lineVertices.push(
+        stadiumPts[i][0],y0,0.004,   stadiumPts[i+1][0],y1,0.004,
+        stadiumPts[i][0],y0,-0.004,  stadiumPts[i+1][0],y1,-0.004
+      );
+    }
+    // 상자-아치 접합부 선 (아치가 시작되는 지점임을 명확히 표시 - 바깥/안쪽 둘 다 잘 보이도록 양쪽에 배치)
+    const JUNC_OFF = 0.008;
+    lineVertices.push(
+      hw+0.003,h,hd, hw+0.003,h,-hd,
+      -hw-0.003,h,hd, -hw-0.003,h,-hd,
+      hw-JUNC_OFF,h,hd, hw-JUNC_OFF,h,-hd,
+      -hw+JUNC_OFF,h,hd, -hw+JUNC_OFF,h,-hd
+    );
+
+    // 하단 (하우스형과 동일한 단일 면)
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom)));
+
+    // 구분선
+    lineVertices.push(
+      bFL[0],0,bFL[2], wFL[0],h,wFL[2],
+      bFR[0],0,bFR[2], wFR[0],h,wFR[2],
+      bBR[0],0,bBR[2], wBR[0],h,wBR[2],
+      bBL[0],0,bBL[2], wBL[0],h,wBL[2],
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      bBR[0],0,bBR[2], bBL[0],0,bBL[2],
+      bBL[0],0,bBL[2], bFL[0],0,bFL[2],
+      wFL[0],h,wFL[2], wFR[0],h,wFR[2],
+      wFR[0],h,wFR[2], wBR[0],h,wBR[2],
+      wBR[0],h,wBR[2], wBL[0],h,wBL[2],
+      wBL[0],h,wBL[2], wFL[0],h,wFL[2],
+      // 정면상단/후면상단이 만나는 중앙 이음선
+      -hw,h,0, hw,h,0
+    );
+    for(let i=0;i<side1ArcPts.length-1;i++){
+      if(i === s1GapIdx) continue;
+      lineVertices.push(
+        side1ArcPts[i][0],side1ArcPts[i][1],side1ArcPts[i][2],
+        side1ArcPts[i+1][0],side1ArcPts[i+1][1],side1ArcPts[i+1][2],
+        side2ArcPts[i][0],side2ArcPts[i][1],side2ArcPts[i][2],
+        side2ArcPts[i+1][0],side2ArcPts[i+1][1],side2ArcPts[i+1][2]
+      );
+    }
+
+    // 하단 크리스 라인 (하우스형과 동일한 삼각 구도)
+    const creaseVertices = [];
+    const CREASE_OFF = 0.008;
+    function nudge(p, nx, ny, nz){ return [p[0]+nx*CREASE_OFF, p[1]+ny*CREASE_OFF, p[2]+nz*CREASE_OFF]; }
+    function pushCrease(p0,p1){ creaseVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]); }
+    const hLP=[-w*0.25,0,0], hRP=[w*0.25,0,0];
+    pushCrease(nudge(hLP,0,-1,0), nudge(hRP,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bFL,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bBL,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bFR,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bBR,0,-1,0));
+    creaseLineGeo.setPositions(creaseVertices);
+    creaseLines.visible = true;
+
+  } else if(shape === 'handleRing'){
+    // [1d] 손잡이형(원형) 메쉬 - 사각 상자 몸통 + 반원 고리(가운데 뚫린 밴드) 손잡이
+    const hw = w/2, hd = d/2;
+    const span = w * RING_SPAN_RATIO, halfSpan = span/2;
+    const bandW = RING_BAND_MM/100, legH = RING_LEG_MM/100;
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const tFL=[-hw,h,hd], tFR=[hw,h,hd], tBR=[hw,h,-hd], tBL=[-hw,h,-hd];
+
+    // 몸통 4면 + 상단 + 하단
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,tFR,tFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,tBL,tBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,tBR,tFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,tFL,tBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,tBR,tBL, [0,1,0]),  matFor(st.top,   THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom)));
+
+    // 손잡이(원형 고리) - 다리(legH) + 반원 아치로 이어지는 윤곽선, 바깥/안쪽 두 겹으로 밴드 폭(bandW)을 만듦
+    function buildRingOutline(radius){
+      const pts = [];
+      const arcSegs = 40;
+      pts.push([radius, 0]); // 오른쪽 다리 아래
+      for(let i=0;i<=arcSegs;i++){
+        const a = (i/arcSegs)*Math.PI;
+        pts.push([radius*Math.cos(a), legH + radius*Math.sin(a)]);
+      }
+      pts.push([-radius, 0]); // 왼쪽 다리 아래
+      return pts;
+    }
+    function buildRingShapeGeo(reverse){
+      const outer = buildRingOutline(halfSpan);
+      const inner = buildRingOutline(Math.max(0.01, halfSpan-bandW));
+      const outerOrdered = reverse ? outer.slice().reverse() : outer;
+      const innerOrdered = reverse ? inner.slice().reverse() : inner;
+      const shapeObj = new THREE.Shape();
+      shapeObj.moveTo(outerOrdered[0][0], outerOrdered[0][1]);
+      for(let i=1;i<outerOrdered.length;i++) shapeObj.lineTo(outerOrdered[i][0], outerOrdered[i][1]);
+      shapeObj.lineTo(outerOrdered[0][0], outerOrdered[0][1]);
+      const holePath = new THREE.Path();
+      holePath.moveTo(innerOrdered[0][0], innerOrdered[0][1]);
+      for(let i=1;i<innerOrdered.length;i++) holePath.lineTo(innerOrdered[i][0], innerOrdered[i][1]);
+      holePath.lineTo(innerOrdered[0][0], innerOrdered[0][1]);
+      shapeObj.holes.push(holePath);
+      const geo = new THREE.ShapeGeometry(shapeObj, 12);
+      geo.computeVertexNormals();
+      return geo;
+    }
+    const ringFrontMesh = new THREE.Mesh(buildRingShapeGeo(false), matFor(st.handleFront, THREE.FrontSide));
+    ringFrontMesh.position.set(0, h, 0.002);
+    boxGroup.add(ringFrontMesh);
+    const ringBackMesh = new THREE.Mesh(buildRingShapeGeo(true), matFor(st.handleBack, THREE.FrontSide));
+    ringBackMesh.position.set(0, h, -0.002);
+    boxGroup.add(ringBackMesh);
+
+    // 구분선 (상자 모서리)
+    lineVertices.push(
+      bFL[0],0,bFL[2], tFL[0],h,tFL[2],
+      bFR[0],0,bFR[2], tFR[0],h,tFR[2],
+      bBR[0],0,bBR[2], tBR[0],h,tBR[2],
+      bBL[0],0,bBL[2], tBL[0],h,tBL[2],
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      bBR[0],0,bBR[2], bBL[0],0,bBL[2],
+      bBL[0],0,bBL[2], bFL[0],0,bFL[2],
+      tFL[0],h,tFL[2], tFR[0],h,tFR[2],
+      tFR[0],h,tFR[2], tBR[0],h,tBR[2],
+      tBR[0],h,tBR[2], tBL[0],h,tBL[2],
+      tBL[0],h,tBL[2], tFL[0],h,tFL[2]
+    );
+    // 손잡이 고리 테두리선 (바깥/안쪽 둘 다, 앞/뒤 둘 다)
+    const ringOuterPts = buildRingOutline(halfSpan);
+    const ringInnerPts = buildRingOutline(Math.max(0.01, halfSpan-bandW));
+    [ringOuterPts, ringInnerPts].forEach(pts=>{
+      for(let i=0;i<pts.length-1;i++){
+        lineVertices.push(
+          pts[i][0],h+pts[i][1],0.003,  pts[i+1][0],h+pts[i+1][1],0.003,
+          pts[i][0],h+pts[i][1],-0.003, pts[i+1][0],h+pts[i+1][1],-0.003
+        );
+      }
+    });
+    // 손잡이 다리가 상자 윗면과 맞닿는 경계선 (양쪽 다리, 밴드 폭만큼)
+    const innerR = Math.max(0.01, halfSpan-bandW);
+    lineVertices.push(
+      innerR, h, 0.003,  halfSpan, h, 0.003,
+      innerR, h, -0.003, halfSpan, h, -0.003,
+      -innerR, h, 0.003,  -halfSpan, h, 0.003,
+      -innerR, h, -0.003, -halfSpan, h, -0.003
+    );
+
+    // 하단 크리스 라인 (다른 손잡이형과 동일한 삼각 구도)
+    const creaseVertices = [];
+    const CREASE_OFF = 0.008;
+    function nudge(p, nx, ny, nz){ return [p[0]+nx*CREASE_OFF, p[1]+ny*CREASE_OFF, p[2]+nz*CREASE_OFF]; }
+    function pushCrease(p0,p1){ creaseVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]); }
+    const hLP=[-w*0.25,0,0], hRP=[w*0.25,0,0];
+    pushCrease(nudge(hLP,0,-1,0), nudge(hRP,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bFL,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bBL,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bFR,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bBR,0,-1,0));
+    creaseLineGeo.setPositions(creaseVertices);
+    creaseLines.visible = true;
+
+  } else if(shape === 'handleBulk'){
+    // [1e] 손잡이형(벌크형) 메쉬 - 사각 상자 몸통 + 네 면이 안쪽으로 좁아지는 사다리꼴 + 작은 상단 + 사각 고리 손잡이
+    const hw = w/2, hd = d/2;
+    const frustumH = h * BULK_FRUSTUM_RATIO;
+    const topHw = hw * BULK_TOP_RATIO, topHd = hd * BULK_TOP_RATIO;
+    const topY = h + frustumH;
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const wFL=[-hw,h,hd], wFR=[hw,h,hd], wBR=[hw,h,-hd], wBL=[-hw,h,-hd];
+    const tFL=[-topHw,topY,topHd], tFR=[topHw,topY,topHd], tBR=[topHw,topY,-topHd], tBL=[-topHw,topY,-topHd];
+
+    // 몸통 4면 + 하단
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,wFR,wFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,wBL,wBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,wBR,wFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,wFL,wBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom)));
+
+    // 사다리꼴 경사면 4면 (네 방향 다 안쪽으로 좁아짐) - 잘게 나눠서 이미지 찌그러짐 방지
+    boxGroup.add(new THREE.Mesh(trapezoidGeom(wFL,wFR,tFL,tFR, [0,0,1]),  matFor(st.frontSlope, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(trapezoidGeom(wBR,wBL,tBR,tBL, [0,0,-1]), matFor(st.backSlope,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(trapezoidGeom(wFR,wBR,tFR,tBR, [1,0,0]),  matFor(st.side1Slope, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(trapezoidGeom(wBL,wFL,tBL,tFL, [-1,0,0]), matFor(st.side2Slope, THREE.FrontSide)));
+
+    // 상단 (작은 사각형)
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,tBR,tBL, [0,1,0]), matFor(st.top, THREE.FrontSide)));
+
+    // 손잡이 (사각 고리, 위쪽 두 모서리만 둥글게, 가운데는 밴드 폭만큼만 남기고 뚫려있음)
+    function buildBulkOutline(halfSpan, riseHeight, cornerR){
+      const segs = 8;
+      const cr = Math.max(0.005, Math.min(cornerR, halfSpan*0.9, riseHeight*0.9));
+      const pts = [];
+      pts.push([halfSpan, 0]);
+      pts.push([halfSpan, riseHeight-cr]);
+      for(let i=1;i<=segs;i++){
+        const a=(i/segs)*(Math.PI/2);
+        pts.push([halfSpan-cr+cr*Math.cos(a), riseHeight-cr+cr*Math.sin(a)]);
+      }
+      for(let i=1;i<=segs;i++){
+        const a=Math.PI/2+(i/segs)*(Math.PI/2);
+        pts.push([-halfSpan+cr+cr*Math.cos(a), riseHeight-cr+cr*Math.sin(a)]);
+      }
+      pts.push([-halfSpan, 0]);
+      return pts;
+    }
+    const bulkBandW = BULK_BAND_MM/100;
+    const bulkSpanHalf = Math.max(0.02, topHw - 0.02);
+    const bulkRise = BULK_HANDLE_RISE_MM/100;
+    const bulkCornerR = BULK_CORNER_MM/100;
+    function buildBulkShapeGeo(reverse){
+      const outer = buildBulkOutline(bulkSpanHalf, bulkRise, bulkCornerR);
+      const inner = buildBulkOutline(Math.max(0.01,bulkSpanHalf-bulkBandW), Math.max(0.01,bulkRise-bulkBandW), Math.max(0.005,bulkCornerR-bulkBandW));
+      const outerOrdered = reverse ? outer.slice().reverse() : outer;
+      const innerOrdered = reverse ? inner.slice().reverse() : inner;
+      const shapeObj = new THREE.Shape();
+      shapeObj.moveTo(outerOrdered[0][0], outerOrdered[0][1]);
+      for(let i=1;i<outerOrdered.length;i++) shapeObj.lineTo(outerOrdered[i][0], outerOrdered[i][1]);
+      shapeObj.lineTo(outerOrdered[0][0], outerOrdered[0][1]);
+      const holePath = new THREE.Path();
+      holePath.moveTo(innerOrdered[0][0], innerOrdered[0][1]);
+      for(let i=1;i<innerOrdered.length;i++) holePath.lineTo(innerOrdered[i][0], innerOrdered[i][1]);
+      holePath.lineTo(innerOrdered[0][0], innerOrdered[0][1]);
+      shapeObj.holes.push(holePath);
+      const geo = new THREE.ShapeGeometry(shapeObj, 12);
+      geo.computeVertexNormals();
+      const posAttr = geo.attributes.position;
+      const uvArr = new Float32Array(posAttr.count*2);
+      for(let i=0;i<posAttr.count;i++){
+        const x=posAttr.getX(i), y=posAttr.getY(i);
+        let u = Math.max(0,Math.min(1,(x+bulkSpanHalf)/(2*bulkSpanHalf)));
+        if(!reverse) u = 1-u; // 후면은 좌우 반전(뒤로 돌아가서 보는 방향 보정)
+        const v = Math.max(0,Math.min(1,y/bulkRise));
+        uvArr[i*2]=u; uvArr[i*2+1]=v;
+      }
+      geo.setAttribute('uv', new THREE.BufferAttribute(uvArr,2));
+      return geo;
+    }
+    const bulkFrontMesh = new THREE.Mesh(buildBulkShapeGeo(true), matFor(st.handleFront, THREE.FrontSide));
+    bulkFrontMesh.position.set(0, topY, 0.002);
+    boxGroup.add(bulkFrontMesh);
+    const bulkBackMesh = new THREE.Mesh(buildBulkShapeGeo(false), matFor(st.handleBack, THREE.FrontSide));
+    bulkBackMesh.position.set(0, topY, -0.002);
+    boxGroup.add(bulkBackMesh);
+
+    // 구분선 (상자 모서리 + 경사면 모서리 + 상단 테두리)
+    lineVertices.push(
+      bFL[0],0,bFL[2], wFL[0],h,wFL[2],
+      bFR[0],0,bFR[2], wFR[0],h,wFR[2],
+      bBR[0],0,bBR[2], wBR[0],h,wBR[2],
+      bBL[0],0,bBL[2], wBL[0],h,wBL[2],
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      bBR[0],0,bBR[2], bBL[0],0,bBL[2],
+      bBL[0],0,bBL[2], bFL[0],0,bFL[2],
+      wFL[0],h,wFL[2], wFR[0],h,wFR[2],
+      wFR[0],h,wFR[2], wBR[0],h,wBR[2],
+      wBR[0],h,wBR[2], wBL[0],h,wBL[2],
+      wBL[0],h,wBL[2], wFL[0],h,wFL[2],
+      wFL[0],h,wFL[2], tFL[0],topY,tFL[2],
+      wFR[0],h,wFR[2], tFR[0],topY,tFR[2],
+      wBR[0],h,wBR[2], tBR[0],topY,tBR[2],
+      wBL[0],h,wBL[2], tBL[0],topY,tBL[2],
+      tFL[0],topY,tFL[2], tFR[0],topY,tFR[2],
+      tFR[0],topY,tFR[2], tBR[0],topY,tBR[2],
+      tBR[0],topY,tBR[2], tBL[0],topY,tBL[2],
+      tBL[0],topY,tBL[2], tFL[0],topY,tFL[2]
+    );
+    // 손잡이 테두리선 (바깥/안쪽 둘 다, 앞/뒤 둘 다)
+    const bulkOuterPts = buildBulkOutline(bulkSpanHalf, bulkRise, bulkCornerR);
+    const bulkInnerPts = buildBulkOutline(Math.max(0.01,bulkSpanHalf-bulkBandW), Math.max(0.01,bulkRise-bulkBandW), Math.max(0.005,bulkCornerR-bulkBandW));
+    [bulkOuterPts, bulkInnerPts].forEach(pts=>{
+      for(let i=0;i<pts.length-1;i++){
+        lineVertices.push(
+          pts[i][0],topY+pts[i][1],0.003,  pts[i+1][0],topY+pts[i+1][1],0.003,
+          pts[i][0],topY+pts[i][1],-0.003, pts[i+1][0],topY+pts[i+1][1],-0.003
+        );
+      }
+    });
+
+    // 하단 크리스 라인 (다른 손잡이형과 동일한 삼각 구도)
+    const creaseVertices = [];
+    const CREASE_OFF = 0.008;
+    function nudge(p, nx, ny, nz){ return [p[0]+nx*CREASE_OFF, p[1]+ny*CREASE_OFF, p[2]+nz*CREASE_OFF]; }
+    function pushCrease(p0,p1){ creaseVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]); }
+    const hLP=[-w*0.25,0,0], hRP=[w*0.25,0,0];
+    pushCrease(nudge(hLP,0,-1,0), nudge(hRP,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bFL,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bBL,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bFR,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bBR,0,-1,0));
+    creaseLineGeo.setPositions(creaseVertices);
+    creaseLines.visible = true;
+
+  } else if(shape === 'shoppingBag'){
+    // [1f] 쇼핑백형 메쉬 - 접시형과 동일한 몸통(외벽+내벽+바닥, 경사 없음) + 손잡이 끈(하우스형과 동일한 기능)
+    const hw = w/2, hd = d/2;
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const tFL=[-hw,h,hd], tFR=[hw,h,hd], tBR=[hw,h,-hd], tBL=[-hw,h,-hd];
+
+    // 외부 4개 벽면 (편집 가능)
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,tFR,tFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,tBL,tBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,tBR,tFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,tFL,tBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+
+    // 내부 벽면 (항상 흰색 고정, 편집면으로 노출 안 함 - 안쪽은 대부분 흰색이라 별도 이미지 업로드 불필요)
+    const off = 0.001;
+    const RIM_W = 0.08; // 8mm - 위쪽 테두리 립 폭
+    const ibFL=[-hw+off,0.001,hd-off], ibFR=[hw-off,0.001,hd-off];
+    const ibBR=[hw-off,0.001,-hd+off], ibBL=[-hw+off,0.001,-hd+off];
+    const itFL=[-hw+RIM_W,h,hd-RIM_W], itFR=[hw-RIM_W,h,hd-RIM_W];
+    const itBR=[hw-RIM_W,h,-hd+RIM_W], itBL=[-hw+RIM_W,h,-hd+RIM_W];
+    const bagWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    boxGroup.add(new THREE.Mesh(quadGeom(ibFL,itFL,itFR,ibFR, [0,0,-1]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibBR,itBR,itBL,ibBL, [0,0,1]),  bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibFR,itFR,itBR,ibBR, [-1,0,0]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibBL,itBL,itFL,ibFL, [1,0,0]),  bagWhiteMat));
+
+    // 상단 테두리 립(rim) - 실제 종이 쇼핑백처럼 입구 가장자리가 안쪽으로 살짝 접힌 평평한 띠를 만들어서,
+    // 바깥(끈이 있는 쪽)과 안쪽 사이를 실제로 막아줌 - 위나 비스듬한 각도에서 봐도 끈이 안쪽에 비치지 않음
+    // (내벽의 위쪽 끝(itFL 등)과 정확히 같은 지점을 안쪽 경계로 써서 이음매 없이 연결됨)
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,itFR,itFL, [0,1,0]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(tBR,tBL,itBL,itBR, [0,1,0]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(tFR,tBR,itBR,itFR, [0,1,0]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(tBL,tFL,itFL,itBL, [0,1,0]), bagWhiteMat));
+
+    // 바닥면 (내부 바닥은 흰색 고정, 외부 바닥만 편집 가능)
+    const inBFL=[-hw+off,0.001,hd-off], inBFR=[hw-off,0.001,hd-off];
+    const inBBR=[hw-off,0.001,-hd+off], inBBL=[-hw+off,0.001,-hd+off];
+    const outBFL=[-hw,-0.001,hd], outBFR=[hw,-0.001,hd];
+    const outBBR=[hw,-0.001,-hd], outBBL=[-hw,-0.001,-hd];
+    boxGroup.add(new THREE.Mesh(quadGeom(inBFL,inBFR,inBBR,inBBL, [0,1,0]), bagWhiteMat));
+    boxGroup.add(new THREE.Mesh(quadGeom(outBFL,outBFR,outBBR,outBBL, [0,-1,0], true), matFor(st.bottom, THREE.FrontSide)));
+
+    // 구분선 (접시형과 동일한 패턴)
+    const lineYMin = 0.003, lineYMax = h;
+    lineVertices.push(
+      inBFL[0],lineYMin,inBFL[2], inBFR[0],lineYMin,inBFR[2],
+      inBFR[0],lineYMin,inBFR[2], inBBR[0],lineYMin,inBBR[2],
+      inBBR[0],lineYMin,inBBR[2], inBBL[0],lineYMin,inBBL[2],
+      inBBL[0],lineYMin,inBBL[2], inBFL[0],lineYMin,inBFL[2]
+    );
+    const lineOff = 0.002;
+    lineVertices.push(
+      ibFL[0]+lineOff,lineYMin,ibFL[2]-lineOff, itFL[0]+lineOff,lineYMax,itFL[2]-lineOff,
+      ibFR[0]-lineOff,lineYMin,ibFR[2]-lineOff, itFR[0]-lineOff,lineYMax,itFR[2]-lineOff,
+      ibBR[0]-lineOff,lineYMin,ibBR[2]+lineOff, itBR[0]-lineOff,lineYMax,itBR[2]+lineOff,
+      ibBL[0]+lineOff,lineYMin,ibBL[2]+lineOff, itBL[0]+lineOff,lineYMax,itBL[2]+lineOff
+    );
+    const outY = -0.002;
+    lineVertices.push(
+      bFL[0],outY,bFL[2], bFR[0],outY,bFR[2],
+      bFR[0],outY,bFR[2], bBR[0],outY,bBR[2],
+      bBR[0],outY,bBR[2], bBL[0],outY,bBL[2],
+      bBL[0],outY,bBL[2], bFL[0],outY,bFL[2]
+    );
+    lineVertices.push(
+      bFL[0],0,bFL[2], tFL[0],h,tFL[2],
+      bFR[0],0,bFR[2], tFR[0],h,tFR[2],
+      bBR[0],0,bBR[2], tBR[0],h,tBR[2],
+      bBL[0],0,bBL[2], tBL[0],h,tBL[2]
+    );
+    // 상단 가로선(테두리)
+    lineVertices.push(
+      tFL[0],h,tFL[2], tFR[0],h,tFR[2],
+      tFR[0],h,tFR[2], tBR[0],h,tBR[2],
+      tBR[0],h,tBR[2], tBL[0],h,tBL[2],
+      tBL[0],h,tBL[2], tFL[0],h,tFL[2]
+    );
+
+    // 바닥 크리스 라인 (다른 손잡이형과 동일한 삼각 구도, 굵은 선)
+    const creaseVertices = [];
+    const CREASE_OFF = 0.008;
+    function nudge(p, nx, ny, nz){ return [p[0]+nx*CREASE_OFF, p[1]+ny*CREASE_OFF, p[2]+nz*CREASE_OFF]; }
+    function pushCrease(p0,p1){ creaseVertices.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]); }
+    const hLP=[-w*0.25,0,0], hRP=[w*0.25,0,0];
+    pushCrease(nudge(hLP,0,-1,0), nudge(hRP,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bFL,0,-1,0));
+    pushCrease(nudge(hLP,0,-1,0), nudge(bBL,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bFR,0,-1,0));
+    pushCrease(nudge(hRP,0,-1,0), nudge(bBR,0,-1,0));
+    creaseLineGeo.setPositions(creaseVertices);
+    creaseLines.visible = true;
+
+    // 측면 접힘선 - 상단 중앙에서 바닥 위 50mm 지점까지 수직선, 그 끝에서 양쪽 바닥 꼭짓점까지 대각선 (일반 선 굵기)
+    const sideFoldY = 0.5; // 바닥 위 50mm
+    const sideOff = 0.003;
+    lineVertices.push(
+      hw+sideOff,h,0, hw+sideOff,sideFoldY,0,
+      hw+sideOff,sideFoldY,0, hw+sideOff,0,hd,
+      hw+sideOff,sideFoldY,0, hw+sideOff,0,-hd,
+      -hw-sideOff,h,0, -hw-sideOff,sideFoldY,0,
+      -hw-sideOff,sideFoldY,0, -hw-sideOff,0,hd,
+      -hw-sideOff,sideFoldY,0, -hw-sideOff,0,-hd
+    );
+
+    // 손잡이 끈 (쇼핑백 전용 - 상단 20mm 아래에서 시작, 절대 위치가 아닌 상대적으로 처짐)
+    updateShoppingBagRope(w, h, hd);
+    if(houseRopeWrap) houseRopeWrap.style.display = 'flex';
+
+  } else if(shape === 'sleeve'){
+    // [1g] 슬리브형 메쉬 - 양쪽 끝이 뚫린 사각 관(슬리브) + 안쪽에 딱 맞게 들어간 트레이(길이 방향으로만 1.5mm 안쪽에서 끝남)
+    const hw = w/2, hd = d/2;
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const tFL=[-hw,h,hd], tFR=[hw,h,hd], tBR=[hw,h,-hd], tBL=[-hw,h,-hd];
+
+    // 슬리브 4면 (좌/우 측면은 아예 없음 - 뚫려있음)
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,tFR,tFL, [0,0,1]),  matFor(st.front, THREE.DoubleSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,tBL,tBR, [0,0,-1]), matFor(st.back,  THREE.DoubleSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,tBR,tBL, [0,1,0]),  matFor(st.top,   THREE.DoubleSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom, THREE.DoubleSide)));
+
+    // 안쪽 트레이 - 위/아래/앞/뒤는 슬리브 벽에 완전히 딱 맞닿고(간격 없음), 좌/우 끝만 슬리브 가로 끝선보다 1.5mm 안쪽에서 끝남
+    const TRAY_W_INSET = 0.015; // 1.5mm
+    const trayHalfW = Math.max(0.01, hw - TRAY_W_INSET);
+    const trayHd = hd, trayY0 = 0, trayY1 = h;
+    const trFL=[-trayHalfW,trayY0,trayHd], trFR=[trayHalfW,trayY0,trayHd], trBR=[trayHalfW,trayY0,-trayHd], trBL=[-trayHalfW,trayY0,-trayHd];
+    const trTL=[-trayHalfW,trayY1,trayHd], trTR=[trayHalfW,trayY1,trayHd], trTBR=[trayHalfW,trayY1,-trayHd], trTBL=[-trayHalfW,trayY1,-trayHd];
+    // 트레이 좌측 단면 (x=-trayHalfW)
+    boxGroup.add(new THREE.Mesh(quadGeom(trBL,trFL,trTL,trTBL, [-1,0,0]), matFor(st.trayLeft, THREE.DoubleSide)));
+    // 트레이 우측 단면 (x=+trayHalfW)
+    boxGroup.add(new THREE.Mesh(quadGeom(trFR,trBR,trTBR,trTR, [1,0,0]), matFor(st.trayRight, THREE.DoubleSide)));
+
+    // 구분선(검정) - 슬리브 내부 각 면 사이 경계를 검정선으로 표시
+    lineVertices.push(
+      bFL[0],0,bFL[2], tFL[0],h,tFL[2],
+      bFR[0],0,bFR[2], tFR[0],h,tFR[2],
+      bBR[0],0,bBR[2], tBR[0],h,tBR[2],
+      bBL[0],0,bBL[2], tBL[0],h,tBL[2],
+      // 슬리브 벽면끼리 만나는 길이 방향(가로) 모서리선 - 전체 길이로 그려두면, 트레이 검정면에 자연스럽게 가려져서
+      // 바깥쪽 1.5mm 테두리 부분만 살짝 보임 (별도로 구간을 잘라낼 필요 없음)
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bBL[0],0,bBL[2], bBR[0],0,bBR[2],
+      tFL[0],h,tFL[2], tFR[0],h,tFR[2],
+      tBL[0],h,tBL[2], tBR[0],h,tBR[2],
+      // 좌측 입구 테두리
+      bFL[0],0,bFL[2], bBL[0],0,bBL[2],
+      tFL[0],h,tFL[2], tBL[0],h,tBL[2],
+      // 우측 입구 테두리
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      tFR[0],h,tFR[2], tBR[0],h,tBR[2]
+    );
+
+  } else if(shape === 'dishDouble'){
+    // [2b] 접시형(이중고) 메쉬
+    // 구조: 외벽(수직, 전체 높이) → 꼭대기에서 안쪽으로 직각으로 꺾여 7mm 수평 이동(이중고 띠) → 다시 직각으로 꺾여 바닥까지 수직으로 떨어짐(내벽)
+    const b = (parseFloat(dimBand && dimBand.value)||7)/100;
+    const hw=w/2, hd=d/2;
+    const ihw = Math.max(0.01, hw-b), ihd = Math.max(0.01, hd-b); // 이중고 폭만큼 안쪽으로 들어간 내부 치수
+
+    // 외벽 모서리 (바닥 y=0 ~ 꼭대기 y=h)
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const tFL=[-hw,h,hd], tFR=[hw,h,hd], tBR=[hw,h,-hd], tBL=[-hw,h,-hd];
+    // 이중고 띠 안쪽 끝 모서리 (꼭대기 높이 y=h, 안쪽으로 b만큼 들어간 지점)
+    const iFL=[-ihw,h,ihd], iFR=[ihw,h,ihd], iBR=[ihw,h,-ihd], iBL=[-ihw,h,-ihd];
+    // 내벽이 바닥까지 떨어진 모서리 (y=0, 안쪽으로 b만큼 들어간 지점)
+    const niFL=[-ihw,0,ihd], niFR=[ihw,0,ihd], niBR=[ihw,0,-ihd], niBL=[-ihw,0,-ihd];
+
+    // 외벽 4면 (바닥~꼭대기, 전체 높이)
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,tFR,tFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,tBL,tBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,tBR,tFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,tFL,tBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+
+    // 이중고 띠 4면 (꼭대기에서 안쪽으로 꺾인 수평 면, 위에서 보임)
+    boxGroup.add(new THREE.Mesh(quadGeom(tFL,tFR,iFR,iFL, [0,1,0]), matFor(st.frontBand, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(tBR,tBL,iBL,iBR, [0,1,0]), matFor(st.backBand,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(tFR,tBR,iBR,iFR, [0,1,0]), matFor(st.side1Band, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(tBL,tFL,iFL,iBL, [0,1,0]), matFor(st.side2Band, THREE.FrontSide)));
+
+    // 내벽 4면 (이중고 안쪽 끝에서 바닥까지 다시 꺾여 떨어짐, 개별 편집 가능 - 기본은 흰색)
+    boxGroup.add(new THREE.Mesh(quadGeom(niFL,niFR,iFR,iFL, [0,0,-1]), matFor(st.innerFront, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(niBR,niBL,iBL,iBR, [0,0,1]),  matFor(st.innerBack,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(niFR,niBR,iBR,iFR, [-1,0,0]), matFor(st.innerSide1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(niBL,niFL,iFL,iBL, [1,0,0]),  matFor(st.innerSide2, THREE.FrontSide)));
+
+    // 바닥면 (내부 바닥은 이중고 폭만큼 줄어든 안쪽 치수, 외부 바닥은 전체 치수)
+    const off = 0.001;
+    const inBFL=[-ihw+off, 0.001, ihd-off], inBFR=[ihw-off, 0.001, ihd-off];
+    const inBBR=[ihw-off, 0.001, -ihd+off], inBBL=[-ihw+off, 0.001, -ihd+off];
+    const outBFL=[-hw, -0.001, hd], outBFR=[hw, -0.001, hd];
+    const outBBR=[hw, -0.001, -hd], outBBL=[-hw, -0.001, -hd];
+    boxGroup.add(new THREE.Mesh(quadGeom(inBFL,inBFR,inBBR,inBBL, [0,1,0]),        matFor(st.innerBottom, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(outBFL,outBFR,outBBR,outBBL, [0,-1,0], true), matFor(st.outerBottom, THREE.FrontSide)));
+
+    // 구분선
+    const outY = -0.002, lineYMin = 0.003, lineOff = 0.002;
+    // A. 외부 바닥 테두리
+    lineVertices.push(
+      bFL[0], outY, bFL[2],  bFR[0], outY, bFR[2],
+      bFR[0], outY, bFR[2],  bBR[0], outY, bBR[2],
+      bBR[0], outY, bBR[2],  bBL[0], outY, bBL[2],
+      bBL[0], outY, bBL[2],  bFL[0], outY, bFL[2]
+    );
+    // B. 외벽 세로 모서리 (바닥~꼭대기)
+    lineVertices.push(
+      bFL[0], 0, bFL[2],  tFL[0], h, tFL[2],
+      bFR[0], 0, bFR[2],  tFR[0], h, tFR[2],
+      bBR[0], 0, bBR[2],  tBR[0], h, tBR[2],
+      bBL[0], 0, bBL[2],  tBL[0], h, tBL[2]
+    );
+    // C. 이중고 띠 안쪽 테두리 (외벽 위 ~ 내벽 시작점 경계)
+    lineVertices.push(
+      iFL[0], h, iFL[2],  iFR[0], h, iFR[2],
+      iFR[0], h, iFR[2],  iBR[0], h, iBR[2],
+      iBR[0], h, iBR[2],  iBL[0], h, iBL[2],
+      iBL[0], h, iBL[2],  iFL[0], h, iFL[2]
+    );
+    // C2. 외벽 꼭대기 테두리 (이중고 띠 바깥쪽 경계)
+    lineVertices.push(
+      tFL[0], h, tFL[2],  tFR[0], h, tFR[2],
+      tFR[0], h, tFR[2],  tBR[0], h, tBR[2],
+      tBR[0], h, tBR[2],  tBL[0], h, tBL[2],
+      tBL[0], h, tBL[2],  tFL[0], h, tFL[2]
+    );
+    // C3. 외벽 꼭대기 모서리 - 내벽 꼭대기 모서리 대각선 (이중고 띠 모서리 접힘선)
+    lineVertices.push(
+      tFL[0], h, tFL[2],  iFL[0], h, iFL[2],
+      tFR[0], h, tFR[2],  iFR[0], h, iFR[2],
+      tBR[0], h, tBR[2],  iBR[0], h, iBR[2],
+      tBL[0], h, tBL[2],  iBL[0], h, iBL[2]
+    );
+    // D. 내벽 세로 모서리 (꼭대기~바닥) - 내면 4벽 사이 경계선
+    lineVertices.push(
+      iFL[0]+lineOff, h-0.001, iFL[2]-lineOff,  niFL[0]+lineOff, lineYMin, niFL[2]-lineOff,
+      iFR[0]-lineOff, h-0.001, iFR[2]-lineOff,  niFR[0]-lineOff, lineYMin, niFR[2]-lineOff,
+      iBR[0]-lineOff, h-0.001, iBR[2]+lineOff,  niBR[0]-lineOff, lineYMin, niBR[2]+lineOff,
+      iBL[0]+lineOff, h-0.001, iBL[2]+lineOff,  niBL[0]+lineOff, lineYMin, niBL[2]+lineOff
+    );
+    // E. 내부 바닥-내벽 경계선
+    lineVertices.push(
+      inBFL[0], lineYMin, inBFL[2],  inBFR[0], lineYMin, inBFR[2],
+      inBFR[0], lineYMin, inBFR[2],  inBBR[0], lineYMin, inBBR[2],
+      inBBR[0], lineYMin, inBBR[2],  inBBL[0], lineYMin, inBBL[2],
+      inBBL[0], lineYMin, inBBL[2],  inBFL[0], lineYMin, inBFL[2]
+    );
+
+  } else {
+    // [2] 접시형 / 트레이형 메쉬
+    const cfg = getShapeConfig(shape);
+    const wallH = h*cfg.hScale;
+    const topW = w + wallH*cfg.taper*2;
+    const topD = d + wallH*cfg.taper*2;
+    const hw=w/2, hd=d/2, htw=topW/2, htd=topD/2;
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const tFL=[-htw,wallH,htd], tFR=[htw,wallH,htd], tBR=[htw,wallH,-htd], tBL=[-htw,wallH,-htd];
+
+    // 외부 4개 벽면
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,tFR,tFL, [0,0,1]),  matFor(st.front, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBR,bBL,tBL,tBR, [0,0,-1]), matFor(st.back,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bFR,bBR,tBR,tFR, [1,0,0]),  matFor(st.side1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(bBL,bFL,tFL,tBL, [-1,0,0]), matFor(st.side2, THREE.FrontSide)));
+
+    // 내부 차단용 안감 벽면
+    const off = 0.001;
+    const ibFL=[-hw+off, 0.001, hd-off], ibFR=[hw-off, 0.001, hd-off];
+    const ibBR=[hw-off, 0.001, -hd+off], ibBL=[-hw+off, 0.001, -hd+off];
+    const itFL=[-htw+off, wallH, htd-off], itFR=[htw-off, wallH, htd-off];
+    const itBR=[htw-off, wallH, -htd+off], itBL=[-htw+off, wallH, -htd+off];
+
+    // 내부 4면 (각각 편집 가능 - 기본은 흰색, 필요시 이미지/색상 지정 가능)
+    boxGroup.add(new THREE.Mesh(quadGeom(ibFL,itFL,itFR,ibFR, [0,0,-1]), matFor(st.innerFront, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibBR,itBR,itBL,ibBL, [0,0,1]),  matFor(st.innerBack,  THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibFR,itFR,itBR,ibBR, [-1,0,0]), matFor(st.innerSide1, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(ibBL,itBL,itFL,ibFL, [1,0,0]),  matFor(st.innerSide2, THREE.FrontSide)));
+
+    // 바닥면
+    const inBFL=[-hw+off, 0.001, hd-off], inBFR=[hw-off, 0.001, hd-off];
+    const inBBR=[hw-off, 0.001, -hd+off], inBBL=[-hw+off, 0.001, -hd+off];
+    const outBFL=[-hw, -0.001, hd], outBFR=[hw, -0.001, hd];
+    const outBBR=[hw, -0.001, -hd], outBBL=[-hw, -0.001, -hd];
+
+    boxGroup.add(new THREE.Mesh(quadGeom(inBFL,inBFR,inBBR,inBBL, [0,1,0]),        matFor(st.innerBottom, THREE.FrontSide)));
+    boxGroup.add(new THREE.Mesh(quadGeom(outBFL,outBFR,outBBR,outBBL, [0,-1,0], true), matFor(st.outerBottom, THREE.FrontSide)));
+
+    // [3] 접시형 / 트레이형 전용 구분선 전체 구성
+    const lineYMin = 0.003;
+    const lineYMax = wallH;
+
+    // A. 내부 바닥-벽 경계선
+    lineVertices.push(
+      inBFL[0], lineYMin, inBFL[2],  inBFR[0], lineYMin, inBFR[2],
+      inBFR[0], lineYMin, inBFR[2],  inBBR[0], lineYMin, inBBR[2],
+      inBBR[0], lineYMin, inBBR[2],  inBBL[0], lineYMin, inBBL[2],
+      inBBL[0], lineYMin, inBBL[2],  inBFL[0], lineYMin, inBFL[2]
+    );
+
+    // B. 내부 벽-벽 세로 경계선 (접시형 경사면에 묻히지 않도록 미세 오프셋 적용)
+    const lineOff = 0.002; 
+    lineVertices.push(
+      ibFL[0] + lineOff, lineYMin, ibFL[2] - lineOff,  itFL[0] + lineOff, lineYMax, itFL[2] - lineOff,
+      ibFR[0] - lineOff, lineYMin, ibFR[2] - lineOff,  itFR[0] - lineOff, lineYMax, itFR[2] - lineOff,
+      ibBR[0] - lineOff, lineYMin, ibBR[2] + lineOff,  itBR[0] - lineOff, lineYMax, itBR[2] + lineOff,
+      ibBL[0] + lineOff, lineYMin, ibBL[2] + lineOff,  itBL[0] + lineOff, lineYMax, itBL[2] + lineOff
+    );
+
+    // C. 외부 바닥-벽 경계선
+    const outY = -0.002;
+    lineVertices.push(
+      bFL[0], outY, bFL[2],  bFR[0], outY, bFR[2],
+      bFR[0], outY, bFR[2],  bBR[0], outY, bBR[2],
+      bBR[0], outY, bBR[2],  bBL[0], outY, bBL[2],
+      bBL[0], outY, bBL[2],  bFL[0], outY, bFL[2]
+    );
+
+    // D. 외부 벽-벽 세로 경계선
+    lineVertices.push(
+      bFL[0], 0, bFL[2],  tFL[0], wallH, tFL[2],
+      bFR[0], 0, bFR[2],  tFR[0], wallH, tFR[2],
+      bBR[0], 0, bBR[2],  tBR[0], wallH, tBR[2],
+      bBL[0], 0, bBL[2],  tBL[0], wallH, tBL[2]
+    );
+
+    // E. 상단 윗입구 테두리선
+    lineVertices.push(
+      tFL[0], wallH, tFL[2],  tFR[0], wallH, tFR[2],
+      tFR[0], wallH, tFR[2],  tBR[0], wallH, tBR[2],
+      tBR[0], wallH, tBR[2],  tBL[0], wallH, tBL[2],
+      tBL[0], wallH, tBL[2],  tFL[0], wallH, tFL[2]
+    );
+  }
+
+  // 구분선 생성 및 추가
+  if(lineVertices.length > 0){
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineVertices), 3));
+    boxGroup.add(new THREE.LineSegments(lineGeo, lineMat));
+
+
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  if(houseCornerFadeActive){
+    const polar = controls.getPolarAngle();
+    const t = smoothstep(FADE_ANGLE_LOW, FADE_ANGLE_HIGH, polar);
+    cornerFadeLineMat.opacity = t;
+    cornerFadeLines.visible = t > 0.01;
+  }
+  renderer.render(scene, camera);
+}
+animate();
+window.addEventListener('resize', ()=>{
+  camera.aspect = wrap.clientWidth/wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  creaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+  cornerFadeLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+});
+// 화면 레이아웃이 바뀌는데 브라우저 창 크기 자체는 안 바뀌는 경우(사이드바 토글, 모바일 회전 등)도
+// 놓치지 않도록 감시해서, 캔버스 실제 해상도가 항상 화면 표시 크기와 정확히 일치하도록 함 (안 맞으면 흐릿하게 보임)
+new ResizeObserver(()=>{
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if(w<=0||h<=0) return;
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  creaseLineMat.resolution.set(w, h);
+  cornerFadeLineMat.resolution.set(w, h);
+}).observe(wrap);
+
+// ===================== 면 선택 시 카메라 자동 이동 =====================
+function getFaceFrame(shape, key, w, h, d){
+  const hw=w/2, hh=h/2, hd=d/2;
+  if(shape === 'box'){
+    const centers = {
+      front:  {c:[0,0,hd],  n:[0,0,1]},
+      back:   {c:[0,0,-hd], n:[0,0,-1]},
+      side1:  {c:[hw,0,0],  n:[1,0,0]},
+      side2:  {c:[-hw,0,0], n:[-1,0,0]},
+      top:    {c:[0,hh,0],  n:[0,1,0]},
+      bottom: {c:[0,-hh,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'house'){
+    const slopeLen = HOUSE_SLOPE_LEN_MM/100, inset = HOUSE_INSET_MM/100, rise = HOUSE_RISE_MM/100;
+    const y1 = h + rise;
+    const centers = {
+      front:      {c:[0,h/2,hd],  n:[0,0,1]},
+      back:       {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:      {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:      {c:[-hw,h/2,0], n:[-1,0,0]},
+      frontSlope: {c:[0,h+rise/2,hd-inset/2],  n:[0,0.5,1]},
+      backSlope:  {c:[0,h+rise/2,-hd+inset/2], n:[0,0.5,-1]},
+      side1Slope: {c:[hw-inset/2,h+rise/2,0],  n:[1,0.5,0]},
+      side2Slope: {c:[-hw+inset/2,h+rise/2,0], n:[-1,0.5,0]},
+      top:    {c:[0,y1,0],  n:[0,1,0]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'handle' || shape === 'handleWave' || shape === 'handleTopWave' || shape === 'handleArchGripWave' || shape === 'handleTrumpet'){
+    const topInward = d * HANDLE_TOP_RATIO;
+    const sideArcRise = h * HANDLE_ARC_RATIO;
+    const handleRise = Math.min(HANDLE_RISE_MM/100, sideArcRise*0.85);
+    const handleBaseY = h;
+    const handleCenterY = handleBaseY + handleRise/2;
+    const centers = {
+      front:      {c:[0,h/2,hd],  n:[0,0,1]},
+      back:       {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:      {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:      {c:[-hw,h/2,0], n:[-1,0,0]},
+      frontTop:   {c:[0,h,hd-topInward/2], n:[0,1,0]},
+      backTop:    {c:[0,h,-hd+topInward/2], n:[0,1,0]},
+      side1Slope: {c:[hw,h+sideArcRise/2,0],  n:[1,0.5,0]},
+      side2Slope: {c:[-hw,h+sideArcRise/2,0], n:[-1,0.5,0]},
+      handleFront: {c:[0,handleCenterY,0.3],  n:[0,0,1]},
+      handleBack:  {c:[0,handleCenterY,-0.3], n:[0,0,-1]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'handleRing'){
+    const span = w * RING_SPAN_RATIO, halfSpan = span/2;
+    const legH = RING_LEG_MM/100;
+    const centers = {
+      front:  {c:[0,h/2,hd],  n:[0,0,1]},
+      back:   {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:  {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:  {c:[-hw,h/2,0], n:[-1,0,0]},
+      top:    {c:[0,h,0],     n:[0,1,0]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+      handleFront: {c:[0,h+legH+halfSpan/2,0.3],  n:[0,0,1]},
+      handleBack:  {c:[0,h+legH+halfSpan/2,-0.3], n:[0,0,-1]},
+    };
+    return centers[key];
+  }
+  if(shape === 'handleBulk'){
+    const frustumH = h * BULK_FRUSTUM_RATIO;
+    const topHw = hw * BULK_TOP_RATIO, topHd = hd * BULK_TOP_RATIO;
+    const topY = h + frustumH;
+    const bulkRise = BULK_HANDLE_RISE_MM/100;
+    const centers = {
+      front:      {c:[0,h/2,hd],  n:[0,0,1]},
+      back:       {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:      {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:      {c:[-hw,h/2,0], n:[-1,0,0]},
+      frontSlope: {c:[0,(h+topY)/2,(hd+topHd)/2],  n:[0,0.3,1]},
+      backSlope:  {c:[0,(h+topY)/2,-(hd+topHd)/2], n:[0,0.3,-1]},
+      side1Slope: {c:[(hw+topHw)/2,(h+topY)/2,0],  n:[1,0.3,0]},
+      side2Slope: {c:[-(hw+topHw)/2,(h+topY)/2,0], n:[-1,0.3,0]},
+      top:    {c:[0,topY,0],  n:[0,1,0]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+      handleFront: {c:[0,topY+bulkRise/2,0.3],  n:[0,0,1]},
+      handleBack:  {c:[0,topY+bulkRise/2,-0.3], n:[0,0,-1]},
+    };
+    return centers[key];
+  }
+  if(shape === 'shoppingBag'){
+    const centers = {
+      front:  {c:[0,h/2,hd],  n:[0,0,1]},
+      back:   {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:  {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:  {c:[-hw,h/2,0], n:[-1,0,0]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'sleeve'){
+    const centers = {
+      front:  {c:[0,h/2,hd],  n:[0,0,1]},
+      back:   {c:[0,h/2,-hd], n:[0,0,-1]},
+      top:    {c:[0,h,0],     n:[0,1,0]},
+      bottom: {c:[0,0.02,0],  n:[0,-1,0]},
+      trayLeft:  {c:[-hw,h/2,0], n:[-1,0,0]},
+      trayRight: {c:[hw,h/2,0],  n:[1,0,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'dishDouble'){
+    const b = (parseFloat(dimBand && dimBand.value)||7)/100;
+    const centers = {
+      front:      {c:[0,h/2,hd],  n:[0,0,1]},
+      back:       {c:[0,h/2,-hd], n:[0,0,-1]},
+      side1:      {c:[hw,h/2,0],  n:[1,0,0]},
+      side2:      {c:[-hw,h/2,0], n:[-1,0,0]},
+      frontBand:  {c:[0,h,hd-b/2],  n:[0,1,0]},
+      backBand:   {c:[0,h,-hd+b/2], n:[0,1,0]},
+      side1Band:  {c:[hw-b/2,h,0],  n:[0,1,0]},
+      side2Band:  {c:[-hw+b/2,h,0], n:[0,1,0]},
+      innerBottom: {c:[0,0.02,0],  n:[0,1,0]},
+      outerBottom: {c:[0,-0.02,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  const cfg = getShapeConfig(shape);
+  const wallH = h*cfg.hScale;
+  const centers = {
+    front:  {c:[0,wallH/2,hd],  n:[0,0,1]},
+    back:   {c:[0,wallH/2,-hd], n:[0,0,-1]},
+    side1:  {c:[hw,wallH/2,0],  n:[1,0,0]},
+    side2:  {c:[-hw,wallH/2,0], n:[-1,0,0]},
+    innerBottom: {c:[0,0.02,0],  n:[0,1,0]},
+    outerBottom: {c:[0,-0.02,0], n:[0,-1,0]},
+  };
+  return centers[key];
+}
+
+// 상자/트레이 전체의 실제 중심점 (회전 축을 여기 고정해서, 어떤 면을 보다가 돌려도 중앙 기준으로 자연스럽게 회전하도록 함)
+function getModelCenter(shape){
+  const h = (parseFloat(dimH.value)||120)/100;
+  if(shape === 'box') return [0, 0, 0];
+  if(shape === 'house'){
+    const rise = HOUSE_RISE_MM/100;
+    return [0, (h+rise)/2, 0];
+  }
+  if(shape === 'handle' || shape === 'handleWave' || shape === 'handleTopWave' || shape === 'handleArchGripWave' || shape === 'handleTrumpet'){
+    const sideArcRise = h * HANDLE_ARC_RATIO;
+    return [0, (h + sideArcRise)/2, 0];
+  }
+  if(shape === 'handleRing'){
+    const w = (parseFloat(dimW.value)||260)/100;
+    const halfSpan = (w*RING_SPAN_RATIO)/2;
+    const legH = RING_LEG_MM/100;
+    return [0, (h + legH + halfSpan)/2, 0];
+  }
+  if(shape === 'handleBulk'){
+    const frustumH = h * BULK_FRUSTUM_RATIO;
+    const bulkRise = BULK_HANDLE_RISE_MM/100;
+    return [0, (h + frustumH + bulkRise)/2, 0];
+  }
+  if(shape === 'shoppingBag'){
+    return [0, (h + 0.35)/2, 0]; // 손잡이 끈이 벽 위로 솟아오르는 높이를 대략 반영
+  }
+  if(shape === 'sleeve'){
+    return [0, h/2, 0];
+  }
+  const cfg = getShapeConfig(shape);
+  const wallH = h*cfg.hScale;
+  return [0, wallH/2, 0];
+}
+
+function focusCameraOnFace(key){
+  const shape = shapeSelect.value;
+  const w = (parseFloat(dimW.value)||260)/100;
+  const d = (parseFloat(dimD.value)||140)/100;
+  const h = (parseFloat(dimH.value)||120)/100;
+  const frame = getFaceFrame(shape, key, w, h, d);
+  if(!frame) return;
+  const faceCenter = new THREE.Vector3(...frame.c);
+  const normal = new THREE.Vector3(...frame.n);
+  const dist = Math.max(w,d,h)*2.1 + 1.4;
+  const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
+  const modelCenter = new THREE.Vector3(...getModelCenter(shape));
+  animateCameraTo(targetPos, modelCenter);
+}
+
+function animateCameraTo(pos, target){
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const duration = 480;
+  let startTime = null;
+  controls.enabled = false;
+  const wasAutoRotating = controls.autoRotate;
+  controls.autoRotate = false; // 카메라 이동 애니메이션과 자동회전이 겹치지 않도록 잠시 끔
+  function step(ts){
+    if(!startTime) startTime = ts;
+    const t = Math.min(1, (ts-startTime)/duration);
+    const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+    camera.position.lerpVectors(startPos, pos, ease);
+    controls.target.lerpVectors(startTarget, target, ease);
+    controls.update();
+    if(t < 1){ requestAnimationFrame(step); } else { controls.enabled = true; controls.autoRotate = viewerForceAutoRotate ? true : wasAutoRotating; }
+  }
+  requestAnimationFrame(step);
+}
+
+// ===================== UI 바인딩 =====================
+const shapeSelect = document.getElementById('shapeSelect');
+const dimW = document.getElementById('dimW'), dimD = document.getElementById('dimD'), dimH = document.getElementById('dimH');
+const dimBand = document.getElementById('dimBand');
+const dimBandWrap = document.getElementById('dimBandWrap');
+const houseRopeWrap = document.getElementById('houseRopeWrap');
+const ropeColorInput = document.getElementById('ropeColor');
+const faceUploadRows = document.getElementById('faceUploadRows');
+const editFaceSelect = document.getElementById('editFaceSelect');
+const miniCanvas = document.getElementById('miniCanvas');
+const miniCtx = miniCanvas.getContext('2d');
+
+function currentFaces(){ return FACE_DEFS[shapeSelect.value]; }
+function currentEditState(){ return faceStateByShape[shapeSelect.value][editFaceSelect.value]; }
+
+function renderFaceUploadRows(){
+  faceUploadRows.innerHTML = '';
+  currentFaces().forEach(f=>{
+    const st = ensureFaceState(shapeSelect.value, f.key);
+    const row = document.createElement('div');
+    row.className = 'face-row';
+    row.style.flexDirection = 'column';
+    row.style.alignItems = 'stretch';
+    row.innerHTML = `
+      <div class="row" style="align-items:center; cursor:pointer; gap:6px;" data-face-select="${f.key}">
+        <div class="thumb" id="thumb-${f.key}"></div>
+        <div class="fname">${f.label}</div>
+      </div>
+      <input type="file" accept="image/*" data-face="${f.key}">
+      <input type="text" placeholder="또는 URL 입력" data-face-url="${f.key}" value="${st.imageUrl||''}">`;
+    faceUploadRows.appendChild(row);
+    updateThumb(f.key);
+  });
+  faceUploadRows.querySelectorAll('[data-face-select]').forEach(el=>{
+    el.addEventListener('click', e=>{
+      if(e.target.tagName === 'INPUT') return; // 파일 선택 클릭은 제외
+      const key = el.dataset.faceSelect;
+      editFaceSelect.value = key;
+      refreshEditor();
+      focusCameraOnFace(key);
+    });
+  });
+  faceUploadRows.querySelectorAll('input[type=file]').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const key = e.target.dataset.face;
+      const file = e.target.files[0];
+      if(!file) return;
+      const img = new Image();
+      img.onload = ()=>{
+        const st = ensureFaceState(shapeSelect.value, key);
+        st.baseImage = img;
+        st.imageUrl = null; // 로컬 업로드는 URL 아님 (임베드에 반영 안 됨)
+        st.useColor = false;
+        st.imgAspect = img.width/img.height;
+        st.imgBox = computeContainBox(img, st.canvas.width/st.canvas.height);
+        redrawFace(shapeSelect.value, key);
+        updateThumb(key);
+        rebuildBox();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  });
+  faceUploadRows.querySelectorAll('input[data-face-url]').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const key = e.target.dataset.faceUrl;
+      const url = e.target.value.trim();
+      if(!url) return;
+      loadFaceFromUrl(shapeSelect.value, key, url, ()=>{
+        updateThumb(key);
+        rebuildBox();
+      });
+    });
+  });
+}
+// ---- 로딩 표시 / 이미지 로드 실패 대비 ----
+let pendingImageLoads = 0;
+function showLoadingOverlay(){
+  const el = document.getElementById('loadingOverlay');
+  if(el) el.classList.add('show');
+}
+function hideLoadingOverlay(){
+  const el = document.getElementById('loadingOverlay');
+  if(el) el.classList.remove('show');
+}
+function beginImageLoad(){ pendingImageLoads++; showLoadingOverlay(); }
+function endImageLoad(){ pendingImageLoads = Math.max(0, pendingImageLoads-1); if(pendingImageLoads===0) hideLoadingOverlay(); }
+function drawLoadErrorPlaceholder(state){
+  const ctx = state.ctx, cw = state.canvas.width, ch = state.canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  ctx.fillStyle = '#fff4f0';
+  ctx.fillRect(0,0,cw,ch);
+  ctx.strokeStyle = 'rgba(229,72,77,0.35)';
+  ctx.lineWidth = Math.max(2, Math.min(cw,ch)*0.02);
+  const step = Math.max(cw,ch)/8;
+  ctx.beginPath();
+  for(let x=-ch; x<cw; x+=step){ ctx.moveTo(x,0); ctx.lineTo(x+ch,ch); }
+  ctx.stroke();
+  ctx.fillStyle = '#e5484d';
+  ctx.font = `bold ${Math.max(10, Math.min(cw,ch)*0.07)}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('이미지를 불러오지 못했어요', cw/2, ch/2);
+  state.texture.needsUpdate = true;
+}
+function loadFaceFromUrl(shape, key, url, done){
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  beginImageLoad();
+  img.onload = ()=>{
+    const st = ensureFaceState(shape, key);
+    st.baseImage = img;
+    st.imageUrl = url;
+    st.useColor = false;
+    st.imgAspect = img.width/img.height;
+    st.imgBox = computeContainBox(img, st.canvas.width/st.canvas.height);
+    redrawFace(shape, key);
+    endImageLoad();
+    if(done) done();
+  };
+  img.onerror = ()=>{
+    console.error('이미지 URL을 불러오지 못했어요:', url);
+    const st = ensureFaceState(shape, key);
+    drawLoadErrorPlaceholder(st);
+    endImageLoad();
+    if(done) done(); // 실패해도 콜백을 호출해야 불러오기/임베드 작업이 멈추지 않음
+  };
+  img.src = url;
+}
+function updateThumb(key){
+  const st = faceStateByShape[shapeSelect.value][key];
+  const el = document.getElementById('thumb-'+key);
+  if(el && st) el.style.backgroundImage = `url('${st.canvas.toDataURL()}')`;
+}
+
+function renderEditFaceOptions(){
+  editFaceSelect.innerHTML = currentFaces().map(f=>`<option value="${f.key}">${f.label}</option>`).join('');
+}
+
+function refreshEditor(){
+  const state = currentEditState();
+  if(!state) return;
+  syncPreviewCanvasesToFace(state);
+  document.getElementById('colorPicker').value = state.color;
+  drawFaceContent(state, miniCtx, miniCanvas.width, miniCanvas.height);
+  drawImgAdjustPreview();
+  renderLineList();
+  renderTextList();
+}
+
+// ---- 이미지 조절 (드래그로 이동 / 모서리 점으로 크기조절) ----
+const imgAdjustCanvas = document.getElementById('imgAdjustCanvas');
+const imgAdjustCtx = imgAdjustCanvas.getContext('2d');
+let imgDragMode = null; // 'move' | 'resize'
+let imgDragStart = null;
+
+function getImgHandles(b){
+  return {
+    tl: {x:b.x,       y:b.y},
+    tr: {x:b.x+b.w,   y:b.y},
+    bl: {x:b.x,       y:b.y+b.h},
+    br: {x:b.x+b.w,   y:b.y+b.h},
+    lm: {x:b.x,       y:b.y+b.h/2},
+    rm: {x:b.x+b.w,   y:b.y+b.h/2},
+    tm: {x:b.x+b.w/2, y:b.y},
+    bm: {x:b.x+b.w/2, y:b.y+b.h},
+  };
+}
+function drawImgAdjustPreview(){
+  const state = currentEditState();
+  if(!state) return;
+  const cw = imgAdjustCanvas.width, ch = imgAdjustCanvas.height;
+  drawFaceContent(state, imgAdjustCtx, cw, ch);
+  if(state.baseImage && !state.useColor && state.imgBox){
+    const b = state.imgBox;
+    imgAdjustCtx.save();
+    imgAdjustCtx.strokeStyle = '#5b8cff';
+    imgAdjustCtx.lineWidth = 2;
+    imgAdjustCtx.setLineDash([6,4]);
+    imgAdjustCtx.strokeRect(b.x*cw, b.y*ch, b.w*cw, b.h*ch);
+    imgAdjustCtx.setLineDash([]);
+    const handles = getImgHandles(b);
+    Object.values(handles).forEach(h=>{
+      const hx = h.x*cw, hy = h.y*ch;
+      imgAdjustCtx.fillStyle = '#5b8cff';
+      imgAdjustCtx.beginPath();
+      imgAdjustCtx.arc(hx, hy, 7, 0, Math.PI*2);
+      imgAdjustCtx.fill();
+      imgAdjustCtx.strokeStyle = '#fff';
+      imgAdjustCtx.lineWidth = 2;
+      imgAdjustCtx.stroke();
+    });
+    imgAdjustCtx.restore();
+  }
+}
+function imgCanvasPoint(e){
+  const rect = imgAdjustCanvas.getBoundingClientRect();
+  return { x:(e.clientX-rect.left)/rect.width, y:(e.clientY-rect.top)/rect.height };
+}
+imgAdjustCanvas.addEventListener('pointerdown', e=>{
+  const state = currentEditState();
+  if(!state || !state.baseImage || state.useColor || !state.imgBox) return;
+  const p = imgCanvasPoint(e);
+  const b = state.imgBox;
+  const handles = getImgHandles(b);
+  let hit = null;
+  for(const [name,h] of Object.entries(handles)){
+    if(Math.hypot(p.x-h.x, p.y-h.y) < 0.045){ hit = name; break; }
+  }
+  if(hit){
+    imgDragMode = 'resize-'+hit;
+  } else if(p.x>=b.x && p.x<=b.x+b.w && p.y>=b.y && p.y<=b.y+b.h){
+    imgDragMode = 'move';
+  } else {
+    return;
+  }
+  imgDragStart = { p, box:{...b} };
+  imgAdjustCanvas.setPointerCapture(e.pointerId);
+});
+imgAdjustCanvas.addEventListener('pointermove', e=>{
+  if(!imgDragMode) return;
+  const state = currentEditState();
+  const p = imgCanvasPoint(e);
+  const dx = p.x - imgDragStart.p.x, dy = p.y - imgDragStart.p.y;
+  const start = imgDragStart.box;
+  const canvasAspect = state.canvas.width / state.canvas.height;
+  if(imgDragMode === 'move'){
+    state.imgBox.x = start.x + dx;
+    state.imgBox.y = start.y + dy;
+  } else if(imgDragMode === 'resize-br'){
+    // 왼쪽 위 고정, 오른쪽 아래로 늘림 (비율 고정)
+    const newW = Math.max(0.08, start.w + dx);
+    state.imgBox.x = start.x; state.imgBox.y = start.y;
+    state.imgBox.w = newW; state.imgBox.h = newW*canvasAspect/state.imgAspect;
+  } else if(imgDragMode === 'resize-tl'){
+    // 오른쪽 아래 고정, 왼쪽 위로 늘림 (비율 고정)
+    const anchorX = start.x+start.w, anchorY = start.y+start.h;
+    const newW = Math.max(0.08, anchorX - p.x);
+    const newH = newW*canvasAspect/state.imgAspect;
+    state.imgBox.w = newW; state.imgBox.h = newH;
+    state.imgBox.x = anchorX-newW; state.imgBox.y = anchorY-newH;
+  } else if(imgDragMode === 'resize-tr'){
+    // 왼쪽 아래 고정, 오른쪽 위로 늘림 (비율 고정)
+    const anchorX = start.x, anchorY = start.y+start.h;
+    const newW = Math.max(0.08, p.x - anchorX);
+    const newH = newW*canvasAspect/state.imgAspect;
+    state.imgBox.w = newW; state.imgBox.h = newH;
+    state.imgBox.x = anchorX; state.imgBox.y = anchorY-newH;
+  } else if(imgDragMode === 'resize-bl'){
+    // 오른쪽 위 고정, 왼쪽 아래로 늘림 (비율 고정)
+    const anchorX = start.x+start.w, anchorY = start.y;
+    const newW = Math.max(0.08, anchorX - p.x);
+    const newH = newW*canvasAspect/state.imgAspect;
+    state.imgBox.w = newW; state.imgBox.h = newH;
+    state.imgBox.x = anchorX-newW; state.imgBox.y = anchorY;
+  } else if(imgDragMode === 'resize-rm'){
+    // 왼쪽 변 고정, 가로 폭만 조절 (비율 무시 - 좌우로 눌리거나 늘어남)
+    const newW = Math.max(0.05, p.x - start.x);
+    state.imgBox.x = start.x; state.imgBox.w = newW;
+  } else if(imgDragMode === 'resize-lm'){
+    // 오른쪽 변 고정, 가로 폭만 조절 (비율 무시)
+    const anchorX = start.x+start.w;
+    const newW = Math.max(0.05, anchorX - p.x);
+    state.imgBox.x = anchorX-newW; state.imgBox.w = newW;
+  } else if(imgDragMode === 'resize-bm'){
+    // 위쪽 변 고정, 세로 높이만 조절 (비율 무시 - 위아래로 눌리거나 늘어남)
+    const newH = Math.max(0.05, p.y - start.y);
+    state.imgBox.y = start.y; state.imgBox.h = newH;
+  } else if(imgDragMode === 'resize-tm'){
+    // 아래쪽 변 고정, 세로 높이만 조절 (비율 무시)
+    const anchorY = start.y+start.h;
+    const newH = Math.max(0.05, anchorY - p.y);
+    state.imgBox.y = anchorY-newH; state.imgBox.h = newH;
+  }
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+  drawImgAdjustPreview();
+});
+function endImgDrag(){ imgDragMode = null; }
+imgAdjustCanvas.addEventListener('pointerup', endImgDrag);
+imgAdjustCanvas.addEventListener('pointerleave', endImgDrag);
+
+document.getElementById('resetFitBtn').addEventListener('click', ()=>{
+  const state = currentEditState();
+  if(!state || !state.baseImage) return;
+  state.imgBox = computeContainBox(state.baseImage, state.canvas.width/state.canvas.height);
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+  drawImgAdjustPreview();
+});
+
+document.getElementById('clearImageBtn').addEventListener('click', ()=>{
+  const state = currentEditState();
+  if(!state) return;
+  if(!state.baseImage){ alert('이 면에는 삭제할 이미지가 없어요.'); return; }
+  if(!confirm('이 면의 이미지를 삭제할까요?')) return;
+  state.baseImage = null;
+  state.imageUrl = null;
+  state.imgBox = null;
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+  drawImgAdjustPreview();
+  rebuildBox();
+  // 해당 면의 URL 입력칸 / 파일 선택 상태도 같이 비워줌
+  const key = editFaceSelect.value;
+  const urlInput = faceUploadRows.querySelector(`input[data-face-url="${key}"]`);
+  if(urlInput) urlInput.value = '';
+  const fileInput = faceUploadRows.querySelector(`input[data-face="${key}"]`);
+  if(fileInput) fileInput.value = '';
+});
+
+// ---- 서브탭 ----
+document.querySelectorAll('.subtabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.subtabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.subpane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.pane).classList.add('active');
+    if(btn.dataset.pane === 'paneImage') drawImgAdjustPreview();
+  });
+});
+
+// ---- 색상 ----
+document.getElementById('fillColorBtn').addEventListener('click', ()=>{
+  const state = currentEditState();
+  state.useColor = true;
+  state.color = document.getElementById('colorPicker').value;
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+});
+document.getElementById('clearColorBtn').addEventListener('click', ()=>{
+  const state = currentEditState();
+  state.useColor = false;
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+});
+
+// ---- 선 그리기 ----
+let drawMode = false, drawing = false, currentLine = null;
+document.getElementById('drawModeBtn').addEventListener('click', ()=>{
+  drawMode = !drawMode;
+  const btn = document.getElementById('drawModeBtn');
+  btn.classList.toggle('active', drawMode);
+  btn.textContent = drawMode ? '✏ 그리기 모드 끄기' : '✏ 그리기 모드 켜기';
+  miniCanvas.classList.toggle('drawing', drawMode);
+});
+function canvasPoint(e){
+  const rect = miniCanvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  return {x: Math.min(1,Math.max(0,x)), y: Math.min(1,Math.max(0,y))};
+}
+miniCanvas.addEventListener('pointerdown', e=>{
+  if(!drawMode) return;
+  drawing = true;
+  currentLine = { color: document.getElementById('lineColor').value, width: parseFloat(document.getElementById('lineWidth').value), points:[canvasPoint(e)] };
+  miniCanvas.setPointerCapture(e.pointerId);
+});
+miniCanvas.addEventListener('pointermove', e=>{
+  if(!drawing || !currentLine) return;
+  currentLine.points[1] = canvasPoint(e);
+  const state = currentEditState();
+  drawFaceContent(state, miniCtx, miniCanvas.width, miniCanvas.height);
+  // 임시 미리보기용 현재 선 추가로 그려주기
+  miniCtx.strokeStyle = currentLine.color;
+  miniCtx.lineWidth = currentLine.width;
+  miniCtx.lineCap='round'; miniCtx.lineJoin='round';
+  miniCtx.beginPath();
+  const p0 = currentLine.points[0], p1 = currentLine.points[1];
+  miniCtx.moveTo(p0.x*miniCanvas.width, p0.y*miniCanvas.height);
+  miniCtx.lineTo(p1.x*miniCanvas.width, p1.y*miniCanvas.height);
+  miniCtx.stroke();
+});
+miniCanvas.addEventListener('pointerup', ()=>{
+  if(!drawing || !currentLine) return;
+  drawing = false;
+  if(currentLine.points.length > 1){
+    const state = currentEditState();
+    state.lines.push(currentLine);
+    redrawFace(shapeSelect.value, editFaceSelect.value);
+    updateThumb(editFaceSelect.value);
+    renderLineList();
+  }
+  currentLine = null;
+});
+function renderLineList(){
+  const state = currentEditState();
+  const listEl = document.getElementById('lineList');
+  listEl.innerHTML = '';
+  state.lines.forEach((line, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.innerHTML = `<div class="ic-head"><span style="color:${line.color}">● 선 ${idx+1} (두께 ${line.width})</span><button class="btn btn-danger" data-idx="${idx}">삭제</button></div>`;
+    card.querySelector('button').addEventListener('click', ()=>{
+      state.lines.splice(idx,1);
+      redrawFace(shapeSelect.value, editFaceSelect.value);
+      updateThumb(editFaceSelect.value);
+      renderLineList();
+    });
+    listEl.appendChild(card);
+  });
+}
+
+// ---- 텍스트 ----
+document.getElementById('addTextBtn').addEventListener('click', ()=>{
+  const state = currentEditState();
+  const content = document.getElementById('textInput').value.trim();
+  if(!content) return;
+  state.texts.push({ id: Date.now()+Math.random(), content, color: document.getElementById('textColor').value, size:0.08, x:0.5, y:0.5 });
+  redrawFace(shapeSelect.value, editFaceSelect.value);
+  updateThumb(editFaceSelect.value);
+  renderTextList();
+});
+function renderTextList(){
+  const state = currentEditState();
+  const listEl = document.getElementById('textList');
+  listEl.innerHTML = '';
+  state.texts.forEach((t, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.innerHTML = `
+      <div class="ic-head"><span>"${t.content}"</span><button class="btn btn-danger">삭제</button></div>
+      <label class="small-label">가로 위치</label><input type="range" min="0" max="100" value="${t.x*100}" data-prop="x">
+      <label class="small-label">세로 위치</label><input type="range" min="0" max="100" value="${t.y*100}" data-prop="y">
+      <label class="small-label">크기</label><input type="range" min="3" max="30" value="${t.size*100}" data-prop="size">`;
+    card.querySelector('.btn-danger').addEventListener('click', ()=>{
+      state.texts.splice(idx,1);
+      redrawFace(shapeSelect.value, editFaceSelect.value);
+      updateThumb(editFaceSelect.value);
+      renderTextList();
+    });
+    card.querySelectorAll('input[type=range]').forEach(range=>{
+      range.addEventListener('input', ()=>{
+        const prop = range.dataset.prop;
+        t[prop] = parseFloat(range.value)/100;
+        redrawFace(shapeSelect.value, editFaceSelect.value);
+        updateThumb(editFaceSelect.value);
+      });
+    });
+    listEl.appendChild(card);
+  });
+}
+
+// ---- 형태/치수 변경 ----
+function onShapeChange(){
+  if(dimBandWrap) dimBandWrap.style.display = (shapeSelect.value==='dishDouble') ? 'flex' : 'none';
+  renderFaceUploadRows();
+  renderEditFaceOptions();
+  syncAllFaceCanvasSizes();
+  refreshEditor();
+  rebuildBox();
+  focusCameraOnFace(editFaceSelect.value);
+}
+shapeSelect.addEventListener('change', onShapeChange);
+editFaceSelect.addEventListener('change', ()=>{
+  refreshEditor();
+  focusCameraOnFace(editFaceSelect.value);
+});
+function onDimsChange(){
+  syncAllFaceCanvasSizes();
+  refreshEditor();
+  rebuildBox();
+  // 치수(특히 높이)가 바뀌면 회전 중심도 즉시 다시 맞춰줌 (카메라 위치는 그대로 두고 축만 보정)
+  const c = getModelCenter(shapeSelect.value);
+  controls.target.set(c[0], c[1], c[2]);
+}
+[dimW,dimD,dimH,dimBand].forEach(el=> el && el.addEventListener('input', onDimsChange));
+if(ropeColorInput){
+  ropeColorInput.addEventListener('input', ()=>{
+    ropeMat.color.set(ropeColorInput.value);
+  });
+}
+
+// ---- 초기화 ----
+onShapeChange();
+const hintEl0 = document.getElementById('hint');
+if(hintEl0){ hintEl0.style.display = 'block'; }
+
+// ===================== 작업 저장 / 불러오기 =====================
+function imageToDataURL(img){
+  if(!img) return null;
+  try{
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#ffffff'; // JPG는 투명(알파) 채널이 없어서, 저장 전 흰 배경으로 먼저 채워둠
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(img,0,0);
+    return c.toDataURL('image/jpeg', 0.85); // PNG 대신 JPG로 압축 저장 - 파일 용량이 크게 줄어듦(보통 1/8~1/10)
+  }catch(e){ return null; }
+}
+async function serializeProject(){
+  const project={version:1,savedAt:new Date().toISOString(),shape:shapeSelect.value,
+    w:dimW.value,d:dimD.value,h:dimH.value,b:(dimBand?dimBand.value:7),
+    ropeColor:(ropeColorInput?ropeColorInput.value:'#c9a06a'),faces:{}};
+  FACE_DEFS[shapeSelect.value].forEach(f=>{
+    const st=ensureFaceState(shapeSelect.value,f.key);
+    project.faces[f.key]={lines:st.lines||[],texts:st.texts||[],box:st.imgBox||null,
+      aspect:st.imgAspect||1,useColor:!!st.useColor,color:st.color||'#c9a06a',
+      url:st.imageUrl||null,imageData:imageToDataURL(st.baseImage)};
+  });
+  return project;
+}
+document.getElementById('saveProjectBtn').addEventListener('click',async()=>{
+  const defaultName = '3D패키지_작업_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  let name = window.prompt('저장할 파일 이름을 입력하세요 (확장자는 자동으로 .json이 붙어요)', defaultName);
+  if(name === null) return; // 사용자가 취소함
+  name = name.trim();
+  if(!name) name = defaultName;
+  // 파일명에 쓸 수 없는 문자 제거, .json은 중복되지 않게 처리
+  name = name.replace(/[\\/:*?"<>|]/g,'').trim() || defaultName;
+  if(!/\.json$/i.test(name)) name += '.json';
+
+  const blob=new Blob([JSON.stringify(await serializeProject())],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+document.getElementById('loadProjectBtn').addEventListener('click',()=>document.getElementById('projectFileInput').click());
+document.getElementById('viewerLoadBtn').addEventListener('click',()=>document.getElementById('projectFileInput').click());
+document.getElementById('projectFileInput').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async()=>{try{await applyProject(JSON.parse(reader.result));}catch(err){alert('저장 파일을 불러오지 못했어요.');console.error(err);} e.target.value='';};
+  reader.readAsText(file);
+});
+async function applyProject(project){
+  if(!project||!project.shape||!project.faces)throw new Error('잘못된 프로젝트 파일');
+  shapeSelect.value=project.shape; dimW.value=project.w??260; dimD.value=project.d??140; dimH.value=project.h??120;
+  if(dimBand) dimBand.value=project.b??7;
+  if(dimBandWrap) dimBandWrap.style.display = (project.shape==='dishDouble') ? 'flex' : 'none';
+  if(ropeColorInput) ropeColorInput.value=project.ropeColor??'#c9a06a';
+  if(houseRopeWrap) houseRopeWrap.style.display = (project.shape==='house') ? 'flex' : 'none';
+  faceStateByShape[project.shape]={}; renderFaceUploadRows(); renderEditFaceOptions();
+  const jobs=[];
+  Object.keys(project.faces).forEach(key=>{
+    const f=project.faces[key], st=ensureFaceState(project.shape,key);
+    st.lines=f.lines||[]; st.texts=f.texts||[]; st.imgBox=f.box||null; st.imgAspect=f.aspect||1;
+    st.useColor=!!f.useColor; st.color=f.color||'#c9a06a'; st.imageUrl=f.url||null;
+    const source=f.imageData||f.url;
+    if(source)jobs.push(new Promise(resolve=>{
+      const img=new Image(); if(f.url&&!f.imageData)img.crossOrigin='anonymous';
+      img.onload=()=>{
+        st.baseImage=img;
+        st.imgAspect=f.aspect||(img.width/img.height);
+        if(!st.imgBox)st.imgBox=computeContainBox(img, st.canvas.width/st.canvas.height);
+        redrawFace(project.shape, key);
+        resolve();
+      };
+      img.onerror=()=>{ redrawFace(project.shape, key); resolve(); };
+      img.src=source;
+    }));
+    else redrawFace(project.shape, key);
+  });
+  await Promise.all(jobs); renderFaceUploadRows(); renderEditFaceOptions();
+  editFaceSelect.value=Object.keys(project.faces)[0]||currentFaces()[0].key; refreshEditor(); rebuildBox();
+  focusCameraOnFace(editFaceSelect.value); // 불러온 형태의 실제 중심으로 회전축(카메라 타겟)도 같이 맞춰줌
+}
+// ===================== 쇼핑몰 연결 (임베드) =====================
+function serializeState(){
+  const shape = shapeSelect.value;
+  const faces = {};
+  FACE_DEFS[shape].forEach(f=>{
+    const st = faceStateByShape[shape][f.key];
+    if(!st) return;
+    const entry = { lines: st.lines, texts: st.texts, box: st.imgBox, aspect: st.imgAspect };
+    if(st.useColor) entry.color = st.color;
+    if(st.imageUrl) entry.url = st.imageUrl;
+    faces[f.key] = entry;
+  });
+  return { shape, w: dimW.value, d: dimD.value, h: dimH.value, b: (dimBand?dimBand.value:7),
+    ropeColor:(ropeColorInput?ropeColorInput.value:'#c9a06a'), faces };
+}
+
+async function applyState(state){
+  shapeSelect.value = state.shape;
+  dimW.value = state.w; dimD.value = state.d; dimH.value = state.h;
+  if(dimBand && state.b!=null) dimBand.value = state.b;
+  if(dimBandWrap) dimBandWrap.style.display = (state.shape==='dishDouble') ? 'flex' : 'none';
+  if(ropeColorInput && state.ropeColor) ropeColorInput.value = state.ropeColor;
+  if(houseRopeWrap) houseRopeWrap.style.display = (state.shape==='house') ? 'flex' : 'none';
+  renderFaceUploadRows(); renderEditFaceOptions();
+
+  const jobs = [];
+  Object.keys(state.faces).forEach(key=>{
+    const f = state.faces[key];
+    const st = ensureFaceState(state.shape, key);
+    st.lines = f.lines || [];
+    st.texts = f.texts || [];
+    if(f.color){ st.useColor = true; st.color = f.color; }
+    if(f.url){
+      jobs.push(new Promise(res=>{
+        loadFaceFromUrl(state.shape, key, f.url, ()=>{
+          if(f.box) st.imgBox = f.box;
+          if(f.aspect) st.imgAspect = f.aspect;
+          res();
+        });
+      }));
+    } else {
+      redrawFace(state.shape, key);
+    }
+  });
+  await Promise.all(jobs);
+  refreshEditor();
+  rebuildBox();
+  focusCameraOnFace(editFaceSelect.value); // 임베드로 불러온 형태의 중심에도 회전축을 맞춰줌
+}
+
+document.getElementById('genEmbedBtn').addEventListener('click', ()=>{
+  const state = serializeState();
+  const hasAnyUrl = Object.values(state.faces).some(f=>f.url);
+  const base = location.origin + location.pathname;
+  const encoded = encodeURIComponent(JSON.stringify(state));
+  const url = `${base}?embed=1&state=${encoded}`;
+  const iframe = `<iframe src="${url}" width="100%" height="520" style="border:0;border-radius:12px;" allow="fullscreen"></iframe>`;
+  let code = iframe;
+  if(!hasAnyUrl){
+    code += `\n\n⚠ 등록된 면 이미지가 없어요. "또는 이미지 URL 입력" 칸에 https:// 링크를 넣어야 이미지가 임베드에 표시돼요. (색상/선/텍스트는 URL 없이도 반영됩니다)`;
+  }
+  document.getElementById('embedCode').value = code;
+});
+document.getElementById('copyEmbedBtn').addEventListener('click', ()=>{
+  const ta = document.getElementById('embedCode');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('copyEmbedBtn');
+  const old = btn.textContent;
+  btn.textContent = '복사됨!';
+  setTimeout(()=>{ btn.textContent = old; }, 1500);
+});
+
+// ---- embed 모드로 열렸을 때 상태 자동 복원 ----
+(function initFromQuery(){
+  // 이 파일은 "뷰어 전용" 버전이라, URL 파라미터 없이도 항상 패널 없이 뷰어만 보이도록 함
+  document.getElementById('panel').style.display = 'none';
+  document.getElementById('viewer-wrap').style.width = '100%';
+  const p = new URLSearchParams(location.search);
+  // 방법 1) ?projectUrl=... : 웹에 올려둔 저장 프로젝트(JSON, 이미지 base64 포함)를 통째로 가져와서 불러옴
+  const projectUrl = p.get('projectUrl');
+  if(projectUrl){
+    fetch(projectUrl).then(r=>r.json()).then(project=>applyProject(project)).catch(err=>{
+      console.error('projectUrl에서 프로젝트를 불러오지 못했어요:', err);
+    });
+    // 고객용 화면(자동으로 이미 불러와짐)에서는 수동 불러오기 버튼이 필요 없으므로 숨김
+    const loadBtn = document.getElementById('viewerLoadBtn');
+    if(loadBtn) loadBtn.style.display = 'none';
+  }
+  // 방법 2) ?state=... : 상태를 URL 안에 직접 인코딩(이미지가 URL 형식일 때만 적합)
+  const raw = p.get('state');
+  if(raw){
+    try{
+      const state = JSON.parse(decodeURIComponent(raw));
+      applyState(state);
+    }catch(err){
+      console.error('임베드 상태를 불러오지 못했어요:', err);
+    }
+  }
+  // 페이지 로드시 카메라가 정면으로 자동 이동하는 애니메이션이 끝난 뒤에 자동회전을 켜야
+  // 그 애니메이션이 끝나면서 값을 다시 꺼진 상태로 되돌리는 걸 막을 수 있음
+  setTimeout(()=>{ controls.autoRotate = true; }, 900);
+})();
+</script>
+</body>
+</html>
