@@ -2235,6 +2235,7 @@ function focusCameraOnFace(key){
   const normal = new THREE.Vector3(...frame.n);
   const dist = Math.max(w,d,h)*2.1 + 1.4;
   const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
+  targetPos.y += dist * 0.4; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
   const modelCenter = new THREE.Vector3(...getModelCenter(shape));
   animateCameraTo(targetPos, modelCenter);
 }
