@@ -2897,8 +2897,15 @@ document.getElementById('copyEmbedBtn').addEventListener('click', ()=>{
   // 방법 1) ?projectUrl=... : 웹에 올려둔 저장 프로젝트(JSON, 이미지 base64 포함)를 통째로 가져와서 불러옴
   const projectUrl = p.get('projectUrl');
   if(projectUrl){
-    fetch(projectUrl).then(r=>r.json()).then(project=>applyProject(project)).catch(err=>{
+    showLoadingOverlay(); // JSON을 불러오는 동안, 기본(빈) 상자가 잠깐 보이지 않도록 로딩 표시를 먼저 띄움
+    canvas.style.visibility = 'hidden'; // 반투명 로딩 표시만으로는 빈 상자가 살짝 비칠 수 있어, 캔버스 자체를 완전히 숨김
+    fetch(projectUrl).then(r=>r.json()).then(project=>applyProject(project)).then(()=>{
+      hideLoadingOverlay();
+      canvas.style.visibility = 'visible';
+    }).catch(err=>{
       console.error('projectUrl에서 프로젝트를 불러오지 못했어요:', err);
+      hideLoadingOverlay();
+      canvas.style.visibility = 'visible';
     });
     // 고객용 화면(자동으로 이미 불러와짐)에서는 수동 불러오기 버튼이 필요 없으므로 숨김
     const loadBtn = document.getElementById('viewerLoadBtn');
