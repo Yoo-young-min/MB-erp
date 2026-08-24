@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "shape": "box",
+  "dimensions": {
+    "w": "200",
+    "d": "150",
+    "h": "80"
+  },
+  "facesData": {
+    "front": {
+      "color": "#ffffff",
+      "objects": []
+    },
+    "back": {
+      "color": "#ffffff",
+      "objects": []
+    },
+    "top": {
+      "color": "#ffffff",
+      "objects": []
+    },
+    "bottom": {
+      "color": "#ffffff",
+      "objects": []
+    },
+    "left": {
+      "color": "#ffffff",
+      "objects": []
+    },
+    "right": {
+      "color": "#ffffff",
+      "objects": [
+        {
+          "type": "text",
+          "text": "테스트",
+          "x": 166.40000000000003,
+          "y": 106.96491228070175,
+          "w": 146.2799835205078,
+          "h": 63.599999999999994,
+          "color": "#1c7ed6",
+          "fontSize": 53,
+          "fontFamily": "'Noto Sans KR', sans-serif",
+          "align": "left",
+          "finish": "none"
+        }
+      ]
+    }
+  }
+}
