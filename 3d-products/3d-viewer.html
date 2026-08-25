@@ -181,7 +181,7 @@
 
 <div id="viewer-wrap">
   <canvas id="viewer"></canvas>
-  <div id="hint">마우스나 손으로 터치하여 자유롭게 회전 · 확대/축소해 보세요</div>
+  <div id="hint">마우스나 손으로 터치하여 자유롭게 회전 · 확대/축소해보세요</div>
   <div id="loadingOverlay"><div class="spinner"></div></div>
   <button id="viewerLoadBtn" style="position:absolute; top:14px; left:14px; z-index:5; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer;">📂 프로젝트 불러오기</button>
 </div>
@@ -551,7 +551,8 @@ function updateShadowForShape(shape, w, d, h){
   shadowMesh.scale.set(w*2.6, d*2.6, 1);
   // 상자 크기에 비해 카메라가 너무 바짝 붙지 않도록 최소 확대 거리를 상자 크기에 맞춰 조절
   // (작고 납작한 상자일수록 극단적으로 가까이 가면 원근감 때문에 앞쪽만 커 보여 아래로 쏠린 것처럼 보임)
-  controls.minDistance = Math.max(w, d, h) * 1.3;
+  // 처음 보이는 거리가 고정값이 된 뒤로, 큰 상자에서 확대 여유가 너무 줄어들지 않도록 배율을 낮춤
+  controls.minDistance = Math.max(w, d, h) * 0.15;
 }
 
 // ---- 하우스형 전용 U자형 줄(끈) - 정면/후면 경사면 좌우에서 시작해 바닥 20mm 위까지 U자로 늘어짐 ----
@@ -2236,9 +2237,12 @@ function focusCameraOnFace(key){
   if(!frame) return;
   const faceCenter = new THREE.Vector3(...frame.c);
   const normal = new THREE.Vector3(...frame.n);
-  const dist = Math.max(w,d,h)*2.1 + 1.4;
+  // 상자 자기 크기가 아니라, 기본 치수(가로 260mm)를 고정 기준으로 거리 계산 - 이렇게 해야 작은 상자는 작게,
+  // 큰 상자는 크게 화면에 나와서 서로 다른 상품끼리도 실제 크기 비율이 보임
+  const REF_MAX_DIM = 2.6; // 기본값 가로 260mm 기준
+  const dist = REF_MAX_DIM*2.1 + 1.4;
   const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
-  targetPos.y += dist * 0.45; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
+  targetPos.y += dist * 0.28; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
   const modelCenter = new THREE.Vector3(...getModelCenter(shape));
   animateCameraTo(targetPos, modelCenter);
 }
