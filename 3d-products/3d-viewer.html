@@ -2237,10 +2237,13 @@ function focusCameraOnFace(key){
   if(!frame) return;
   const faceCenter = new THREE.Vector3(...frame.c);
   const normal = new THREE.Vector3(...frame.n);
-  // 상자 자기 크기가 아니라, 기본 치수(가로 260mm)를 고정 기준으로 거리 계산 - 이렇게 해야 작은 상자는 작게,
-  // 큰 상자는 크게 화면에 나와서 서로 다른 상품끼리도 실제 크기 비율이 보임
+  // 완전히 고정된 기준(260mm)으로만 계산하면, 아주 작은 상품은 화면에서 지나치게 작아 보이는 부작용이 있어서
+  // 실제 크기와 기준 크기를 섞되, 실제 크기 쪽에 비중을 더 실음(70:30) - 작은 상품이 확실히 크게 보이면서도,
+  // 큰 상품과 비교했을 때 어느 정도는 작아 보이는 감각을 유지함
   const REF_MAX_DIM = 2.6; // 기본값 가로 260mm 기준
-  const dist = REF_MAX_DIM*2.1 + 1.4;
+  const actualMaxDim = Math.max(w,d,h);
+  const blendedMaxDim = Math.pow(actualMaxDim, 0.7) * Math.pow(REF_MAX_DIM, 0.3);
+  const dist = blendedMaxDim*2.1 + 1.4;
   const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
   targetPos.y += dist * 0.28; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
   const modelCenter = new THREE.Vector3(...getModelCenter(shape));
