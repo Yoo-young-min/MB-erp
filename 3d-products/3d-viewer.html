@@ -2243,7 +2243,14 @@ function focusCameraOnFace(key){
   const REF_MAX_DIM = 2.6; // 기본값 가로 260mm 기준
   const actualMaxDim = Math.max(w,d,h);
   const blendedMaxDim = Math.pow(actualMaxDim, 0.7) * Math.pow(REF_MAX_DIM, 0.3);
-  const dist = blendedMaxDim*2.1 + 1.4;
+  // 확대 보정(최대 1.5배)은 기준보다 작은 상품에만 적용하고, 기준 이상 큰 상품은 원래 크기 그대로 둠
+  // (모든 상품에 똑같이 적용하면 큰 상품이 화면에 꽉 차거나 회전 중 모서리가 잘려 보일 수 있어서, 작은 상품에만 필요한 보정)
+  let boost = 1.0;
+  if(actualMaxDim < REF_MAX_DIM){
+    const smallness = Math.min(1, (REF_MAX_DIM - actualMaxDim) / REF_MAX_DIM); // 0(기준과 같음) ~ 1(매우 작음)
+    boost = 1 + 0.5 * smallness; // 최대 1.5배까지
+  }
+  const dist = (blendedMaxDim*2.1 + 1.4) / boost;
   const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
   targetPos.y += dist * 0.28; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
   const modelCenter = new THREE.Vector3(...getModelCenter(shape));
