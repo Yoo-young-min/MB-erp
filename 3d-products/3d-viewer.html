@@ -2341,26 +2341,14 @@ function focusCameraOnFace(key){
   if(!frame) return;
   const faceCenter = new THREE.Vector3(...frame.c);
   const normal = new THREE.Vector3(...frame.n);
-  // 완전히 고정된 기준으로만 계산하면, 아주 작은 상품은 화면에서 지나치게 작아 보이는 부작용이 있어서
-  // 실제 크기와 기준 크기를 섞되, 실제 크기 쪽에 비중을 더 실음(70:30) - 작은 상품이 확실히 크게 보이면서도,
-  // 큰 상품과 비교했을 때 어느 정도는 작아 보이는 감각을 유지함
-  const REF_MAX_DIM = 3.0; // 기준 가로 300mm
+  // 확대 보정 - 130mm 이하 1.8배 / 250mm 이하 1.6배 / 250mm 초과 1.4배 (mm 단위)
   const actualMaxDim = Math.max(w,d,h);
-  const blendedMaxDim = Math.pow(actualMaxDim, 0.7) * Math.pow(REF_MAX_DIM, 0.3);
-  // 확대 보정 - 기준 지점에서 정확히 1배(보정 없음)로 시작해서 양쪽 다 끊김 없이 이어짐
-  // 작은 쪽: 제곱근 곡선으로 초반부터 빠르게 커져서 최대 2배까지 (0mm에 가까울수록)
-  // 큰 쪽: 마찬가지로 제곱근 곡선으로 최대 1.5배까지 (기준의 2배 크기, 즉 600mm 이상이면 1.5배로 고정)
-  let boost = 1.0;
-  if(actualMaxDim < REF_MAX_DIM){
-    const smallness = Math.min(1, (REF_MAX_DIM - actualMaxDim) / REF_MAX_DIM); // 0(기준과 같음) ~ 1(매우 작음)
-    const MAX_BOOST = 2.0;
-    boost = 1 + (MAX_BOOST - 1) * Math.sqrt(smallness);
-  } else {
-    const bigness = Math.min(1, (actualMaxDim - REF_MAX_DIM) / REF_MAX_DIM); // 0(기준과 같음) ~ 1(기준의 2배 이상)
-    const MAX_BIG_BOOST = 1.5;
-    boost = 1 + (MAX_BIG_BOOST - 1) * Math.sqrt(bigness);
-  }
-  const dist = (blendedMaxDim*2.1 + 1.4) / boost;
+  const mm = actualMaxDim * 100;
+  let boost;
+  if(mm <= 130) boost = 1.8;
+  else if(mm <= 250) boost = 1.6;
+  else boost = 1.4;
+  const dist = (actualMaxDim*2.1 + 1.4) / boost;
   const targetPos = faceCenter.clone().add(normal.multiplyScalar(dist));
   targetPos.y += dist * 0.6; // 완전히 눈높이(수평)로만 보이지 않도록, 살짝 위에서 내려다보는 각도를 더함
   const modelCenter = new THREE.Vector3(...getModelCenter(shape));
