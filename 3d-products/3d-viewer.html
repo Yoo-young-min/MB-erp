@@ -2319,6 +2319,22 @@ function rebuildBox(){
     // 트레이 우측 단면 (x=+trayHalfW)
     boxGroup.add(new THREE.Mesh(quadGeom(trFR,trBR,trTBR,trTR, [1,0,0]), matFor(st.trayRight, THREE.DoubleSide)));
 
+    // 슬리브 겉면과 트레이 사이 1.5mm 틈에서 바깥 이미지가 안쪽으로 비쳐 보이지 않도록, 그 틈에만 흰색 막음판 추가
+    const sleeveGapWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    const sleeveGapOff = 0.002;
+    [1,-1].forEach(xSign=>{
+      const xOuter = xSign*hw, xInner = xSign*trayHalfW;
+      const x0 = Math.min(xOuter,xInner), x1 = Math.max(xOuter,xInner);
+      // 전면 쪽 틈 막음
+      boxGroup.add(new THREE.Mesh(quadGeom([x0,0,hd-sleeveGapOff],[x1,0,hd-sleeveGapOff],[x1,h,hd-sleeveGapOff],[x0,h,hd-sleeveGapOff], [0,0,-1]), sleeveGapWhiteMat));
+      // 후면 쪽 틈 막음
+      boxGroup.add(new THREE.Mesh(quadGeom([x0,0,-hd+sleeveGapOff],[x1,0,-hd+sleeveGapOff],[x1,h,-hd+sleeveGapOff],[x0,h,-hd+sleeveGapOff], [0,0,1]), sleeveGapWhiteMat));
+      // 상단 쪽 틈 막음
+      boxGroup.add(new THREE.Mesh(quadGeom([x0,h-sleeveGapOff,hd],[x1,h-sleeveGapOff,hd],[x1,h-sleeveGapOff,-hd],[x0,h-sleeveGapOff,-hd], [0,-1,0]), sleeveGapWhiteMat));
+      // 하단 쪽 틈 막음
+      boxGroup.add(new THREE.Mesh(quadGeom([x0,sleeveGapOff,-hd],[x1,sleeveGapOff,-hd],[x1,sleeveGapOff,hd],[x0,sleeveGapOff,hd], [0,1,0]), sleeveGapWhiteMat));
+    });
+
     // 구분선(검정) - 슬리브 내부 각 면 사이 경계를 검정선으로 표시
     lineVertices.push(
       bFL[0],0,bFL[2], tFL[0],h,tFL[2],
