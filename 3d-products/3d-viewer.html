@@ -82,6 +82,7 @@
       <option value="tray">트레이형</option>
       <option value="house">하우스형</option>
       <option value="handle">손잡이형(기본)</option>
+      <option value="handleRound">손잡이형(라운드)</option>
       <option value="handleWave">손잡이형(아치물결)</option>
       <option value="handleTopWave">손잡이형(손잡이물결)</option>
       <option value="handleArchGripWave">손잡이형(아치손잡이물결)</option>
@@ -222,6 +223,7 @@ const FACE_DEFS = {
   dishDouble: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(우)'}, {key:'side2',label:'측면2(좌)'}, {key:'frontBand',label:'전면(이중고)'}, {key:'backBand',label:'후면(이중고)'}, {key:'side1Band',label:'측면1 이중고'}, {key:'side2Band',label:'측면2 이중고'}, {key:'innerFront',label:'내부 전면'}, {key:'innerBack',label:'내부 후면'}, {key:'innerSide1',label:'내부 측면1(우)'}, {key:'innerSide2',label:'내부 측면2(좌)'}, {key:'innerBottom',label:'내부 바닥'}, {key:'outerBottom',label:'바닥(외부)'} ],
   house: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontSlope',label:'정면 경사면'}, {key:'backSlope',label:'후면 경사면'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'top',label:'상단'}, {key:'bottom',label:'하단'} ],
   handle: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
+  handleRound: [ {key:'front',label:'전면(경사면 포함)'}, {key:'back',label:'후면(경사면 포함)'}, {key:'side1',label:'측면1(우, 경사면 포함)'}, {key:'side2',label:'측면2(좌, 경사면 포함)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
   handleWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
   handleTopWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
   handleArchGripWave: [ {key:'front',label:'전면'}, {key:'back',label:'후면'}, {key:'side1',label:'측면1(좌)'}, {key:'side2',label:'측면2(우)'}, {key:'frontTop',label:'정면 상단'}, {key:'backTop',label:'후면 상단'}, {key:'side1Slope',label:'측면 경사면1(좌)'}, {key:'side2Slope',label:'측면 경사면2(우)'}, {key:'handleFront',label:'손잡이 정면'}, {key:'handleBack',label:'손잡이 후면'}, {key:'bottom',label:'하단'} ],
@@ -258,6 +260,12 @@ const HANDLE_RISE_MM = 50;      // 손잡이 자체 높이(약 50mm)
 const HANDLE_ARC_SEGMENTS = 80; // 아치 곡선 매끄러움 정도 (물결형은 봉우리가 5개라 훨씬 촘촘해야 매끈함)
 const HANDLE_TILT_DEG = 30;     // 측면 경사면이 안쪽으로 기울어지는 각도
 const HANDLE_TILT_RAD = HANDLE_TILT_DEG * Math.PI/180;
+// 손잡이형(라운드) 전용 구조 상수
+const HR_TOP_FOLD_ANGLE_DEG = 130; // 전/후면 상단이 벽과 만나는 각도(180=평평, 90=직각)
+const HR_TILT_DEG = 20;            // 측면 경사면이 안쪽으로 기울어지는 각도
+const HR_TILT_RAD = HR_TILT_DEG * Math.PI/180;
+const HR_ARC_RATIO = 0.7;          // 측면 경사면이 올라가는 비율(높이의 70%) + 3cm 추가
+const HR_ARC_SEGMENTS = 80;
 // 손잡이형(원형) 구조 상수
 const RING_SPAN_RATIO = 0.42; // 손잡이 양쪽 다리 사이 간격 = 가로(W)의 이 비율만큼
 const RING_BAND_MM = 15;      // 손잡이 밴드(고리) 폭
@@ -297,6 +305,19 @@ function faceAspect(shape, key){
     if(key==='frontTop'||key==='backTop') return Math.max(0.01,W)/Math.max(0.01,D*HANDLE_TOP_RATIO);
     if(key==='side1Slope'||key==='side2Slope') return Math.max(0.01,D)/Math.max(0.01,H*HANDLE_ARC_RATIO);
     if(key==='handleFront'||key==='handleBack') return Math.max(0.01,W)/HANDLE_RISE_MM;
+    return W/D; // bottom
+  }
+  if(shape==='handleRound'){
+    const topTiltFromVertical = (180 - HR_TOP_FOLD_ANGLE_DEG) * Math.PI/180;
+    const topInwardMM = D * HANDLE_TOP_RATIO;
+    const topFoldRiseMM = topInwardMM / Math.tan(topTiltFromVertical);
+    const sideArcRiseMM = H*HR_ARC_RATIO + 30;
+    if(key==='front'||key==='back') return Math.max(0.01,W)/Math.max(0.01, H+topFoldRiseMM);
+    if(key==='side1'||key==='side2') return Math.max(0.01,D)/Math.max(0.01, H+sideArcRiseMM);
+    if(key==='handleFront'||key==='handleBack'){
+      const handleHalfWMM = Math.max(1, W/2-5);
+      return Math.max(0.01, handleHalfWMM*2)/Math.max(0.01, handleHalfWMM*0.35*1.5);
+    }
     return W/D; // bottom
   }
   if(shape==='handleRing'){
@@ -367,7 +388,7 @@ function faceCanvasDims(shape, key){
 }
 
 // ===================== 면별 상태 저장소 =====================
-const faceStateByShape = { box:{}, boxInt:{}, dish:{}, tray:{}, dishDouble:{}, house:{}, handle:{}, handleWave:{}, handleTopWave:{}, handleArchGripWave:{}, handleRing:{}, handleTrumpet:{}, handleBulk:{}, shoppingBag:{}, sleeve:{} };
+const faceStateByShape = { box:{}, boxInt:{}, dish:{}, tray:{}, dishDouble:{}, house:{}, handle:{}, handleRound:{}, handleWave:{}, handleTopWave:{}, handleArchGripWave:{}, handleRing:{}, handleTrumpet:{}, handleBulk:{}, shoppingBag:{}, sleeve:{} };
 function ensureFaceState(shape, key){
   if(!faceStateByShape[shape][key]){
     const {cw,ch} = faceCanvasDims(shape, key);
@@ -572,6 +593,22 @@ function setBoxIntCreaseLinePositions(vertices){
   boxIntCreaseLineGeo = new THREE.LineSegmentsGeometry();
   boxIntCreaseLineGeo.setPositions(vertices);
   boxIntCreaseLines.geometry = boxIntCreaseLineGeo;
+}
+
+// ---- 손잡이형(라운드) 바닥선 전용 - 공유 크리스 라인과 별개로 관리 ----
+const handleRoundCreaseLineMat = new THREE.LineMaterial({ color: 0x999999, linewidth: 2, worldUnits:false });
+handleRoundCreaseLineMat.depthTest = true;
+handleRoundCreaseLineMat.depthWrite = true;
+handleRoundCreaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+let handleRoundCreaseLineGeo = new THREE.LineSegmentsGeometry();
+const handleRoundCreaseLines = new THREE.LineSegments2(handleRoundCreaseLineGeo, handleRoundCreaseLineMat);
+handleRoundCreaseLines.visible = false;
+scene.add(handleRoundCreaseLines);
+function setHandleRoundCreaseLinePositions(vertices){
+  handleRoundCreaseLineGeo.dispose();
+  handleRoundCreaseLineGeo = new THREE.LineSegmentsGeometry();
+  handleRoundCreaseLineGeo.setPositions(vertices);
+  handleRoundCreaseLines.geometry = handleRoundCreaseLineGeo;
 }
 
 // 귀퉁이 사선 전용 - 카메라 각도에 따라 서서히 페이드(투명도 변화)되며 위/옆 전환이 부드럽게 보이도록 함
@@ -889,6 +926,34 @@ function stripGeom(basePoints, topPoints, expectedNormal, uvFn){
   geo2.computeVertexNormals();
   return geo2;
 }
+// 그리드(격자) 지오메트리 - posFn(u,v)가 각 점의 3D 위치를 반환 (곡면 등 복잡한 형태를 UV 연속적으로 만들 때 사용)
+function gridGeom(rows, cols, posFn, expectedNormal){
+  const positions=[], uvs=[];
+  for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
+    const u=i/cols, v=j/rows;
+    const p=posFn(u,v);
+    positions.push(p[0],p[1],p[2]); uvs.push(u,v);
+  }
+  const indices=[];
+  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+    const a=j*(cols+1)+i,b=a+1,c=a+(cols+1),d=c+1;
+    indices.push(a,b,c,b,d,c);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions),3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs),2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  if(expectedNormal){
+    const na=geo.attributes.normal;
+    if(na.getX(0)*expectedNormal[0]+na.getY(0)*expectedNormal[1]+na.getZ(0)*expectedNormal[2]<0){
+      const arr=geo.index.array;
+      for(let k=0;k<arr.length;k+=3){const t=arr[k+1];arr[k+1]=arr[k+2];arr[k+2]=t;}
+      geo.index.needsUpdate=true; geo.computeVertexNormals();
+    }
+  }
+  return geo;
+}
 
 function rebuildBox(){
   while(boxGroup.children.length>0){
@@ -905,6 +970,7 @@ function rebuildBox(){
   updateShadowForShape(shape, w, d, h);
   creaseLines.visible = false; // 하우스형이 아니면 크리스 라인 숨김 (하우스형 분기에서 다시 켬)
   boxIntCreaseLines.visible = false; // 사각형(일체형) 전용 선 - 해당 분기에서만 다시 켬
+  handleRoundCreaseLines.visible = false; // 손잡이형(라운드) 전용 선 - 해당 분기에서만 다시 켬
   houseCornerFadeActive = false;
   cornerFadeLines.visible = false;
   frontRope.visible = false; backRope.visible = false;
@@ -1539,6 +1605,354 @@ function rebuildBox(){
     setCreaseLinePositions(creaseVertices);
     creaseLines.visible = true;
 
+  } else if(shape === 'handleRound'){
+    // [1c-r] 손잡이형(라운드) - 검증된 프로토타입 지오메트리를 그대로 적용
+    // (벽+경사면을 방향별로 하나의 이미지로 잇기 위해 재질만 front/back/side1/side2로 통합, 나머지 계산은 프로토타입과 동일)
+    const hw = w/2, hd = d/2;
+    const topInward = d * HANDLE_TOP_RATIO;
+    const sideArcRise = h * HR_ARC_RATIO + 0.3; // 기존보다 3cm 더 올라감
+    const topTiltFromVertical = (180 - HR_TOP_FOLD_ANGLE_DEG) * Math.PI/180;
+    const topFoldRise = topInward / Math.tan(topTiltFromVertical);
+    const hrRiseSlider = document.getElementById('hrHandleRiseMM');
+    const handleRiseMM = parseFloat(hrRiseSlider ? hrRiseSlider.value : HANDLE_RISE_MM) || HANDLE_RISE_MM;
+    const handleRise = Math.min(handleRiseMM/100, sideArcRise*0.85) * 0.5;
+    const handleBaseY = h + topFoldRise;
+
+    const bFL=[-hw,0,hd], bFR=[hw,0,hd], bBR=[hw,0,-hd], bBL=[-hw,0,-hd];
+    const wFL=[-hw,h,hd], wFR=[hw,h,hd], wBR=[hw,h,-hd], wBL=[-hw,h,-hd];
+
+    // ---- 정면/후면: 벽+상단을 하나의 이미지로 잇기 위해 연속 UV 그리드로 결합 ----
+    const topInnerHalfW = hw - topFoldRise*Math.tan(HR_TILT_RAD);
+    function buildFrontBackCombined(zSign){
+      const totalH = h + topFoldRise;
+      const vWallEnd = h/totalH;
+      const uSign = zSign>0 ? 1 : -1; // 후면은 정면과 보는 방향이 반대라 좌우가 뒤집히므로, U를 반대로 매핑해서 보정
+      return gridGeom(24, 20, (u,v)=>{
+        let x,y,z;
+        if(v <= vWallEnd){
+          const t = v/vWallEnd;
+          y = t*h; x = uSign*(u*2-1)*hw; z = zSign*hd;
+        } else {
+          const t = (v-vWallEnd)/(1-vWallEnd);
+          const curHalfW = hw*(1-t) + topInnerHalfW*t;
+          y = h + topFoldRise*t;
+          x = uSign*(u*2-1)*curHalfW;
+          z = zSign*(hd*(1-t) + (hd-topInward)*t);
+        }
+        return [x,y,z];
+      }, [0,1,zSign*0.3]);
+    }
+    boxGroup.add(new THREE.Mesh(buildFrontBackCombined(1), matFor(st.front, THREE.DoubleSide)));
+    boxGroup.add(new THREE.Mesh(buildFrontBackCombined(-1), matFor(st.back, THREE.DoubleSide)));
+
+    // ---- 측면 아치 (반원형 + 안쪽 20도 기울기) - 손잡이가 지나가는 자리만 좁게 구멍을 뚫음(앞쪽/뒤쪽 두 조각) ----
+    function localRiseAt(angle){ return sideArcRise*Math.sin(angle); }
+    function arcPoint(xSign, angle){
+      const localRise = localRiseAt(angle);
+      const xMag = hw - localRise*Math.tan(HR_TILT_RAD);
+      const z = hd*Math.cos(angle);
+      return [xSign*xMag, h + localRise, z];
+    }
+    function buildArcSide(xSign, angleFrom, angleTo, segments){
+      const basePts = [], topPts = [];
+      for(let i=0;i<=segments;i++){
+        const t = i/segments;
+        const angle = angleFrom + t*(angleTo-angleFrom);
+        const top = arcPoint(xSign, angle);
+        basePts.push([xSign*hw, h, top[2]]);
+        topPts.push(top);
+      }
+      return {basePts, topPts};
+    }
+    const holeHalfWidthZ = Math.min(hd*0.02, 0.015);
+    const holeDeltaAngle = Math.asin(Math.min(1, holeHalfWidthZ/Math.max(0.0001,hd)));
+    const gapStart = Math.PI/2 - holeDeltaAngle, gapEnd = Math.PI/2 + holeDeltaAngle;
+    const segHalf = Math.max(2, Math.round(HR_ARC_SEGMENTS/2));
+    function mirrorArcSide(side){
+      return {
+        basePts: side.basePts.slice().reverse().map(p=>[p[0],p[1],-p[2]]),
+        topPts:  side.topPts.slice().reverse().map(p=>[p[0],p[1],-p[2]]),
+      };
+    }
+    const s1F = buildArcSide(1, 0, gapStart, segHalf);
+    const s1B = mirrorArcSide(s1F);
+    // 벽(side1/side2)과 경사면이 하나의 이미지로 이어지도록, 벽 꼭대기(y=h) 기준이 아니라 바닥(y=0)부터 아치 정점까지를 하나의 UV로 계산
+    const totalSideH = h + sideArcRise;
+    function archUV(p, xSign){
+      let u = (p[2]+hd)/(2*hd);
+      const v = Math.max(0, Math.min(1, p[1]/totalSideH));
+      if(xSign>0) u = 1-u;
+      return [u, v];
+    }
+    const archInnerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    function addArcPiece(basePts, topPts, expectedNormal, faceKey){
+      const xSign = expectedNormal[0] >= 0 ? 1 : -1;
+      const uvFn = (p) => archUV(p, xSign);
+      const outerGeo = stripGeom(basePts, topPts, expectedNormal, uvFn);
+      boxGroup.add(new THREE.Mesh(outerGeo, matFor(st[faceKey], THREE.DoubleSide)));
+      const nlen = Math.hypot(expectedNormal[0], expectedNormal[1], expectedNormal[2]) || 1;
+      const nx = expectedNormal[0]/nlen*0.004, ny = expectedNormal[1]/nlen*0.004, nz = expectedNormal[2]/nlen*0.004;
+      const innerBase = basePts.map(p=>[p[0]-nx, p[1]-ny, p[2]-nz]);
+      const innerTop = topPts.map(p=>[p[0]-nx, p[1]-ny, p[2]-nz]);
+      const innerGeo = stripGeom(innerBase, innerTop, expectedNormal);
+      boxGroup.add(new THREE.Mesh(innerGeo, archInnerMat));
+    }
+    // 측면 벽(y:0~h) - 아치와 정확히 같은 비율(v = y/totalSideH)로 텍스처 좌표를 맞춰서 이미지가 끊기지 않게 이어지게 함
+    function buildSideWallPortion(xSign){
+      const rows=6, cols=20;
+      const positions=[], uvs=[];
+      for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
+        const uParam=i/cols, vParam=j/rows;
+        const zFrac = xSign>0 ? (1-2*uParam) : (-1+2*uParam);
+        const y = vParam*h;
+        positions.push(xSign*hw, y, zFrac*hd);
+        const texU = uParam; // archUV(xSign>0일 때 u를 뒤집는 규칙)와 물리적으로 같은 지점에서 같은 값이 나오도록 맞춤
+        const texV = y/totalSideH; // 아치와 동일한 절대 비율로 맞춰서 벽-경사면 경계에서 이미지가 이어지게 함
+        uvs.push(texU, texV);
+      }
+      const indices=[];
+      for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+        const a=j*(cols+1)+i,b=a+1,c=a+(cols+1),d=c+1;
+        indices.push(a,b,c,b,d,c);
+      }
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions),3));
+      geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs),2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const na=geo.attributes.normal;
+      if(na.getX(0)*xSign<0){
+        const arr=geo.index.array;
+        for(let k=0;k<arr.length;k+=3){const t=arr[k+1];arr[k+1]=arr[k+2];arr[k+2]=t;}
+        geo.index.needsUpdate=true; geo.computeVertexNormals();
+      }
+      return geo;
+    }
+    boxGroup.add(new THREE.Mesh(buildSideWallPortion(1),  matFor(st.side1, THREE.DoubleSide)));
+    boxGroup.add(new THREE.Mesh(buildSideWallPortion(-1), matFor(st.side2, THREE.DoubleSide)));
+    addArcPiece(s1F.basePts, s1F.topPts, [1,0,0.3], 'side1');
+    addArcPiece(s1B.basePts, s1B.topPts, [1,0,-0.3], 'side1');
+    const s2F = buildArcSide(-1, 0, gapStart, segHalf);
+    const s2B = mirrorArcSide(s2F);
+    addArcPiece(s2F.basePts, s2F.topPts, [-1,0,0.3], 'side2');
+    addArcPiece(s2B.basePts, s2B.topPts, [-1,0,-0.3], 'side2');
+    // 구멍 위쪽을 막는 "덮개" 조각 - 손잡이 꼭대기 높이까지만 뚫리고 그 위는 아치가 이어져 막힘
+    function arcColumnPoint(xSign, angle, t){
+      const top = arcPoint(xSign, angle);
+      const base = [xSign*hw, h, top[2]];
+      return [base[0]+t*(top[0]-base[0]), base[1]+t*(top[1]-base[1]), base[2]+t*(top[2]-base[2])];
+    }
+    function buildCap(xSign, segments){
+      const lowerPts = [], upperPts = [];
+      for(let i=0;i<=segments;i++){
+        const angle = gapStart + (i/segments)*(gapEnd-gapStart);
+        const localRise = localRiseAt(angle);
+        const tCap = Math.min(1, (topFoldRise+handleRise)/Math.max(0.0001, localRise));
+        lowerPts.push(arcColumnPoint(xSign, angle, tCap));
+        upperPts.push(arcPoint(xSign, angle));
+      }
+      return {lowerPts, upperPts};
+    }
+    const cap1 = buildCap(1, segHalf);
+    addArcPiece(cap1.lowerPts, cap1.upperPts, [1,0.5,0], 'side1');
+    const cap2 = buildCap(-1, segHalf);
+    addArcPiece(cap2.lowerPts, cap2.upperPts, [-1,0.5,0], 'side2');
+    // 구멍 아랫부분(손잡이 밑동이 시작되는 높이까지)도 막는 "바닥 덮개" 조각
+    function buildBottomCap(xSign, segments){
+      const lowerPts = [], upperPts = [];
+      for(let i=0;i<=segments;i++){
+        const angle = gapStart + (i/segments)*(gapEnd-gapStart);
+        const localRise = localRiseAt(angle);
+        const tBottom = Math.min(1, topFoldRise/Math.max(0.0001, localRise));
+        lowerPts.push(arcColumnPoint(xSign, angle, 0));
+        upperPts.push(arcColumnPoint(xSign, angle, tBottom));
+      }
+      return {lowerPts, upperPts};
+    }
+    const botCap1 = buildBottomCap(1, segHalf);
+    addArcPiece(botCap1.lowerPts, botCap1.upperPts, [1,0.5,0], 'side1');
+    const botCap2 = buildBottomCap(-1, segHalf);
+    addArcPiece(botCap2.lowerPts, botCap2.upperPts, [-1,0.5,0], 'side2');
+    const side1ArcPts = [...s1F.topPts, ...s1B.topPts];
+    const side2ArcPts = [...s2F.topPts, ...s2B.topPts];
+    const s1GapIdx = s1F.topPts.length - 1;
+
+    // 구멍 테두리선 (좌우 옆면 + 위/아래 덮개 경계까지) - 바깥/안쪽 둘 다 보이게 살짝 띄움
+    function nudgeX(p, xSign, off){ return [p[0]+xSign*off, p[1], p[2]]; }
+    const HOLE_LN_OFF = 0.006;
+    [1,-1].forEach(off=>{
+      lineVertices.push(
+        nudgeX(botCap1.upperPts[0],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[0][1],botCap1.upperPts[0][2],
+        nudgeX(cap1.lowerPts[0],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[0][1],cap1.lowerPts[0][2],
+        nudgeX(botCap1.upperPts[botCap1.upperPts.length-1],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[botCap1.upperPts.length-1][1],botCap1.upperPts[botCap1.upperPts.length-1][2],
+        nudgeX(cap1.lowerPts[cap1.lowerPts.length-1],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[cap1.lowerPts.length-1][1],cap1.lowerPts[cap1.lowerPts.length-1][2],
+        nudgeX(botCap2.upperPts[0],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[0][1],botCap2.upperPts[0][2],
+        nudgeX(cap2.lowerPts[0],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[0][1],cap2.lowerPts[0][2],
+        nudgeX(botCap2.upperPts[botCap2.upperPts.length-1],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[botCap2.upperPts.length-1][1],botCap2.upperPts[botCap2.upperPts.length-1][2],
+        nudgeX(cap2.lowerPts[cap2.lowerPts.length-1],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[cap2.lowerPts.length-1][1],cap2.lowerPts[cap2.lowerPts.length-1][2]
+      );
+      for(let i=0;i<cap1.lowerPts.length-1;i++){
+        lineVertices.push(
+          nudgeX(cap1.lowerPts[i],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[i][1],cap1.lowerPts[i][2],
+          nudgeX(cap1.lowerPts[i+1],1,off*HOLE_LN_OFF)[0],cap1.lowerPts[i+1][1],cap1.lowerPts[i+1][2],
+          nudgeX(cap2.lowerPts[i],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[i][1],cap2.lowerPts[i][2],
+          nudgeX(cap2.lowerPts[i+1],-1,off*HOLE_LN_OFF)[0],cap2.lowerPts[i+1][1],cap2.lowerPts[i+1][2],
+          nudgeX(botCap1.upperPts[i],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[i][1],botCap1.upperPts[i][2],
+          nudgeX(botCap1.upperPts[i+1],1,off*HOLE_LN_OFF)[0],botCap1.upperPts[i+1][1],botCap1.upperPts[i+1][2],
+          nudgeX(botCap2.upperPts[i],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[i][1],botCap2.upperPts[i][2],
+          nudgeX(botCap2.upperPts[i+1],-1,off*HOLE_LN_OFF)[0],botCap2.upperPts[i+1][1],botCap2.upperPts[i+1][2]
+        );
+      }
+    });
+
+    // ---- 손잡이 (완만한 아치+가운데 볼록+양끝 국소 라운드 + 반원형 구멍, 양면 편집 가능) ----
+    const handleHalfW = Math.max(0.01, hw - 0.05);
+    function buildSemicirclePts(radiusX, radiusY, segs){
+      const pts = [[-radiusX,0],[radiusX,0]];
+      for(let i=1;i<=segs;i++){
+        const a=(i/segs)*Math.PI;
+        pts.push([radiusX*Math.cos(a), radiusY*Math.sin(a)]);
+      }
+      return pts;
+    }
+    const handleCapRForHole = Math.min(handleRise*0.5, handleHalfW*0.3);
+    const handleRectHalfWForHole = handleHalfW - handleCapRForHole;
+    const handleTrimAngleForHole = Math.acos(Math.max(-1,Math.min(1, handleRectHalfWForHole/handleHalfW)));
+    const handleRTrimYForHole = handleRise*Math.sin(handleTrimAngleForHole);
+    const handleYOffsetForHole = 2*handleCapRForHole - handleRTrimYForHole;
+    const handleMaxY = handleRise + handleYOffsetForHole + handleRise*0.5;
+    const holeRadiusX = handleHalfW*0.5;
+    const holeRadiusYOrig = handleRise*0.4;
+    const holeRadiusY = Math.min(holeRadiusYOrig*3, handleMaxY*0.42);
+    const holeCenterLocalY = 0;
+    const stadiumPts = buildSemicirclePts(holeRadiusX, holeRadiusY, 20);
+    const handleOuterR = Math.min(0.08, handleRise*0.3);
+    function buildHandleOuter(){
+      const segs = 40;
+      const pts = [];
+      const capR = Math.min(handleRise*0.5, handleHalfW*0.3);
+      const rectHalfW = handleHalfW - capR;
+      const trimAngle = Math.acos(Math.max(-1,Math.min(1, rectHalfW/handleHalfW)));
+      const rTrimY = handleRise*Math.sin(trimAngle);
+      const yOffset = 2*capR - rTrimY;
+      pts.push([-rectHalfW, 0]);
+      pts.push([rectHalfW, 0]);
+      const capSegs = 20;
+      for(let i=1;i<=capSegs;i++){
+        const a=-Math.PI/2+(i/capSegs)*Math.PI;
+        pts.push([rectHalfW+capR*Math.cos(a), capR+capR*Math.sin(a)]);
+      }
+      const centerExtraBulge = handleRise*0.5;
+      for(let i=1;i<segs;i++){
+        const a=trimAngle + (i/segs)*(Math.PI-2*trimAngle);
+        const centerT = (a-trimAngle)/(Math.PI-2*trimAngle);
+        const bulge = Math.sin(centerT*Math.PI)*centerExtraBulge;
+        pts.push([handleHalfW*Math.cos(a), handleRise*Math.sin(a) + yOffset + bulge]);
+      }
+      for(let i=1;i<=capSegs;i++){
+        const a=Math.PI/2+(i/capSegs)*Math.PI;
+        pts.push([-rectHalfW+capR*Math.cos(a), capR+capR*Math.sin(a)]);
+      }
+      return pts;
+    }
+    function buildHandleShapeGeo(reverse){
+      const outer = buildHandleOuter();
+      const outerOrdered = reverse ? outer.slice().reverse() : outer;
+      const shapeObj = new THREE.Shape();
+      shapeObj.moveTo(outerOrdered[0][0], outerOrdered[0][1]);
+      for(let i=1;i<outerOrdered.length;i++) shapeObj.lineTo(outerOrdered[i][0], outerOrdered[i][1]);
+      shapeObj.lineTo(outerOrdered[0][0], outerOrdered[0][1]);
+      const holeOrdered = reverse ? stadiumPts.slice().reverse() : stadiumPts;
+      const holePath = new THREE.Path();
+      holePath.moveTo(holeOrdered[0][0], holeCenterLocalY + holeOrdered[0][1]);
+      for(let i=1;i<holeOrdered.length;i++) holePath.lineTo(holeOrdered[i][0], holeCenterLocalY + holeOrdered[i][1]);
+      holePath.lineTo(holeOrdered[0][0], holeCenterLocalY + holeOrdered[0][1]);
+      shapeObj.holes.push(holePath);
+      const geo = new THREE.ShapeGeometry(shapeObj, 12);
+      geo.computeVertexNormals();
+      const posAttr = geo.attributes.position;
+      const uvArr = new Float32Array(posAttr.count*2);
+      for(let i=0;i<posAttr.count;i++){
+        const x = posAttr.getX(i), y = posAttr.getY(i);
+        let u = Math.max(0, Math.min(1, (x+handleHalfW)/(2*handleHalfW)));
+        if(!reverse) u = 1-u;
+        const v = Math.max(0, Math.min(1, y/handleRise));
+        uvArr[i*2]=u; uvArr[i*2+1]=v;
+      }
+      geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+      return geo;
+    }
+    const handleFrontMesh = new THREE.Mesh(buildHandleShapeGeo(true), matFor(st.handleFront, THREE.FrontSide));
+    handleFrontMesh.position.set(0, handleBaseY, 0.002);
+    boxGroup.add(handleFrontMesh);
+    const handleBackMesh = new THREE.Mesh(buildHandleShapeGeo(false), matFor(st.handleBack, THREE.FrontSide));
+    handleBackMesh.position.set(0, handleBaseY, -0.002);
+    boxGroup.add(handleBackMesh);
+
+    // 손잡이 테두리 실선 (앞면 + 뒷면 둘 다 보이도록)
+    const handleOuterPts = buildHandleOuter();
+    for(let i=0;i<handleOuterPts.length-1;i++){
+      const p0 = handleOuterPts[i], p1 = handleOuterPts[i+1];
+      lineVertices.push(
+        p0[0],handleBaseY+p0[1],0.003, p1[0],handleBaseY+p1[1],0.003,
+        p0[0],handleBaseY+p0[1],-0.003, p1[0],handleBaseY+p1[1],-0.003
+      );
+    }
+    {
+      const pLast = handleOuterPts[handleOuterPts.length-1], pFirst = handleOuterPts[0];
+      lineVertices.push(
+        pLast[0],handleBaseY+pLast[1],0.003, pFirst[0],handleBaseY+pFirst[1],0.003,
+        pLast[0],handleBaseY+pLast[1],-0.003, pFirst[0],handleBaseY+pFirst[1],-0.003
+      );
+    }
+    // 구멍 테두리선 (앞/뒤 둘 다)
+    for(let i=0;i<stadiumPts.length-1;i++){
+      const y0 = handleBaseY + holeCenterLocalY + stadiumPts[i][1];
+      const y1 = handleBaseY + holeCenterLocalY + stadiumPts[i+1][1];
+      lineVertices.push(
+        stadiumPts[i][0],y0,0.004,   stadiumPts[i+1][0],y1,0.004,
+        stadiumPts[i][0],y0,-0.004,  stadiumPts[i+1][0],y1,-0.004
+      );
+    }
+
+    // 하단
+    boxGroup.add(new THREE.Mesh(quadGeom(bFL,bFR,bBR,bBL, [0,-1,0], true), matFor(st.bottom)));
+
+    // 구분선 (기본 모서리 + 아치 외곽 테두리선)
+    lineVertices.push(
+      bFL[0],0,bFL[2], wFL[0],h,wFL[2],
+      bFR[0],0,bFR[2], wFR[0],h,wFR[2],
+      bBR[0],0,bBR[2], wBR[0],h,wBR[2],
+      bBL[0],0,bBL[2], wBL[0],h,wBL[2],
+      bFL[0],0,bFL[2], bFR[0],0,bFR[2],
+      bFR[0],0,bFR[2], bBR[0],0,bBR[2],
+      bBR[0],0,bBR[2], bBL[0],0,bBL[2],
+      bBL[0],0,bBL[2], bFL[0],0,bFL[2]
+    );
+    for(let i=0;i<side1ArcPts.length-1;i++){
+      if(i === s1GapIdx) continue;
+      lineVertices.push(
+        side1ArcPts[i][0],side1ArcPts[i][1],side1ArcPts[i][2],
+        side1ArcPts[i+1][0],side1ArcPts[i+1][1],side1ArcPts[i+1][2],
+        side2ArcPts[i][0],side2ArcPts[i][1],side2ArcPts[i][2],
+        side2ArcPts[i+1][0],side2ArcPts[i+1][1],side2ArcPts[i+1][2]
+      );
+    }
+
+    // 바닥 크리스 라인
+    const creaseVerticesR = [];
+    const CREASE_OFF_R = 0.008;
+    function nudgeR(p, nx, ny, nz){ return [p[0]+nx*CREASE_OFF_R, p[1]+ny*CREASE_OFF_R, p[2]+nz*CREASE_OFF_R]; }
+    function pushCreaseR(p0,p1){ creaseVerticesR.push(p0[0],p0[1],p0[2], p1[0],p1[1],p1[2]); }
+    const hLPr=[-w*0.25,0,0], hRPr=[w*0.25,0,0];
+    pushCreaseR(nudgeR(hLPr,0,-1,0), nudgeR(hRPr,0,-1,0));
+    pushCreaseR(nudgeR(hLPr,0,-1,0), nudgeR(bFL,0,-1,0));
+    pushCreaseR(nudgeR(hLPr,0,-1,0), nudgeR(bBL,0,-1,0));
+    pushCreaseR(nudgeR(hRPr,0,-1,0), nudgeR(bFR,0,-1,0));
+    pushCreaseR(nudgeR(hRPr,0,-1,0), nudgeR(bBR,0,-1,0));
+    setHandleRoundCreaseLinePositions(creaseVerticesR);
+    handleRoundCreaseLines.visible = true;
+
   } else if(shape === 'handleRing'){
     // [1d] 손잡이형(원형) 메쉬 - 사각 상자 몸통 + 반원 고리(가운데 뚫린 밴드) 손잡이
     const hw = w/2, hd = d/2;
@@ -2133,6 +2547,7 @@ window.addEventListener('resize', ()=>{
   renderer.setSize(wrap.clientWidth, wrap.clientHeight);
   creaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
   boxIntCreaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
+  handleRoundCreaseLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
   cornerFadeLineMat.resolution.set(wrap.clientWidth, wrap.clientHeight);
 });
 // 화면 레이아웃이 바뀌는데 브라우저 창 크기 자체는 안 바뀌는 경우(사이드바 토글, 모바일 회전 등)도
@@ -2145,6 +2560,7 @@ new ResizeObserver(()=>{
   renderer.setSize(w, h);
   creaseLineMat.resolution.set(w, h);
   boxIntCreaseLineMat.resolution.set(w, h);
+  handleRoundCreaseLineMat.resolution.set(w, h);
   cornerFadeLineMat.resolution.set(w, h);
 }).observe(wrap);
 
@@ -2207,6 +2623,23 @@ function getFaceFrame(shape, key, w, h, d){
       side2Slope: {c:[-hw,h+sideArcRise/2,0], n:[-1,0.5,0]},
       handleFront: {c:[0,handleCenterY,0.3],  n:[0,0,1]},
       handleBack:  {c:[0,handleCenterY,-0.3], n:[0,0,-1]},
+      bottom: {c:[0,-0.02,0], n:[0,-1,0]},
+    };
+    return centers[key];
+  }
+  if(shape === 'handleRound'){
+    const topInward = d * HANDLE_TOP_RATIO;
+    const topTiltFromVertical = (180 - HR_TOP_FOLD_ANGLE_DEG) * Math.PI/180;
+    const topFoldRise = topInward / Math.tan(topTiltFromVertical);
+    const sideArcRise = h*HR_ARC_RATIO + 0.3;
+    const handleBaseY = h + topFoldRise;
+    const centers = {
+      front:      {c:[0,h*0.6,hd*0.7],  n:[0,0.3,1]},
+      back:       {c:[0,h*0.6,-hd*0.7], n:[0,0.3,-1]},
+      side1:      {c:[hw*0.7,h*0.6,0],  n:[1,0.3,0]},
+      side2:      {c:[-hw*0.7,h*0.6,0], n:[-1,0.3,0]},
+      handleFront: {c:[0,handleBaseY+0.1,0.3],  n:[0,0,1]},
+      handleBack:  {c:[0,handleBaseY+0.1,-0.3], n:[0,0,-1]},
       bottom: {c:[0,-0.02,0], n:[0,-1,0]},
     };
     return centers[key];
@@ -2308,6 +2741,10 @@ function getModelCenter(shape){
   }
   if(shape === 'handle' || shape === 'handleWave' || shape === 'handleTopWave' || shape === 'handleArchGripWave' || shape === 'handleTrumpet'){
     const sideArcRise = h * HANDLE_ARC_RATIO;
+    return [0, (h + sideArcRise)/2, 0];
+  }
+  if(shape === 'handleRound'){
+    const sideArcRise = h*HR_ARC_RATIO + 0.3;
     return [0, (h + sideArcRise)/2, 0];
   }
   if(shape === 'handleRing'){
