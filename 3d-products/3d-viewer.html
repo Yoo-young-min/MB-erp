@@ -56,7 +56,7 @@
   #viewer-wrap{flex:1; position:relative; margin:10px; border:1px solid #e2e4e8; border-radius:14px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.06); background:#ffffff;}
   #viewer{width:100%; height:100%; display:block; cursor:grab;}
   #viewer:active{cursor:grabbing;}
-  #hint{position:absolute; top:14px; left:50%; transform:translateX(-50%); color:#ffffff; font-size:17px; font-weight:600; background:rgba(0,0,0,.7); padding:7px 14px; border-radius:16px; pointer-events:none; z-index:6; max-width:90%; text-align:center; white-space:nowrap;}
+  #hint{position:absolute; top:14px; left:50%; transform:translateX(-50%); color:#ffffff; font-size:12px; font-weight:600; background:rgba(0,0,0,.7); padding:7px 14px; border-radius:16px; pointer-events:none; z-index:6; max-width:90%; text-align:center; white-space:nowrap;}
   @media (max-width:480px){
     #hint{font-size:9.5px; padding:5px 10px; max-width:96%; white-space:nowrap;}
   }
@@ -2650,10 +2650,10 @@ function getFaceFrame(shape, key, w, h, d){
     const sideArcRise = h*HR_ARC_RATIO + 0.3;
     const handleBaseY = h + topFoldRise;
     const centers = {
-      front:      {c:[0,h*0.6,hd*0.7],  n:[0,0.3,1]},
-      back:       {c:[0,h*0.6,-hd*0.7], n:[0,0.3,-1]},
-      side1:      {c:[hw*0.7,h*0.6,0],  n:[1,0.3,0]},
-      side2:      {c:[-hw*0.7,h*0.6,0], n:[-1,0.3,0]},
+      front:      {c:[0,h*0.6,hd*0.7],  n:[0,0,1]},
+      back:       {c:[0,h*0.6,-hd*0.7], n:[0,0,-1]},
+      side1:      {c:[hw*0.7,h*0.6,0],  n:[1,0,0]},
+      side2:      {c:[-hw*0.7,h*0.6,0], n:[-1,0,0]},
       handleFront: {c:[0,handleBaseY+0.1,0.3],  n:[0,0,1]},
       handleBack:  {c:[0,handleBaseY+0.1,-0.3], n:[0,0,-1]},
       bottom: {c:[0,-0.02,0], n:[0,-1,0]},
