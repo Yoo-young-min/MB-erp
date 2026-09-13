@@ -266,12 +266,16 @@ document.getElementById("orderTable").addEventListener("paste", function(e) {
 
   });
 
-  // 🔥 합계 자동 갱신 (있다면)
+    // 🔥 합계 자동 갱신 (있다면)
   if (typeof updateSummary === "function") {
     updateSummary();
   }
 
+  // 🔥 붙여넣기도 반드시 저장 (paste는 input 이벤트를 발생시키지 않음)
+  saveOrderData();
+
 });
+
 
 </script>
 
