@@ -654,6 +654,53 @@ function recenterCameraToBox(poseState){
 }
 recenterCameraToBox(STATE);
 
+// 0단계(납작하게 펼친 상태)가 가로로 가장 넓은 상태라서, 화면이 세로로 길쭉한(휴대폰 등) 경우
+// 가로 화각이 좁아져 0단계 상자의 좌우가 화면 밖으로 잘려 보이는 문제가 있었음(사용자 확인 - PC처럼
+// 화면이 넓을 땐 문제없고, 접힌 뒤(1~3단계)는 폭이 좁아져서 문제없음).
+// 화면이 넓어서 원래도 잘 맞았던 경우는 그대로 두고, 화면 비율 때문에 실제로 잘릴 것 같은 경우에만
+// 카메라를 타깃에서 더 멀리(같은 각도 그대로, 거리만) 떨어뜨려 0단계도 화면 안에 온전히 들어오게 함
+function ensureWidestStepFitsView(){
+  const box = new THREE.Box3();
+  applyPose({ wallFold:0, wing1:0, wing2:0, lid:0, endFlap:0 }); // 가장 넓은 0단계로 임시 전환해 크기만 측정
+  [wallRoot, floorMesh, wing1.orientA, wing2.orientA, lidPivot, endFlapPivot].forEach(o=> box.expandByObject(o));
+  applyPose(STATE); // 측정 후 원래 포즈로 복원(화면에는 티나지 않음)
+
+  // 지금 카메라가 타깃을 바라보는 방향(각도)은 그대로 유지한 채, 그 방향을 기준으로 한 좌/상 축을 구해서
+  // 0단계 바운딩박스의 8개 꼭짓점이 실제로 화면(가로/세로 화각) 안에 다 들어오는 최소 거리를 정확히 계산함
+  // (구(sphere)로 감싸서 어림잡으면 이렇게 납작하고 옆으로 긴 모양에서는 필요 이상으로 많이 멀어지게 됨)
+  const target = controls.target;
+  const forward = target.clone().sub(camera.position).normalize(); // 카메라 -> 타깃 방향
+  const worldUp = new THREE.Vector3(0,1,0);
+  const right = new THREE.Vector3().crossVectors(forward, worldUp).normalize();
+  const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+
+  const aspect = wrap.clientWidth / wrap.clientHeight;
+  const vFov = camera.fov * Math.PI/180;
+  const hFov = 2*Math.atan(Math.tan(vFov/2)*aspect);
+  const tanV = Math.tan(vFov/2), tanH = Math.tan(hFov/2);
+
+  const corners = [];
+  for(const x of [box.min.x, box.max.x]) for(const y of [box.min.y, box.max.y]) for(const z of [box.min.z, box.max.z])
+    corners.push(new THREE.Vector3(x,y,z));
+
+  const MARGIN = 1.06; // 약간의 여유
+  let requiredDist = 0;
+  corners.forEach(corner=>{
+    const rel = corner.clone().sub(target);
+    const rightComp = rel.dot(right), upComp = rel.dot(up), forwardComp = rel.dot(forward);
+    requiredDist = Math.max(requiredDist, Math.abs(rightComp)/tanH - forwardComp);
+    requiredDist = Math.max(requiredDist, Math.abs(upComp)/tanV - forwardComp);
+  });
+  requiredDist *= MARGIN;
+
+  const offset = camera.position.clone().sub(target);
+  const currentDist = offset.length();
+  if(requiredDist > currentDist){
+    camera.position.copy(target).add(offset.multiplyScalar(requiredDist/currentDist));
+  }
+}
+ensureWidestStepFitsView();
+
 const STEPS = [
   { num:'0단계', desc:'납작하게 접힌 상태예요(전면-좌측변과 후면-우측변이 맞닿아 있음).\n실제 상자는 이 상태로 배송돼요.',
     target:{ wallFold:0, wing1:0, wing2:0, lid:0, endFlap:0 } },
@@ -1002,6 +1049,7 @@ async function applyProject(project){
   buildBox();
   syncAllFaceCanvasSizes();
   recenterCameraToBox(STATE);
+  ensureWidestStepFitsView(); // 불러온 프로젝트의 치수에 따라 0단계 폭이 달라질 수 있으므로 다시 확인
   goToStep(0);
   applyPose(STATE);
 
