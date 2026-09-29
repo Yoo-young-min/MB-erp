@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>접는 방법 - 3D 뷰어</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1f232c; --line:#2a2f3a;
+    --text:#e9edf3; --muted:#98a2b3; --accent:#5b8cff; --accent2:#3ecf8e;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif; background:var(--bg); color:var(--text); overflow:hidden;}
+
+  #viewer-wrap{position:fixed; inset:0;}
+  #viewer{width:100%; height:100%; display:block; cursor:grab; touch-action:none;}
+  #viewer:active{cursor:grabbing;}
+
+  #panel{position:absolute; top:16px; left:16px; z-index:5; width:190px; background:rgba(23,26,33,0.92); border:1px solid var(--line); border-radius:12px; padding:14px; backdrop-filter:blur(4px); max-width:calc(100vw - 32px);}
+  #panel h1{font-size:28px; margin:0 0 12px; font-weight:700; text-align:center;}
+  .steps-list{display:flex; flex-direction:column; gap:6px; margin-bottom:10px;}
+  .step-item{padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:var(--panel2); cursor:pointer; font-size:12.5px; color:var(--muted); text-align:center; -webkit-tap-highlight-color:transparent; user-select:none;}
+  .step-item.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .autoplay-btn{width:100%; padding:10px; font-size:13px; font-weight:700; border-radius:8px; border:1px solid var(--accent2); background:transparent; color:var(--accent2); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .autoplay-btn:hover{background:rgba(62,207,142,0.12);}
+  .autoplay-btn.playing{background:var(--accent2); color:#08130f;}
+  .load-btn{width:100%; padding:9px; margin-top:8px; font-size:12.5px; font-weight:600; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .load-btn:hover{border-color:var(--accent);}
+
+  #hint{position:absolute; top:18px; left:50%; transform:translateX(-50%); z-index:5; color:#ffffff; font-size:15px; font-weight:600; background:rgba(0,0,0,.85); padding:11px 20px; border-radius:20px; pointer-events:none; max-width:80%; text-align:center;}
+
+  #loadingMsg{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:6; color:var(--muted); font-size:13px; background:rgba(0,0,0,.6); padding:10px 16px; border-radius:8px;}
+
+  /* ---- 모바일(좁은 화면) 대응 ---- */
+  /* 화면이 좁으면 상단 문구가 좌측 상단 패널과 겹칠 수 있어, 문구를 화면 하단으로 옮겨 겹침을 피함 */
+  @media (max-width:600px){
+    #panel{width:150px; top:10px; left:10px; padding:10px;}
+    #panel h1{font-size:20px; margin-bottom:8px;}
+    .step-item{padding:7px 8px; font-size:11.5px;}
+    .autoplay-btn, .load-btn{padding:8px; font-size:11.5px;}
+    #hint{top:auto; bottom:16px; font-size:12.5px; padding:9px 16px; max-width:88%;}
+  }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <h1>접는 방법</h1>
+  <div class="steps-list" id="stepsList"></div>
+  <button id="autoPlayBtn" class="autoplay-btn">▶ 전체 자동 재생</button>
+  <button id="loadProjectBtn" class="load-btn" style="display:none;">📂 프로젝트 불러오기</button>
+  <input type="file" id="projectFileInput" accept=".json,application/json" style="display:none;">
+</div>
+
+<div id="hint">마우스나 손으로 터치하여 자유롭게 회전 · 확대/축소해 보세요</div>
+
+<div id="viewer-wrap">
+  <canvas id="viewer"></canvas>
+</div>
+
+<!-- 아래 요소들은 화면엔 보이지 않지만, 기존 base_uploaded3.html 엔진 코드(goToStep/updatePanelUI 등)가
+     그대로 참조하므로 DOM에는 남겨둠(로직을 건드리지 않기 위함) -->
+<div style="display:none;">
+  <div id="stepNum"></div>
+  <div id="stepDesc"></div>
+  <button id="prevBtn"></button>
+  <button id="nextBtn"></button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ===================== 상자 치수 (mm 기준, /100 하여 Three.js 단위로 사용) =====================
+let W = 1.45;   // 가로 - 기본 치수 145mm
+let D = 0.90;   // 세로 - 기본 치수 90mm
+let H = 0.31;   // 높이 - 기본 치수 31mm
+// 상자 형태(현재 '사각형(일체형)' / '사각형(일체형-앞뚜껑 꽃)') - buildBox()가 이 값을 읽어 앞뚜껑(endFlap) 모양만 분기함.
+// buildBox()의 첫 호출이 아래 shapeSelect DOM 연결보다 먼저 실행되므로, 기본값을 여기서 미리 선언해둠(TDZ 오류 방지).
+let currentShape = 'rect1';
+
+// ===================== Three.js 기본 씬 =====================
+const canvas = document.getElementById('viewer');
+const wrap = document.getElementById('viewer-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf4f5f7);
+// FOV를 좁혀(원거리 망원 렌즈에 가깝게) 확대/축소(dolly) 시 카메라 시점(target)에서 먼 부분(뚜껑/후크 등)이
+// 화면 위쪽 등으로 쏠려 보이는 원근 왜곡을 크게 줄임 - 화면 중앙(타깃) 기준으로 고르게 확대/축소되도록 함
+const camera = new THREE.PerspectiveCamera(24, wrap.clientWidth/wrap.clientHeight, 0.5, 200);
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, logarithmicDepthBuffer:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+camera.position.set(7*2/3, 9.6*2/3, 11.7*2/3); // 처음 열었을 때 상자 크기 - 직전(3배)의 절반 크기로 거리를 늘림(방향/비율은 그대로 유지)
+controls.target.set((D+W)/2, H/2, 0);
+
+const dirL = new THREE.DirectionalLight(0xffffff, 0.85);
+dirL.position.set(4, 8, 6);
+scene.add(dirL);
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+
+const boxMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1 });
+
+// 9개 면(전면/후면/좌우 측면/좌우 날개/앞뚜껑/뒤뚜껑/바닥) 각각 독립된 재질을 사용해서
+// 면마다 서로 다른 이미지를 입힐 수 있도록 함(다른 시각 효과는 기존 boxMat/boxMatIn과 동일하게 유지)
+// 업로드된 디자인은 "바깥쪽 면"에서만 보이고 안쪽에서는 항상 하얀색으로 보이도록, 각 면마다
+// 실제로 바깥쪽에 해당하는 한쪽 면(FrontSide 또는 BackSide)에만 이미지를 그리고,
+// 반대쪽(안쪽) 면에는 별도의 순백색 라이너를 겹쳐서 항상 하얗게 보이게 함
+function faceMaterial(polyFactor, polyUnits, outwardSide, extra){
+  return new THREE.MeshBasicMaterial(Object.assign({ color: 0xffffff, side: outwardSide, polygonOffset:true, polygonOffsetFactor:polyFactor, polygonOffsetUnits:polyUnits }, extra||{}));
+}
+const linerMatFront = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.FrontSide });
+const linerMatBack  = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.BackSide });
+// 각 면의 실제 "바깥쪽"이 FrontSide인지 BackSide인지는 지오메트리/힌지 구조상 고정되어 있으며,
+// 실제 3D 장면에서 직접 측정해 확인한 값(사각형으로 펼쳐진 상태 기준)
+const frontMat = faceMaterial(1,1, THREE.FrontSide);
+const backMat  = faceMaterial(1,1, THREE.FrontSide);
+const side1Mat = faceMaterial(1,1, THREE.FrontSide);
+const side2Mat = faceMaterial(1,1, THREE.BackSide);
+const wing1Mat = faceMaterial(1,1, THREE.FrontSide);
+const wing2Mat = faceMaterial(1,1, THREE.FrontSide);
+const lidMat = faceMaterial(-4,-4, THREE.BackSide);
+const endFlapMat = faceMaterial(-2,-2, THREE.FrontSide);
+// 바닥도 다른 면과 동일하게: 상자를 열었을 때 안쪽(위)에서 보이는 면은 항상 흰색, 실제 업로드 디자인은
+// 바깥쪽(바닥 밑면)에서만 보이도록 함(사각형으로 접었을 때 위를 향하는 쪽이 FrontSide로 측정됨)
+const floorMatOpaque = faceMaterial(2,2, THREE.BackSide, { transparent:true });
+// 위 각 재질의 안쪽 면에 겹쳐줄 흰색 라이너 재질(바깥쪽과 반대쪽)
+const frontLiner = linerMatBack, backLiner = linerMatBack, side1Liner = linerMatBack, side2Liner = linerMatFront;
+const wing1Liner = linerMatBack, wing2Liner = linerMatBack, lidLiner = linerMatFront, endFlapLiner = linerMatBack;
+const floorLinerMat = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.FrontSide, transparent:true, polygonOffset:true, polygonOffsetFactor:2, polygonOffsetUnits:2 });
+const floorLiner = floorLinerMat;
+
+// 모든 선을 최대로 가늘고 선명하게 고정
+const lineMat = new THREE.LineBasicMaterial({ color: 0xa0a0a0, linewidth: 1 });
+const wallLineMat = new THREE.LineBasicMaterial({ color: 0x707070, linewidth: 1 }); // 내면 벽 사이 선 전용 - 더 진하게
+const floorGridMat = new THREE.LineBasicMaterial({ color: 0xa0a0a0, transparent:true, opacity:0.45, linewidth: 1 }); // 바닥 테두리/격자선 전용 - 더 흐리게
+const thinLineMat = new THREE.LineBasicMaterial({ color: 0x959595, transparent: true, opacity: 0.75 });
+
+// ShapeGeometry는 기본적으로 UV를 0~1로 정규화하지 않고 도형의 원래 좌표(x,y)를 그대로 UV로 사용하기 때문에
+// (뚜껑/날개끝처럼 실제 상자 치수 단위의 좌표를 쓰면 이미지가 한쪽 구석만 확대되어 보이거나 잘려 보임),
+// 도형의 바운딩박스를 기준으로 UV를 0~1 범위로 다시 계산해줌. vRange를 주면 세로(V)만 그 구간으로 눌러 넣음
+// (하나의 이미지를 여러 조각(세그먼트)에 나눠 이어붙일 때 사용 - 날개 이중고 부분 등)
+function normalizeShapeUV(geo, v0, v1){
+  v0 = v0 === undefined ? 0 : v0; v1 = v1 === undefined ? 1 : v1;
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), y=pos.getY(i);
+    if(x<minX) minX=x; if(x>maxX) maxX=x;
+    if(y<minY) minY=y; if(y>maxY) maxY=y;
+  }
+  const w = Math.max(1e-6, maxX-minX), h = Math.max(1e-6, maxY-minY);
+  for(let i=0;i<uv.count;i++){
+    const x=pos.getX(i), y=pos.getY(i);
+    const u = (x-minX)/w, vRaw = (y-minY)/h;
+    uv.setXY(i, u, v0 + (v1-v0)*vRaw);
+  }
+  uv.needsUpdate = true;
+}
+// PlaneGeometry는 이미 UV가 0~1로 정규화되어 있으므로, 세로(V) 범위만 원하는 구간으로 눌러 넣음
+function remapUVv(geo, v0, v1){
+  const uv = geo.attributes.uv;
+  for(let i=0;i<uv.count;i++){
+    uv.setY(i, v0 + (v1-v0)*uv.getY(i));
+  }
+  uv.needsUpdate = true;
+}
+// 바깥쪽 면에는 업로드된 이미지가, 안쪽 면에는 항상 흰색이 보이도록 라이너(흰색 뒷면)를 추가
+function addLiner(mesh, geo, linerMat){
+  if(!linerMat) return null;
+  const linerMesh = new THREE.Mesh(geo, linerMat);
+  mesh.add(linerMesh);
+  return linerMesh;
+}
+// BackSide 재질은 지오메트리의 "뒷면"에서 보이므로, 정면 기준으로 만든 UV를 그대로 쓰면
+// 가로 방향이 좌우 반전되어(거울상) 보임 - 가로(U)만 뒤집어서 보이는 그대로 나오게 보정
+function flipUIfBackSide(geo, mat){
+  if(!mat || mat.side !== THREE.BackSide) return;
+  const uv = geo.attributes.uv;
+  for(let i=0;i<uv.count;i++){
+    uv.setX(i, 1 - uv.getX(i));
+  }
+  uv.needsUpdate = true;
+}
+// 뒤뚜껑(lid)은 힌지에 매달려 90도 접혀 눕는 특성상, 접혀서 완전히 닫힌 최종 모습(사용자가 실제로 보는 상태)을
+// 기준으로 하면 이미지가 180도 돌아가 보이므로, U/V를 모두 뒤집어 180도 회전시켜 보정
+function rotate180UV(geo){
+  const uv = geo.attributes.uv;
+  for(let i=0;i<uv.count;i++){
+    uv.setXY(i, 1 - uv.getX(i), 1 - uv.getY(i));
+  }
+  uv.needsUpdate = true;
+}
+
+// 사각 패널 지오메트리를 만들되, "힌지가 되는 변"이 로컬 원점(0,0,0)에 오도록 오프셋 처리
+// vRange:[v0,v1] 를 주면 이 패널이 전체 이미지 중 세로 방향의 일부 구간만 보여주도록 UV를 눌러 넣음(날개 이중고용)
+function hingedPanel(w, h, mat, isWing, linerMat, vRange){
+  const geo = new THREE.PlaneGeometry(w, h);
+  geo.translate(0, h/2, 0);
+  if(vRange) remapUVv(geo, vRange[0], vRange[1]);
+  flipUIfBackSide(geo, mat);
+  const mesh = new THREE.Mesh(geo, mat);
+  addLiner(mesh, geo, linerMat);
+
+  const edgesGeo = new THREE.EdgesGeometry(geo);
+  const line = new THREE.LineSegments(edgesGeo, isWing ? thinLineMat : lineMat);
+  mesh.add(line);
+  return mesh;
+}
+
+// 위쪽 양 모서리만 살짝 둥글게 처리한 패널(뚜껑, 날개 끝부분용)
+function roundedTopPanel(w, h, mat, radius, isWing, linerMat, vRange){
+  const hw = w/2;
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw, 0);
+  shape.lineTo(hw, 0);
+  shape.lineTo(hw, h-radius);
+  shape.quadraticCurveTo(hw, h, hw-radius, h);
+  shape.lineTo(-hw+radius, h);
+  shape.quadraticCurveTo(-hw, h, -hw, h-radius);
+  shape.lineTo(-hw, 0);
+  const geo = new THREE.ShapeGeometry(shape, 8);
+  normalizeShapeUV(geo, vRange ? vRange[0] : 0, vRange ? vRange[1] : 1);
+  flipUIfBackSide(geo, mat);
+  const mesh = new THREE.Mesh(geo, mat);
+  addLiner(mesh, geo, linerMat);
+
+  const edgesGeo = new THREE.EdgesGeometry(geo, 15);
+  const line = new THREE.LineSegments(edgesGeo, isWing ? thinLineMat : lineMat);
+  mesh.add(line);
+  return mesh;
+}
+
+// ===================== 몸통 4벽 (납작한 상태 <-> 사각형 상태) =====================
+// 사각형 상태: 기존과 동일한 절대 좌표(변경 없음)
+// 납작한 상태: 좌측면+전면이 위층, 후면+우측면이 아래층 - 두 겹으로 겹침(바닥은 안쪽으로 접혀 안 보임)
+let wallRoot, front, back, side1, side2, backH;
+let SQ, FL, FL_GAP, REL_FL, REL_SQ;
+
+function wallPanel(w, h, mat, linerMat){
+  const geo = new THREE.PlaneGeometry(w, h);
+  flipUIfBackSide(geo, mat);
+  const mesh = new THREE.Mesh(geo, mat);
+  addLiner(mesh, geo, linerMat);
+  const edges = new THREE.EdgesGeometry(geo);
+  mesh.add(new THREE.LineSegments(edges, wallLineMat));
+  return mesh;
+}
+
+// 전,후,좌우 측면은 실제로 서로 붙어있는 한 장이므로, 독립적으로 움직이지 않고
+// 전면·후면을 기준(뿌리)으로 삼아, 좌우 측면은 양쪽 이웃 모두에 상대 위치/각도로 연결된 채로 계산(평균)해서
+// 접히고 펴지는 중간 과정에서도 네 변이 벌어지지 않게 함
+function relTransform(state, parentKey, childKey){
+  const p = state[parentKey], c = state[childKey];
+  const cosP = Math.cos(-p.rotY), sinP = Math.sin(-p.rotY);
+  const dx = c.pos[0]-p.pos[0], dz = c.pos[2]-p.pos[2];
+  return {
+    pos: [ dx*cosP + dz*sinP, c.pos[1]-p.pos[1], -dx*sinP + dz*cosP ],
+    rotY: c.rotY - p.rotY
+  };
+}
+function lerpWall(mesh, sq, fl, t){
+  mesh.position.set(
+    fl.pos[0] + (sq.pos[0]-fl.pos[0])*t,
+    fl.pos[1] + (sq.pos[1]-fl.pos[1])*t,
+    fl.pos[2] + (sq.pos[2]-fl.pos[2])*t
+  );
+  mesh.rotation.y = fl.rotY + (sq.rotY-fl.rotY)*t;
+}
+// 부모의 절대 위치/각도 + 상대 위치/각도(보간)를 합성해서 자식의 절대 위치/각도를 계산
+function composedFrom(parentPos, parentRotY, relFl, relSq, t){
+  const relPos = [
+    relFl.pos[0] + (relSq.pos[0]-relFl.pos[0])*t,
+    relFl.pos[1] + (relSq.pos[1]-relFl.pos[1])*t,
+    relFl.pos[2] + (relSq.pos[2]-relFl.pos[2])*t
+  ];
+  const relRotY = relFl.rotY + (relSq.rotY-relFl.rotY)*t;
+  const cos = Math.cos(parentRotY), sin = Math.sin(parentRotY);
+  return {
+    pos: [ parentPos[0] + relPos[0]*cos + relPos[2]*sin, parentPos[1] + relPos[1], parentPos[2] - relPos[0]*sin + relPos[2]*cos ],
+    rotY: parentRotY + relRotY
+  };
+}
+function avg2(a, b){
+  return {
+    pos: [ (a.pos[0]+b.pos[0])/2, (a.pos[1]+b.pos[1])/2, (a.pos[2]+b.pos[2])/2 ],
+    rotY: (a.rotY+b.rotY)/2
+  };
+}
+
+function setWallFold(foldT){
+  lerpWall(front, SQ.front, FL.front, foldT); // front, back는 독립적인 기준점
+  lerpWall(back, SQ.back, FL.back, foldT);
+  const frontState = { pos: front.position.toArray(), rotY: front.rotation.y };
+  const backState  = { pos: back.position.toArray(),  rotY: back.rotation.y  };
+  const side2FromFront = composedFrom(frontState.pos, frontState.rotY, REL_FL.frontSide2, REL_SQ.frontSide2, foldT);
+  const side2FromBack  = composedFrom(backState.pos,  backState.rotY,  REL_FL.backSide2,  REL_SQ.backSide2,  foldT);
+  const side2State = avg2(side2FromFront, side2FromBack);
+  side2.position.set(...side2State.pos); side2.rotation.y = side2State.rotY;
+
+  const side1FromBack  = composedFrom(backState.pos,  backState.rotY,  REL_FL.backSide1,  REL_SQ.backSide1,  foldT);
+  const side1FromFront = composedFrom(frontState.pos, frontState.rotY, REL_FL.frontSide1, REL_SQ.frontSide1, foldT);
+  const side1State = avg2(side1FromBack, side1FromFront);
+  side1.position.set(...side1State.pos); side1.rotation.y = side1State.rotY;
+
+  // 0단계(납작한 상태) 근처에서는 위쪽 겹(후면+좌측면)과 아래쪽 겹(전면+우측면)이 z=0인 같은 평면에서
+  // Y축으로만 살짝(FL_GAP) 떨어져 쌓이는데, 벽 자체 세로 폭(H)이 그 간격보다 커서 두 겹이 실제로
+  // 겹치는 부분에서 반짝이는 z-fighting(하얀 스프레이처럼 보임)이 생김. 완전히 사각형으로
+  // 펼쳐지면(foldT=1) 실제 3D 형태라 자연히 분리되므로, 펼쳐지는 동안에만 두 겹을 z 방향으로
+  // 아주 미세하게(최대 3mm) 떼어놓고 다 펼쳐지면 원래대로 완전히 되돌림
+  const wallFlatZFix = Math.max(0, 1 - foldT) * 0.003;
+  back.position.z -= wallFlatZFix;
+  side2.position.z -= wallFlatZFix;
+  front.position.z += wallFlatZFix;
+  side1.position.z += wallFlatZFix;
+}
+
+let bodyGroup; // 아래 코드 호환용 별칭
+
+// 모서리 코너 마커(가는 기둥) - 사각형 상태에서만 표시(납작할 땐 의미 없음)
+let cornerMarkers = [];
+const cornerMat = new THREE.MeshBasicMaterial({ color: 0x707070 });
+
+// 바닥 불투명 흰색 패널 (외부와 내부 시선 차단)
+let floorMesh, floorLinerMesh, FLOOR_SQ, FLOOR_FL;
+function setFloorFold(t){
+  floorMesh.position.set(
+    FLOOR_FL.pos[0] + (FLOOR_SQ.pos[0]-FLOOR_FL.pos[0])*t,
+    FLOOR_FL.pos[1] + (FLOOR_SQ.pos[1]-FLOOR_FL.pos[1])*t,
+    FLOOR_FL.pos[2] + (FLOOR_SQ.pos[2]-FLOOR_FL.pos[2])*t
+  );
+  floorMesh.rotation.x = FLOOR_FL.rotX + (FLOOR_SQ.rotX-FLOOR_FL.rotX)*t;
+  floorMesh.rotation.y = FLOOR_FL.rotY + (FLOOR_SQ.rotY-FLOOR_FL.rotY)*t;
+}
+
+// 상자 내부/외부 바닥 전용 격자선 (상자 안/밖을 볼 때 각각 표시됨)
+let insideFloorLineGroup, outsideFloorLineGroup;
+
+// ===================== 측면 날개 2개 (side1, side2 "위쪽" 모서리에 힌지, 3단 접힘) =====================
+let WING_SEG1_LEN, WING_SEG2_LEN;
+function makeWing(hingeWorldX, foldDir, faceMat, linerMat){
+  const seg3Len = Math.max(0.05, W/2 - WING_SEG1_LEN);
+  // 세 조각(seg1: 벽에 붙은 힌지쪽, seg2: 중간, seg3: 둥근 끝부분)이 하나로 이어진 이미지처럼 보이도록,
+  // 전체 길이에서 각 조각이 차지하는 비율만큼 업로드 이미지의 세로 구간을 나눠서 배정함
+  const totalLen = WING_SEG1_LEN + WING_SEG2_LEN + seg3Len;
+  const v1 = WING_SEG1_LEN / totalLen;
+  const v2 = (WING_SEG1_LEN + WING_SEG2_LEN) / totalLen;
+
+  const orientA = new THREE.Group();
+  orientA.position.set(hingeWorldX, H, 0);
+  orientA.rotation.y = foldDir>0 ? Math.PI/2 : -Math.PI/2;
+
+  const pivotA = new THREE.Group();
+  orientA.add(pivotA);
+
+  const seg1 = hingedPanel(D-0.02, WING_SEG1_LEN, faceMat, true, linerMat, [0, v1]);
+  pivotA.add(seg1);
+
+  const pivotB = new THREE.Group();
+  pivotB.position.set(0, WING_SEG1_LEN, 0);
+  seg1.add(pivotB);
+  const seg2 = hingedPanel(D-0.02, WING_SEG2_LEN, faceMat, true, linerMat, [v1, v2]);
+  pivotB.add(seg2);
+
+  const pivotC = new THREE.Group();
+  pivotC.position.set(0, WING_SEG2_LEN, 0);
+  seg2.add(pivotC);
+  const seg3 = roundedTopPanel(D-0.02, seg3Len, faceMat, 0.08, true, linerMat, [v2, 1]);
+  pivotC.add(seg3);
+
+  return { orientA, pivotA, pivotB, pivotC };
+}
+let wing1, wing2;
+
+function setWingAngle(wingObj, t){
+  wingObj.pivotA.rotation.x = -t;
+  wingObj.pivotB.rotation.x = -t;
+  wingObj.pivotC.rotation.x = t;
+}
+
+// ===================== 뚜껑 (back 벽 윗변에 힌지, 후크탭 포함) =====================
+let lidPivot, lidMesh, hookPivot, hookMesh, lidLen;
+const HOOK_H = 0.20; // 뒤뚜껑 후크(힌지) 세로 길이 고정값: 20mm(치수 변경과 무관하게 항상 고정)
+
+function setLidAngle(t){
+  lidPivot.rotation.x = t*(Math.PI/2);
+  hookPivot.rotation.x = t*(Math.PI/2);
+  // 예전엔 이 값이 10mm였는데, 다 닫힌 뒤(3단계)에도 그대로 남아 본체와 눈에 띄게 떠 보이는 원인이었음.
+  // 완전히 0으로 하면 딱 붙어서 내부 이중고 선이 비쳐 보이므로, 육안상 뜬 티가 거의 안 나는
+  // 범위 안에서 최소한만(0.9mm) 남겨 비침을 방지함. (후면 벽만 별도로 0.9mm 높여서 후면 쪽은
+  // 이 간격 없이 뚜껑과 바로 닿도록 함 - 아래 back 벽 생성부의 backH 참고)
+  lidPivot.position.y += t*0.009;
+}
+
+// ===================== 반대쪽 끝 날개 (front 벽 윗변에 힌지, 안쪽으로 접힘, 둥근 상단) =====================
+let endFlapPivot, endFlapMesh, endFlapLineMesh, endFlapLen, efHalfW;
+let EF_TILT, EF_LEFT_BASE, EF_RIGHT_BASE, EF_DOME;
+function efTopY(xFrac){
+  const linearBase = EF_LEFT_BASE + (EF_RIGHT_BASE-EF_LEFT_BASE)*(xFrac+1)/2;
+  const dome = EF_DOME * Math.sqrt(Math.max(0, 1-xFrac*xFrac));
+  return linearBase + dome;
+}
+
+// '사각형(일체형-앞뚜껑 꽃)' 전용 - 앞뚜껑 윗변을 하나의 둥근 돔이 아니라, 뭉게구름처럼 봉우리마다 확실히
+// 구분되는 스캘럽(물결) 윤곽으로 만듦. 중앙(xFrac=0)을 기준으로 왼쪽엔 큰 봉우리 2개, 오른쪽엔 더 잘게 나뉜
+// 봉우리 4개를 배치 - 봉우리 개수가 다르니 폭(반지름)도 자연히 달라짐(왼쪽=크게/오른쪽=잘게).
+// - 봉우리 원끼리 서로 살짝 겹치게 배치해서(완전히 맞닿기만 하면 골이 뾰족한 V자로 파여 너무 봉긋해 보이고,
+//   왼쪽 2개 크기를 다르게 하면서 딱 맞닿기만 하다 보니 중앙 경계에 안 닿는 빈틈(사선)이 생겼었음 - 사용자 확인)
+//   골이 완만하게 이어지면서 왼쪽↔오른쪽 사이에도 빈틈이 남지 않도록 함.
+// - 라운드(높이/폭 비율)도 전반적으로 낮춰 이전보다 덜 봉긋하고 더 완만하게 만듦.
+// - 왼쪽 2개 중 중앙쪽(오른쪽) 봉우리는 반지름을 바깥쪽 봉우리의 2/3로 줄여 높이도 정확히 2/3가 되게 함
+//   (round값은 서로 동일하게 유지 - height = round*r*efHalfW 이므로 r만 2/3면 height도 2/3)
+// - 오른쪽 4개 중 4번째(가장 오른쪽) 봉우리만 3번째보다 높이를 5mm 낮춤(폭/반지름은 그대로, 높이만 조정)
+const EF_FLOWER_R_L_OUTER = 0.345, EF_FLOWER_ROUND_L = 0.65; // 왼쪽 바깥쪽(먼 쪽) 봉우리 - 겹침을 위해 반지름을 키움
+const EF_FLOWER_R_L_INNER = EF_FLOWER_R_L_OUTER * (2/3);     // 왼쪽 안쪽(중앙쪽) 봉우리 - 바깥쪽의 2/3 크기
+const EF_FLOWER_R3 = 0.155, EF_FLOWER_ROUND3 = 1.40*(2/3);   // 오른쪽 3번째 봉우리 - 높이를 이전의 2/3로 낮춤(폭은 그대로)
+const EF_FLOWER_R4 = 0.173;                                  // 오른쪽 4번째(가장 오른쪽) 봉우리 - 폭은 그대로
+function efTopYFlower(xFrac){
+  const linearBase = EF_LEFT_BASE + (EF_RIGHT_BASE-EF_LEFT_BASE)*(xFrac+1)/2;
+  const h3 = EF_FLOWER_ROUND3 * EF_FLOWER_R3 * efHalfW; // 3번째 봉우리 높이
+  const h4 = Math.max(0.005, h3 - 0.05);                // 4번째 봉우리 높이 = 3번째보다 5mm(0.05) 낮게
+  const round4 = h4 / (EF_FLOWER_R4 * efHalfW);         // 폭(EF_FLOWER_R4)은 그대로 두고 round값만 역산
+  // 왼쪽 바깥쪽 봉우리는 왼쪽 끝(-1)에, 안쪽 봉우리는 중앙(0)에 각각 딱 닿도록 배치 - 둘의 반지름 합이
+  // 전체 폭(1)보다 커서 자연히 서로 겹치므로, 중앙 경계에도 빈틈 없이 이어짐(이전 버전의 사선 원인 해결)
+  const lobes = [
+    { c:-1+EF_FLOWER_R_L_OUTER, r:EF_FLOWER_R_L_OUTER, round:EF_FLOWER_ROUND_L },
+    { c:-EF_FLOWER_R_L_INNER, r:EF_FLOWER_R_L_INNER, round:EF_FLOWER_ROUND_L },
+    // 오른쪽 절반(xFrac 0~1)을 4등분한 자리에 배치하되, 반지름을 등분 폭보다 살짝 크게 해서 서로 겹치게 함.
+    { c: 0.084, r:0.097, round:0.80 },
+    { c: 0.275, r:0.123, round:0.95 },
+    { c: 0.517, r:EF_FLOWER_R3, round:EF_FLOWER_ROUND3 },
+    { c: 0.825, r:EF_FLOWER_R4, round:round4 },
+  ];
+  let dome = 0;
+  for(const L of lobes){
+    const dx = (xFrac - L.c) / L.r;
+    const d = Math.max(0, 1 - dx*dx);
+    const realHalfWidth = L.r * efHalfW; // 봉우리의 실제(치수 단위) 절반 폭
+    const h = L.round * realHalfWidth;   // 높이를 실제 폭에 비례시켜 눌리지 않고 둥글게 보이도록 함
+    dome = Math.max(dome, h * Math.sqrt(d));
+  }
+  // 전체적으로 높이를 10mm(0.10) 낮춤 - 바닥(힌지)선은 항상 0으로 고정이라 그대로 두고, 윗변만 낮춤
+  return Math.max(0.005, linearBase + dome - 0.10);
+}
+
+function setEndFlapAngle(angle){
+  endFlapPivot.rotation.x = -angle;
+  const t = angle / (Math.PI/2);
+  endFlapPivot.position.y += t*0.005; // 닫히는 동안에만 추가로 살짝 더 뜸(5mm)
+}
+
+// ===================== 치수에 따라 상자 전체 지오메트리를 (재)생성 =====================
+// 치수(W,D,H)가 바뀌어도 기존에 튜닝된 접힘/힌지/카메라 로직은 100% 그대로 재사용하고,
+// 오직 지오메트리(크기)만 다시 만든다. 재질(및 업로드된 이미지)은 그대로 유지됨.
+function buildBox(){
+  // 기존 오브젝트 전부 제거
+  if(wallRoot) scene.remove(wallRoot);
+  if(floorMesh) scene.remove(floorMesh);
+  if(insideFloorLineGroup) scene.remove(insideFloorLineGroup);
+  if(outsideFloorLineGroup) scene.remove(outsideFloorLineGroup);
+  if(wing1) scene.remove(wing1.orientA);
+  if(wing2) scene.remove(wing2.orientA);
+  if(lidPivot) scene.remove(lidPivot);
+  if(endFlapPivot) scene.remove(endFlapPivot);
+
+  wallRoot = new THREE.Group();
+  scene.add(wallRoot);
+
+  // 후면 벽만 1mm 더 높여서, 뒤뚜껑이 닫혔을 때 다른 세 면(좌/우/전면)은 기존과 동일하게
+  // 0.9mm 뜬 상태를 유지하되, 후면 쪽만 뚜껑과 바로 맞닿도록 함(구조적 정합성은 고려하지 않은 채,
+  // 후면-뚜껑 이음새만 강제로 붙이기 위한 예외적 처리 - 다른 면 높이/접힘 로직은 전혀 건드리지 않음)
+  backH = H + 0.010;
+  front = wallPanel(W, H, frontMat, frontLiner);
+  back = wallPanel(W, backH, backMat, backLiner);
+  side1 = wallPanel(D, H, side1Mat, side1Liner); // 우측
+  side2 = wallPanel(D, H, side2Mat, side2Liner); // 좌측
+  wallRoot.add(front, back, side1, side2);
+  bodyGroup = wallRoot;
+
+  // 사각형(foldT=1) 상태의 절대 위치/회전 - 기존 값 그대로(후면만 높아진 만큼 중심 y 위치 보정)
+  SQ = {
+    front: { pos:[0, H/2, D/2],  rotY:0 },
+    side1: { pos:[W/2, H/2, 0],  rotY:Math.PI/2 },
+    back:  { pos:[0, backH/2, -D/2], rotY:Math.PI },
+    side2: { pos:[-W/2, H/2, 0], rotY:Math.PI/2 },
+  };
+  // 납작(foldT=0) 상태 - 좌측면+후면이 위층, 전면+우측면이 아래층, 두 겹이 겹쳐 쌓임.
+  // 예전엔 Y축으로 두 겹을 살짝(FL_GAP=5mm, 위아래 합쳐 1cm) 띄워서 쌓았는데, 그러면 접힌 얇은
+  // 쪽(끝면)에서 봤을 때 두 겹의 윗변/아랫변이 실제로 1cm씩 어긋나 보이는 문제가 있었음(사용자 확인).
+  // 두 겹의 z-fighting 방지는 이미 setWallFold()에서 z축으로 살짝(3mm) 떼어놓는 방식으로 처리하고
+  // 있으므로, Y축 오프셋(FL_GAP)은 더 이상 필요 없어 0으로 없애고 두 겹을 같은 높이에 맞춤
+  FL_GAP = 0;
+  FL = {
+    // 위층: 좌측면(D) + 후면(W) - 왼쪽부터 순서대로 이어붙음
+    side2: { pos:[D/2, H/2+FL_GAP, 0],   rotY:0 },
+    back:  { pos:[D+W/2, H/2+FL_GAP, 0], rotY:Math.PI },
+    // 아래층: 전면(W) + 우측면(D) - 반대 순서로 이어붙어 위층과 엇갈리게(같은 전체 길이 D+W)
+    front: { pos:[W/2, H/2-FL_GAP, 0],   rotY:0 },
+    side1: { pos:[W+D/2, H/2-FL_GAP, 0], rotY:0 },
+  };
+  REL_FL = {
+    frontSide2: relTransform(FL,'front','side2'), backSide2: relTransform(FL,'back','side2'),
+    backSide1:  relTransform(FL,'back','side1'),  frontSide1: relTransform(FL,'front','side1'),
+  };
+  REL_SQ = {
+    frontSide2: relTransform(SQ,'front','side2'), backSide2: relTransform(SQ,'back','side2'),
+    backSide1:  relTransform(SQ,'back','side1'),  frontSide1: relTransform(SQ,'front','side1'),
+  };
+  setWallFold(1);
+
+  cornerMarkers = [];
+  {
+    const cw = 0.002;
+    [[W/2,D/2],[W/2,-D/2],[-W/2,D/2],[-W/2,-D/2]].forEach(([cx,cz])=>{
+      const cGeo = new THREE.BoxGeometry(cw, H, cw);
+      const cMesh = new THREE.Mesh(cGeo, cornerMat);
+      cMesh.position.set(cx, H/2, cz);
+      wallRoot.add(cMesh);
+      cornerMarkers.push(cMesh);
+    });
+  }
+
+  {
+    const floorGeo = new THREE.PlaneGeometry(W, D);
+    flipUIfBackSide(floorGeo, floorMatOpaque);
+    rotate180UV(floorGeo); // 바닥 이미지는 180도 돌려서 들어가야 올바르게 보임
+    floorMesh = new THREE.Mesh(floorGeo, floorMatOpaque);
+    floorLinerMesh = addLiner(floorMesh, floorGeo, floorLiner);
+  }
+  scene.add(floorMesh);
+  FLOOR_SQ = { pos:[0, 0.001, 0], rotX:-Math.PI/2, rotY:0 };
+  FLOOR_FL = { pos:[(D+W)/2, H/2, 0], rotX:0, rotY:0 }; // 납작할 때: 두 층 사이에 세로로 끼워짐
+  setFloorFold(1);
+
+  insideFloorLineGroup = new THREE.Group();
+  insideFloorLineGroup.renderOrder = 5;
+  scene.add(insideFloorLineGroup);
+  {
+    const hw_f = W/2, hd_f = D/2;
+    const yInLine = 0.002; // 흰색 바닥 패널보다 살짝 위에 위치하여 선명하게 표시
+    const bFL=[-hw_f,yInLine,hd_f], bFR=[hw_f,yInLine,hd_f], bBR=[hw_f,yInLine,-hd_f], bBL=[-hw_f,yInLine,-hd_f];
+    const hLP=[-W*0.3,yInLine,0], hRP=[W*0.3,yInLine,0];
+    const inLinePts = [
+      hLP,hRP, hLP,bFL, hLP,bBL, hRP,bFR, hRP,bBR,
+      bFL,bFR, bFR,bBR, bBR,bBL, bBL,bFL
+    ].flat();
+    const inLineGeo = new THREE.BufferGeometry();
+    inLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(inLinePts, 3));
+    const inLineMesh = new THREE.LineSegments(inLineGeo, floorGridMat);
+    inLineMesh.renderOrder = 5;
+    insideFloorLineGroup.add(inLineMesh);
+  }
+
+  outsideFloorLineGroup = new THREE.Group();
+  outsideFloorLineGroup.renderOrder = 5;
+  scene.add(outsideFloorLineGroup);
+  {
+    const hw_f = W/2, hd_f = D/2;
+    const yOutLine = -0.002; // 흰색 바닥 패널보다 살짝 아래에 위치
+    const bFL=[-hw_f,yOutLine,hd_f], bFR=[hw_f,yOutLine,hd_f], bBR=[hw_f,yOutLine,-hd_f], bBL=[-hw_f,yOutLine,-hd_f];
+    const hLP=[-W*0.3,yOutLine,0], hRP=[W*0.3,yOutLine,0];
+    const outLinePts = [
+      hLP,hRP, hLP,bFL, hLP,bBL, hRP,bFR, hRP,bBR,
+      bFL,bFR, bFR,bBR, bBR,bBL, bBL,bFL
+    ].flat();
+    const outLineGeo = new THREE.BufferGeometry();
+    outLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(outLinePts, 3));
+    const outLineMesh = new THREE.LineSegments(outLineGeo, floorGridMat);
+    outLineMesh.renderOrder = 5;
+    outsideFloorLineGroup.add(outLineMesh);
+  }
+
+  WING_SEG1_LEN = 0.09; // 좌우 측면 날개 이중고 고정값: 9mm(치수 변경과 무관하게 항상 고정)
+  WING_SEG2_LEN = H - 0.01;
+  wing1 = makeWing(W/2, +1, wing1Mat, wing1Liner);
+  wing2 = makeWing(-W/2, -1, wing2Mat, wing2Liner);
+  scene.add(wing1.orientA, wing2.orientA);
+  setWingAngle(wing1, 0);
+  setWingAngle(wing2, 0);
+
+  lidPivot = new THREE.Group();
+  lidPivot.position.set(0, H, -D/2);
+  lidLen = D;
+  lidMesh = roundedTopPanel(W, lidLen, lidMat, 0.08, false, lidLiner);
+  rotate180UV(lidMesh.geometry);
+  lidPivot.add(lidMesh);
+
+  hookPivot = new THREE.Group();
+  hookPivot.position.set(0, lidLen-0.03, 0);
+  lidMesh.add(hookPivot);
+  const hookShape = new THREE.Shape();
+  const hw_ = W*0.11, hh_ = HOOK_H;
+  hookShape.moveTo(-hw_, 0);
+  hookShape.lineTo(hw_, 0);
+  hookShape.lineTo(hw_, hh_*0.6);
+  hookShape.quadraticCurveTo(hw_, hh_, 0, hh_);
+  hookShape.quadraticCurveTo(-hw_, hh_, -hw_, hh_*0.6);
+  hookShape.lineTo(-hw_, 0);
+  const hookGeo = new THREE.ShapeGeometry(hookShape);
+  hookMesh = new THREE.Mesh(hookGeo, boxMat);
+  hookMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(hookGeo), lineMat));
+  hookPivot.add(hookMesh);
+  scene.add(lidPivot);
+  setLidAngle(0);
+
+  endFlapPivot = new THREE.Group();
+  endFlapPivot.position.set(0, H, D/2);
+  endFlapLen = D*0.55/2;
+  efHalfW = W/2;
+  EF_TILT = 0.10 + 0.15;
+  EF_LEFT_BASE = endFlapLen*0.55;
+  EF_RIGHT_BASE = EF_LEFT_BASE + EF_TILT;
+  EF_DOME = endFlapLen*0.35;
+  // '사각형(일체형-앞뚜껑 꽃)'일 때만 앞뚜껑 윗변을 스캘럽(꽃/구름) 모양으로, 그 외에는 기존 단일 돔 모양 그대로.
+  const efTopYFn = (currentShape === 'rect1_flower') ? efTopYFlower : efTopY;
+  const EF_SEG = (currentShape === 'rect1_flower') ? 96 : 24; // 꽃 모양은 봉우리가 6개나 되어 더 촘촘하게 세분화
+  const efShape = new THREE.Shape();
+  efShape.moveTo(-efHalfW, 0);
+  efShape.lineTo(efHalfW, 0);
+  efShape.lineTo(efHalfW, efTopYFn(1));
+  for(let i=1;i<=EF_SEG;i++){
+    const xFrac = 1 - 2*i/EF_SEG;
+    efShape.lineTo(xFrac*efHalfW, efTopYFn(xFrac));
+  }
+  efShape.lineTo(-efHalfW, 0);
+  const efGeo = new THREE.ShapeGeometry(efShape, 1);
+  normalizeShapeUV(efGeo); // ShapeGeometry는 UV가 정규화되어 있지 않아 그대로 두면 이미지가 확대되어 보임
+  flipUIfBackSide(efGeo, endFlapMat);
+  endFlapMesh = new THREE.Mesh(efGeo, endFlapMat);
+  addLiner(endFlapMesh, efGeo, endFlapLiner);
+  endFlapLineMesh = new THREE.LineSegments(new THREE.EdgesGeometry(efGeo), lineMat);
+  endFlapMesh.add(endFlapLineMesh);
+  endFlapPivot.add(endFlapMesh);
+  scene.add(endFlapPivot);
+  setEndFlapAngle(0);
+}
+buildBox();
+
+// ===================== 단계 정의 =====================
+const STATE = { wallFold:0, wing1:0, wing2:0, lid:0, endFlap:0 };
+const TARGET = { ...STATE };
+// 처음 화면을 그릴 때, 카메라가 바라보는 지점(controls.target)을 상자의 실제 바운딩박스 중심으로 맞춰줌
+// (뚜껑/날개가 위로 서 있는 등, 상자의 실제 시각적 중심은 단순 (가로/2, 높이/2)와 다르기 때문에
+//  이걸 미리 정확히 맞춰둬야 나중에 확대/축소할 때 상자가 화면 위쪽으로 치우쳐 보이지 않음)
+function recenterCameraToBox(poseState){
+  const c = measureBBoxCenter(poseState);
+  const camOffset = camera.position.clone().sub(controls.target);
+  controls.target.copy(c);
+  camera.position.copy(c).add(camOffset);
+}
+recenterCameraToBox(STATE);
+
+const STEPS = [
+  { num:'0단계', desc:'납작하게 접힌 상태예요(전면-좌측변과 후면-우측변이 맞닿아 있음).\n실제 상자는 이 상태로 배송돼요.',
+    target:{ wallFold:0, wing1:0, wing2:0, lid:0, endFlap:0 } },
+  { num:'1단계', desc:'상자 아랫쪽 양쪽을 힘주어 밀어 사각형으로 펼친다.\n날개와 뚜껑은 아직 그대로예요.',
+    target:{ wallFold:1, wing1:0, wing2:0, lid:0, endFlap:0 } },
+  { num:'2단계', desc:'왼쪽 날개를 상자 안쪽~바닥쪽으로 밀어 바닥에 깐 후, 같은 방법으로 오른쪽 날개도 접는다.\n(10mm 이중벽 생김, 양쪽 바닥이 맞닿아 고정됨)',
+    target:{ wallFold:1, wing1:1, wing2:1, lid:0, endFlap:0 } },
+  { num:'3단계', desc:'아랫쪽(뚜껑 반대쪽) 날개를 안쪽으로 밀어 접은 후, 뚜껑을 접어 후크를 끼운다.',
+    target:{ wallFold:1, wing1:1, wing2:1, lid:1, endFlap:1 } },
+];
+
+let currentStepIdx = 0;
+function applyPose(s){
+  setWallFold(s.wallFold);
+  setWingAngle(wing1, s.wing1 * Math.PI/2);
+  setWingAngle(wing2, s.wing2 * Math.PI/2);
+  // 날개/뚜껑/앞날개가 각자 붙어있는 벽을 그대로 따라가도록(벽 위쪽 끝에서 이어지는 위치/각도 유지) - 먼저 기본 위치를 잡음
+  function followWall(attachPivot, wall, relRotOffset){
+    attachPivot.rotation.y = wall.rotation.y + relRotOffset;
+    attachPivot.position.set(
+      wall.position.x, // 위쪽으로만 오프셋(Y축 회전은 X,Z에만 영향, Y값은 그대로 더하면 됨)
+      wall.position.y + H/2,
+      wall.position.z
+    );
+  }
+  followWall(wing1.orientA, side1, 0);
+  followWall(wing2.orientA, side2, Math.PI);
+  // 뚜껑 힌지는 기본적으로 back 벽의 "실제 윗변"을 그대로 따라가야 함(0단계 납작한 상태에서는
+  // back이 표준 높이(H)가 아니라 backH(1mm 더 큼) 기준으로 배치되므로, followWall처럼 back.position.y+H/2를
+  // 그대로 쓰면 안 되고 back.position.y+backH/2로 back의 실제 윗변을 계산해야 함 - 예전엔 이걸 안 해서
+  // 0단계에서 뚜껑이 back의 실제 윗변보다 훨씬 아래(약 5.5cm)에 박혀 back과 겹쳐버리는 버그가 있었음).
+  // 다만 완전히 접힌 사각형 상태(wallFold=1)에서는 0.9mm 간격을 항상 표준 H 기준으로 일정하게 유지해야
+  // 하므로, back이 backH로 인해 더 높아진 만큼(backH-H)을 그 상태에서만 다시 빼줌(wallFold 비율만큼
+  // 서서히 적용 - 펼쳐진 상태에서는 안 빼고 back 실제 윗변 그대로, 다 접히면 표준 H 기준으로 보정됨)
+  lidPivot.rotation.y = back.rotation.y + (-Math.PI);
+  lidPivot.position.set(
+    back.position.x,
+    back.position.y + backH/2 - (backH - H) * s.wallFold,
+    back.position.z
+  );
+  followWall(endFlapPivot, front, 0);
+  // 0단계(납작하게 접힌 상태) 근처에서는 뒤뚜껑/앞뚜껑이 위로 곧게 선 채로 겹겹이 쌓인 후면/전면 벽과
+  // 같은 평면(z=0)에서 실제로 겹쳐버려 반짝이는 하얀 모아레(z-fighting)가 생기는데, back/front 벽 자체가
+  // setWallFold()에서 이미 서로 반대 방향으로 살짝(최대 3mm) 떨어져 있고 뒤뚜껑/앞날개는 그 z값을 그대로
+  // 물려받으므로(위 lidPivot.position.set(...)과 followWall이 각각 back.position.z, front.position.z를 그대로 씀)
+  // 이 시점에 이미 서로 6mm 떨어진 상태 - 별도로 더 떼어놓을 필요가 없음.
+  // (주의: 예전에는 여기서 뒤뚜껑/앞날개를 자신의 힌지 벽(back/front) 기준으로 또 한 번 추가로 떼어놓았었는데,
+  // 그러면 뒤뚜껑이 자신이 매달린 후면 벽과 서로 다른 z에 놓이게 되어, 비스듬한 각도에서 볼 때 후면과 뒤뚜껑
+  // 사이 이음선이 원근감 때문에 갈라져 보이는(흰 배경이 비치는) 새로운 문제가 생겼음 - 그래서 제거함)
+  // 이후 뚜껑/앞날개 각도 + 겹침 방지용 추가 높이(닫히는 동안에만 살짝 더 뜸)를 위에 더함
+  setLidAngle(s.lid);
+  setEndFlapAngle(s.endFlap * Math.PI/2);
+  setFloorFold(s.wallFold);
+
+  // 상자가 아직 완전히 사각형으로 펼쳐지지 않았으면(0단계 진행 중) 테두리선/모서리 표시만 숨김
+  const formed = s.wallFold >= 0.98;
+  outsideFloorLineGroup.visible = formed;
+  const floorOpacity = Math.max(0, Math.min(1, (s.wallFold - 0.9) / 0.1)); // 펴지는 동안엔 안 보이다가, 거의 다 펴진 마지막 10% 구간에서만 부드럽게 나타남
+  // opacity가 0인 구간(0단계 근처, 벽이 납작하게 겹쳐 쌓인 상태)에서는 아예 렌더링에서 빼서
+  // (투명해도 depth를 계속 쓰면 벽면들과 매우 가깝게 겹쳐 있어 반짝거리는 z-fighting이 생김)
+  floorMesh.visible = floorOpacity > 0;
+  floorMesh.material.opacity = floorOpacity;
+  if(floorLinerMesh) floorLinerMesh.material.opacity = floorOpacity; // 안쪽 흰색 라이너도 같이 부드럽게 나타나도록(따로 처리 안 하면 갑자기 툭 튀어나와 보임)
+  insideFloorLineGroup.visible = formed;
+  cornerMarkers.forEach(m => m.visible = formed);
+}
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+let animT = 1;
+const ANIM_DUR_BASE = 1100;
+const ANIM_DUR_SLOW = ANIM_DUR_BASE * 1.3; // 2단계(양쪽 날개)·3단계(앞/뒤뚜껑)가 덮히는(또는 펼쳐지는) 전환은 1.3배 더 느리게
+let ANIM_DUR = ANIM_DUR_BASE;
+let animStart = 0;
+let fromState = {...STATE};
+let animClosing = true;
+
+// 상자 전체(벽/바닥/날개/뚜껑)의 실제 3D 바운딩박스 중심을 구함 - 단계마다 상자 모양이 크게 달라지므로
+// (0단계는 납작하게 넓게 펼쳐지고, 1~2단계는 뚜껑/날개가 위로 서 있고, 3단계는 완전히 닫힘)
+// 이 중심을 카메라 타깃으로 삼아야 확대/축소할 때 화면 중앙에 상자가 고르게 위치함
+function measureBBoxCenter(poseState){
+  applyPose(poseState);
+  const box = new THREE.Box3();
+  [wallRoot, floorMesh, wing1.orientA, wing2.orientA, lidPivot, endFlapPivot].forEach(o=> box.expandByObject(o));
+  return box.getCenter(new THREE.Vector3());
+}
+// 단계 전환 시, 카메라를 순간적으로 "훽" 이동시키지 않고 상자가 펼쳐지는/접히는 움직임과 같은 속도로
+// 부드럽게 같이 이동시키기(팬) 위한 보간용 상태(X, Y 모두 실제 상자 중심을 따라감)
+let panFromX = 0, panToX = 0, lastPanX = 0;
+let panFromY = H/2, panToY = H/2, lastPanY = H/2;
+
+function goToStep(idx){
+  idx = Math.max(0, Math.min(STEPS.length-1, idx));
+  animClosing = idx >= currentStepIdx;
+  currentStepIdx = idx;
+  const nextTarget = STEPS[idx].target;
+  // 날개(2단계)나 앞/뒤뚜껑(3단계)이 실제로 움직이는 전환인지 확인해서 그 경우에만 1.3배 느리게
+  const wingChanges = (nextTarget.wing1 !== STATE.wing1) || (nextTarget.wing2 !== STATE.wing2);
+  const lidChanges = (nextTarget.lid !== STATE.lid) || (nextTarget.endFlap !== STATE.endFlap);
+  ANIM_DUR = (wingChanges || lidChanges) ? ANIM_DUR_SLOW : ANIM_DUR_BASE;
+  // 전환 시작 시점(현재 실제 포즈)과 도착 지점(다음 단계 포즈) 각각의 상자 중심을 미리 계산
+  const fromCenter = measureBBoxCenter(STATE);
+  const toCenter = measureBBoxCenter(nextTarget);
+  applyPose(STATE); // 측정을 위해 임시로 바꿨던 포즈를 원래(현재) 상태로 되돌림 - 화면에는 티나지 않음
+  fromState = {...STATE};
+  Object.assign(TARGET, nextTarget);
+  animStart = performance.now();
+  animT = 0;
+  updatePanelUI();
+  // 단계가 바뀌면서 상자의 실제 중심 위치가 달라지는 만큼, 카메라를 즉시 옮기지 않고
+  // animate() 루프에서 상자가 펼쳐지는/접히는 것과 같은 완급(ease)으로 서서히 같이 이동시킴(순간 점프 방지)
+  panFromX = fromCenter.x; panToX = toCenter.x; lastPanX = fromCenter.x;
+  panFromY = fromCenter.y; panToY = toCenter.y; lastPanY = fromCenter.y;
+}
+document.getElementById('nextBtn').addEventListener('click', ()=> goToStep(currentStepIdx+1));
+document.getElementById('prevBtn').addEventListener('click', ()=> goToStep(currentStepIdx-1));
+
+function updatePanelUI(){
+  const s = STEPS[currentStepIdx];
+  document.getElementById('stepNum').textContent = s.num;
+  document.getElementById('stepDesc').textContent = s.desc;
+  document.getElementById('prevBtn').disabled = currentStepIdx===0;
+  document.getElementById('nextBtn').disabled = currentStepIdx===STEPS.length-1;
+  document.querySelectorAll('.step-item').forEach((el,i)=> el.classList.toggle('active', i===currentStepIdx));
+}
+const stepsListEl = document.getElementById('stepsList');
+STEPS.forEach((s,i)=>{
+  const el = document.createElement('div');
+  el.className = 'step-item';
+  el.textContent = s.num;
+  el.addEventListener('click', ()=> goToStep(i));
+  stepsListEl.appendChild(el);
+});
+updatePanelUI();
+
+// ===================== 전체 자동 재생 =====================
+let autoPlayTimer = null;
+let autoPlaying = false;
+const autoPlayBtn = document.getElementById('autoPlayBtn');
+function stopAutoPlay(){
+  autoPlaying = false;
+  if(autoPlayTimer){ clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  autoPlayBtn.textContent = '▶ 전체 자동 재생';
+  autoPlayBtn.classList.remove('playing');
+}
+function startAutoPlay(){
+  autoPlaying = true;
+  autoPlayBtn.textContent = '⏸ 재생 중지';
+  autoPlayBtn.classList.add('playing');
+  goToStep(0);
+  let idx = 0;
+  const STEP_GAP = 1800; // 각 단계 사이 약 1.8초
+  function playNext(){
+    if(!autoPlaying) return;
+    idx++;
+    if(idx >= STEPS.length){ stopAutoPlay(); return; }
+    goToStep(idx);
+    if(idx < STEPS.length-1){
+      autoPlayTimer = setTimeout(playNext, STEP_GAP);
+    } else {
+      autoPlayTimer = setTimeout(stopAutoPlay, STEP_GAP);
+    }
+  }
+  autoPlayTimer = setTimeout(playNext, STEP_GAP);
+}
+autoPlayBtn.addEventListener('click', ()=>{
+  if(autoPlaying) stopAutoPlay(); else startAutoPlay();
+});
+// 이전/다음/단계 클릭 시에는 자동재생을 멈춤(사용자가 직접 조작하려는 의도로 간주)
+['prevBtn','nextBtn'].forEach(id=> document.getElementById(id).addEventListener('click', ()=>{ if(autoPlaying) stopAutoPlay(); }));
+stepsListEl.addEventListener('click', ()=>{ if(autoPlaying) stopAutoPlay(); });
+
+function animate(now){
+  requestAnimationFrame(animate);
+  if(animT < 1){
+    const t = Math.min(1, (now-animStart)/ANIM_DUR);
+    const ease = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    const easeOf = (localT)=> localT<0.5 ? 2*localT*localT : 1-Math.pow(-2*localT+2,2)/2;
+    for(const k in STATE){
+      if(k === 'endFlap'){
+        const localT = animClosing
+          ? Math.max(0, Math.min(1, t*2))
+          : Math.max(0, Math.min(1, (t-0.5)*2));
+        STATE[k] = lerp(fromState[k], TARGET[k], easeOf(localT));
+      } else if(k === 'lid'){
+        const localT = animClosing
+          ? Math.max(0, Math.min(1, (t-0.5)*2))
+          : Math.max(0, Math.min(1, t*2));
+        STATE[k] = lerp(fromState[k], TARGET[k], easeOf(localT));
+      } else if(k === 'wing2'){
+        const localT = animClosing
+          ? Math.max(0, Math.min(1, t*2))
+          : Math.max(0, Math.min(1, (t-0.5)*2));
+        STATE[k] = lerp(fromState[k], TARGET[k], easeOf(localT));
+      } else if(k === 'wing1'){
+        const localT = animClosing
+          ? Math.max(0, Math.min(1, (t-0.5)*2))
+          : Math.max(0, Math.min(1, t*2));
+        STATE[k] = lerp(fromState[k], TARGET[k], easeOf(localT));
+      } else {
+        STATE[k] = lerp(fromState[k], TARGET[k], ease);
+      }
+    }
+    applyPose(STATE);
+    animT = t;
+    // 단계가 바뀌면서 상자의 실제 중심(바운딩박스 중심)이 달라지는 전환은, 순간 이동(점프)하지 않고
+    // 위 ease와 같은 속도로 카메라/타깃을 매 프레임 조금씩 같이 이동시켜서 "깜빡 이동"처럼 보이지 않게 함
+    if(panFromX !== panToX || panFromY !== panToY){
+      const desiredPanX = panFromX + (panToX - panFromX) * ease;
+      const desiredPanY = panFromY + (panToY - panFromY) * ease;
+      const deltaPanX = desiredPanX - lastPanX;
+      const deltaPanY = desiredPanY - lastPanY;
+      if(deltaPanX !== 0 || deltaPanY !== 0){
+        camera.position.x += deltaPanX; camera.position.y += deltaPanY;
+        controls.target.x += deltaPanX; controls.target.y += deltaPanY;
+        lastPanX = desiredPanX; lastPanY = desiredPanY;
+      }
+    }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+applyPose(STATE);
+requestAnimationFrame(animate);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = wrap.clientWidth/wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
+
+// ===================== 면 편집(치수/이미지/색상/선/텍스트/저장/불러오기) =====================
+const FACE_DEFS = [
+  {key:'front', label:'전면'},
+  {key:'back', label:'후면'},
+  {key:'side2', label:'측면(좌)'},
+  {key:'wing2', label:'측면(좌) 날개'},
+  {key:'side1', label:'측면(우)'},
+  {key:'wing1', label:'측면(우) 날개'},
+  {key:'endFlap', label:'전면 뚜껑'},
+  {key:'lid', label:'후면 뚜껑'},
+  {key:'floor', label:'바닥'},
+];
+const TEX_SIZE = 768;
+function faceMatOf(key){
+  return { front:frontMat, back:backMat, side1:side1Mat, side2:side2Mat, wing1:wing1Mat, wing2:wing2Mat, endFlap:endFlapMat, lid:lidMat, floor:floorMatOpaque }[key];
+}
+function faceAspect(key){
+  switch(key){
+    case 'front': case 'back': return W/H;
+    case 'side1': case 'side2': return D/H;
+    case 'wing1': case 'wing2': return D/H;
+    case 'endFlap': return W/Math.max(0.05, endFlapLen*1.3);
+    case 'lid': return W/lidLen;
+    case 'floor': return W/D;
+    default: return 1;
+  }
+}
+function faceCanvasDims(key){
+  let aspect = faceAspect(key);
+  if(!isFinite(aspect) || aspect<=0) aspect = 1;
+  let cw, ch;
+  if(aspect >= 1){ cw = TEX_SIZE; ch = Math.max(32, Math.round(TEX_SIZE/aspect)); }
+  else { ch = TEX_SIZE; cw = Math.max(32, Math.round(TEX_SIZE*aspect)); }
+  return {cw, ch};
+}
+const faceState = {};
+function ensureFaceState(key){
+  if(!faceState[key]){
+    const {cw,ch} = faceCanvasDims(key);
+    const cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    const texture = new THREE.CanvasTexture(cv);
+    faceState[key] = {
+      canvas: cv, ctx: cv.getContext('2d'), texture,
+      baseImage:null, imageUrl:null, useColor:false, color:'#c9a06a',
+      imgBox:null, imgAspect:1, lines:[], texts:[]
+    };
+    redrawFace(key);
+  }
+  return faceState[key];
+}
+function syncFaceCanvasSize(key){
+  const st = faceState[key]; if(!st) return;
+  const {cw,ch} = faceCanvasDims(key);
+  if(st.canvas.width!==cw || st.canvas.height!==ch){
+    st.canvas.width = cw; st.canvas.height = ch;
+    redrawFace(key);
+  }
+}
+function syncAllFaceCanvasSizes(){ FACE_DEFS.forEach(f=> syncFaceCanvasSize(f.key)); }
+function computeContainBox(img, canvasAspect){
+  canvasAspect = canvasAspect || 1;
+  const ir = img.width / img.height;
+  if(ir > canvasAspect){ const hFrac = canvasAspect/ir; return { x:0, y:(1-hFrac)/2, w:1, h:hFrac }; }
+  const wFrac = ir/canvasAspect; return { x:(1-wFrac)/2, y:0, w:wFrac, h:1 };
+}
+function drawImageAtBox(ctx, img, cw, ch, box){
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,cw,ch); ctx.clip();
+  ctx.drawImage(img, box.x*cw, box.y*ch, box.w*cw, box.h*ch);
+  ctx.restore();
+}
+function drawFaceContent(state, ctx, cw, ch){
+  cw = cw || ctx.canvas.width; ch = ch || ctx.canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  ctx.fillStyle = state.useColor ? state.color : '#ffffff';
+  ctx.fillRect(0,0,cw,ch);
+  if(state.baseImage && !state.useColor && state.imgBox){
+    drawImageAtBox(ctx, state.baseImage, cw, ch, state.imgBox);
+  }
+  const lineScale = Math.min(cw,ch);
+  (state.lines||[]).forEach(line=>{
+    ctx.strokeStyle = line.color;
+    ctx.lineWidth = line.width/320*lineScale;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    line.points.forEach((p,i)=>{ const x=p.x*cw, y=p.y*ch; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+    ctx.stroke();
+  });
+  (state.texts||[]).forEach(t=>{
+    ctx.fillStyle = t.color;
+    ctx.font = `bold ${Math.max(8,t.size*ch)}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(t.content, t.x*cw, t.y*ch);
+  });
+}
+function redrawFace(key){
+  const st = faceState[key]; if(!st) return;
+  drawFaceContent(st, st.ctx, st.canvas.width, st.canvas.height);
+  st.texture.needsUpdate = true;
+  const mat = faceMatOf(key);
+  if(mat && mat.map !== st.texture){ mat.map = st.texture; mat.needsUpdate = true; }
+}
+FACE_DEFS.forEach(f=> ensureFaceState(f.key)); // 시작 시 전부 흰색 빈 캔버스로 초기화(기존 외형과 동일)
+
+// ===================== 프로젝트(JSON) 불러오기 - base_uploaded3.html의 applyProject()를
+// DOM 편집 요소(dimW/dimD/dimH/renderFaceUploadRows/editFaceSelect/refreshEditor)에 의존하지 않도록
+// 최소화해서 재구성한 버전. 로직(치수 반영→buildBox→카메라 재조정→면 텍스처 복원)은 완전히 동일함 =====================
+async function applyProject(project){
+  if(!project || !project.faces) throw new Error('잘못된 프로젝트 파일입니다.');
+  if(project.w) W = parseFloat(project.w)/100;
+  if(project.d) D = parseFloat(project.d)/100;
+  if(project.h) H = parseFloat(project.h)/100;
+  // 현재 저장 포맷(serializeProject())에는 상자 형태(shape) 필드가 없어 항상 'rect1'로 남지만,
+  // 나중에 저장 포맷에 shape 필드가 추가되는 경우를 대비해 있으면 반영함(없으면 기본값 'rect1' 그대로 유지)
+  if(project.shape === 'rect1' || project.shape === 'rect1_flower') currentShape = project.shape;
+  buildBox();
+  syncAllFaceCanvasSizes();
+  recenterCameraToBox(STATE);
+  goToStep(0);
+  applyPose(STATE);
+
+  Object.keys(faceState).forEach(k=> delete faceState[k]);
+  FACE_DEFS.forEach(f=> ensureFaceState(f.key));
+  const jobs = [];
+  Object.keys(project.faces).forEach(key=>{
+    const f = project.faces[key], st = ensureFaceState(key);
+    st.lines = f.lines||[]; st.texts = f.texts||[]; st.imgBox = f.box||null; st.imgAspect = f.aspect||1;
+    st.useColor = !!f.useColor; st.color = f.color||'#c9a06a';
+    if(f.imageData){
+      jobs.push(new Promise(resolve=>{
+        const img = new Image();
+        img.onload = ()=>{
+          st.baseImage = img;
+          st.imgAspect = f.aspect || (img.width/img.height);
+          if(!st.imgBox) st.imgBox = computeContainBox(img, st.canvas.width/st.canvas.height);
+          redrawFace(key);
+          resolve();
+        };
+        img.onerror = ()=>{ redrawFace(key); resolve(); };
+        img.src = f.imageData;
+      }));
+    } else {
+      redrawFace(key);
+    }
+  });
+  await Promise.all(jobs);
+}
+
+// ===================== 페이지 로드시 ?projectUrl=파일명.json (또는 ?json=, ?project=) 쿼리로 지정된
+// 프로젝트 파일을 자동으로 불러옴 - 예: 3d-fold-viewer.html?projectUrl=31a_fold.json
+// 이 쿼리가 있으면(=다른 사람에게 공유하는 링크) "프로젝트 불러오기" 버튼은 숨기고,
+// 쿼리가 없으면(=직접 파일을 골라 확인하는 작업용) 버튼을 보여줘서 로컬 .json 파일을 바로 열어볼 수 있게 함 =====================
+(function initProjectLoader(){
+  const params = new URLSearchParams(location.search);
+  const projectUrl = params.get('projectUrl') || params.get('json') || params.get('project');
+  const loadBtn = document.getElementById('loadProjectBtn');
+  const fileInput = document.getElementById('projectFileInput');
+
+  function showLoading(){
+    let el = document.getElementById('loadingMsg');
+    if(!el){ el = document.createElement('div'); el.id = 'loadingMsg'; document.body.appendChild(el); }
+    el.textContent = '불러오는 중...';
+    return el;
+  }
+
+  if(projectUrl){
+    const loadingEl = showLoading();
+    fetch(projectUrl)
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(project=> applyProject(project))
+      .catch(err=> { console.error('프로젝트를 불러오지 못했습니다:', err); loadingEl.textContent = '프로젝트를 불러오지 못했습니다.'; })
+      .finally(()=> { if(loadingEl.parentNode && loadingEl.textContent==='불러오는 중...') loadingEl.remove(); });
+    return; // 공유용 링크(?projectUrl=...)에서는 불러오기 버튼을 계속 숨김(초기 display:none 유지)
+  }
+
+  // ?projectUrl= 쿼리가 없는 경우에만(=작업용) 불러오기 버튼을 보여주고, 로컬 파일 선택으로 연결
+  loadBtn.style.display = 'block';
+  loadBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ()=>{
+    const file = fileInput.files[0];
+    if(!file) return;
+    const loadingEl = showLoading();
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const project = JSON.parse(reader.result);
+        applyProject(project).then(()=> loadingEl.remove());
+      }catch(err){
+        console.error('프로젝트를 불러오지 못했습니다:', err);
+        loadingEl.textContent = '프로젝트 파일을 읽지 못했습니다.';
+      }
+    };
+    reader.onerror = ()=>{ loadingEl.textContent = '파일을 읽지 못했습니다.'; };
+    reader.readAsText(file);
+    fileInput.value = ''; // 같은 파일을 다시 선택해도 change 이벤트가 다시 발생하도록 초기화
+  });
+})();
+</script>
+</body>
+</html>
