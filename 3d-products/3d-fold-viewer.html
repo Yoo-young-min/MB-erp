@@ -1570,6 +1570,13 @@ function createHouseMode(ctx){
   tb.rotateSpeed = 3.0; tb.zoomSpeed = 1.2; tb.panSpeed = 0.8;
   tb.staticMoving = false; tb.dynamicDampingFactor = 0.12;
   tb.enabled = false;
+  // 모바일: 두 손가락 확대/축소 때 손가락 중심이 흔들리며 상자가 화면 밖으로 밀려나는 현상(팬) 방지 + 확대/축소 범위 제한
+  tb.panSpeed = 0.3;
+  { const el = renderer.domElement;
+    el.addEventListener('touchstart', e=>{ if(e.touches.length >= 2) tb.noPan = true; }, { passive:true });
+    const endT = e=>{ if(e.touches.length === 0) tb.noPan = false; };
+    el.addEventListener('touchend', endT, { passive:true }); el.addEventListener('touchcancel', endT, { passive:true });
+  }
 
   // ---------- 카메라: 포즈의 바운딩박스에 맞춰 부드럽게 따라감 ----------
   const _box = new THREE.Box3(), _boxTmp = new THREE.Box3();
@@ -1616,7 +1623,11 @@ function createHouseMode(ctx){
     const nd = curDist + (d.dist - curDist)*k;
     camera.position.copy(tb.target).add(off.normalize().multiplyScalar(nd));
   }
-  function snapCamera(){ for(let i=0;i<10;i++) followCamera(1); }
+  function snapCamera(){
+    tb.minDistance = 0; tb.maxDistance = Infinity;
+    for(let i=0;i<10;i++) followCamera(1);
+    const d0 = camera.position.distanceTo(tb.target); tb.minDistance = d0*0.45; tb.maxDistance = d0*2.2;   // 확대/축소 범위 제한
+  }
 
   // ---------- 단계 이동 / 자동 재생 ----------
   let cur = 0, queue = [], seg = null, followUntil = 0;
