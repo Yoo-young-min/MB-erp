@@ -73,6 +73,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
 <script>
 // ===================== 상자 치수 (mm 기준, /100 하여 Three.js 단위로 사용) =====================
 let W = 1.45;   // 가로 - 기본 치수 145mm
@@ -81,6 +82,7 @@ let H = 0.31;   // 높이 - 기본 치수 31mm
 // 상자 형태(현재 '사각형(일체형)' / '사각형(일체형-앞뚜껑 꽃)') - buildBox()가 이 값을 읽어 앞뚜껑(endFlap) 모양만 분기함.
 // buildBox()의 첫 호출이 아래 shapeSelect DOM 연결보다 먼저 실행되므로, 기본값을 여기서 미리 선언해둠(TDZ 오류 방지).
 let currentShape = 'rect1';
+let HOUSE_ACTIVE = false; // 하우스형 모드 여부(아래 HOUSE 엔진 참고)
 
 // ===================== Three.js 기본 씬 =====================
 const canvas = document.getElementById('viewer');
@@ -792,6 +794,7 @@ let panFromX = 0, panToX = 0, lastPanX = 0;
 let panFromY = H/2, panToY = H/2, lastPanY = H/2;
 
 function goToStep(idx){
+  if(HOUSE_ACTIVE){ HOUSE.goToStep(idx); return; }
   idx = Math.max(0, Math.min(STEPS.length-1, idx));
   animClosing = idx >= currentStepIdx;
   currentStepIdx = idx;
@@ -840,6 +843,7 @@ let autoPlayTimer = null;
 let autoPlaying = false;
 const autoPlayBtn = document.getElementById('autoPlayBtn');
 function stopAutoPlay(){
+  if(HOUSE_ACTIVE) HOUSE.stopAutoPlay();
   autoPlaying = false;
   if(autoPlayTimer){ clearTimeout(autoPlayTimer); autoPlayTimer = null; }
   autoPlayBtn.textContent = '▶ 전체 자동 재생';
@@ -849,6 +853,7 @@ function startAutoPlay(){
   autoPlaying = true;
   autoPlayBtn.textContent = '⏸ 재생 중지';
   autoPlayBtn.classList.add('playing');
+  if(HOUSE_ACTIVE){ HOUSE.autoPlay(()=>{ if(autoPlaying) stopAutoPlay(); }); return; }
   goToStep(0);
   let idx = 0;
   const STEP_GAP = 1800; // 각 단계 사이 약 1.8초
@@ -874,6 +879,7 @@ stepsListEl.addEventListener('click', ()=>{ if(autoPlaying) stopAutoPlay(); });
 
 function animate(now){
   requestAnimationFrame(animate);
+  if(HOUSE_ACTIVE){ HOUSE.tick(now); renderer.render(scene, camera); return; }
   if(animT < 1){
     const t = Math.min(1, (now-animStart)/ANIM_DUR);
     const ease = t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
@@ -932,7 +938,7 @@ window.addEventListener('resize', ()=>{
 });
 
 // ===================== 면 편집(치수/이미지/색상/선/텍스트/저장/불러오기) =====================
-const FACE_DEFS = [
+let FACE_DEFS = [
   {key:'front', label:'전면'},
   {key:'back', label:'후면'},
   {key:'side2', label:'측면(좌)'},
@@ -945,9 +951,11 @@ const FACE_DEFS = [
 ];
 const TEX_SIZE = 768;
 function faceMatOf(key){
+  if(key.indexOf('h_')===0) return HOUSE.faceMat(key);
   return { front:frontMat, back:backMat, side1:side1Mat, side2:side2Mat, wing1:wing1Mat, wing2:wing2Mat, endFlap:endFlapMat, lid:lidMat, floor:floorMatOpaque }[key];
 }
 function faceAspect(key){
+  if(key.indexOf('h_')===0) return HOUSE.faceAspect(key);
   switch(key){
     case 'front': case 'back': return W/H;
     case 'side1': case 'side2': return D/H;
@@ -962,8 +970,9 @@ function faceCanvasDims(key){
   let aspect = faceAspect(key);
   if(!isFinite(aspect) || aspect<=0) aspect = 1;
   let cw, ch;
-  if(aspect >= 1){ cw = TEX_SIZE; ch = Math.max(32, Math.round(TEX_SIZE/aspect)); }
-  else { ch = TEX_SIZE; cw = Math.max(32, Math.round(TEX_SIZE*aspect)); }
+  const TS = key.indexOf('h_')===0 ? 2048 : TEX_SIZE;
+  if(aspect >= 1){ cw = TS; ch = Math.max(32, Math.round(TS/aspect)); }
+  else { ch = TS; cw = Math.max(32, Math.round(TS*aspect)); }
   return {cw, ch};
 }
 const faceState = {};
@@ -973,6 +982,7 @@ function ensureFaceState(key){
     const cv = document.createElement('canvas');
     cv.width = cw; cv.height = ch;
     const texture = new THREE.CanvasTexture(cv);
+    if(key.indexOf('h_')===0){ texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); texture.minFilter = THREE.LinearMipmapLinearFilter; }
     faceState[key] = {
       canvas: cv, ctx: cv.getContext('2d'), texture,
       baseImage:null, imageUrl:null, useColor:false, color:'#c9a06a',
@@ -999,6 +1009,7 @@ function computeContainBox(img, canvasAspect){
 }
 function drawImageAtBox(ctx, img, cw, ch, box){
   ctx.save(); ctx.beginPath(); ctx.rect(0,0,cw,ch); ctx.clip();
+  if(HOUSE_ACTIVE){ ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; }
   ctx.drawImage(img, box.x*cw, box.y*ch, box.w*cw, box.h*ch);
   ctx.restore();
 }
@@ -1035,11 +1046,775 @@ function redrawFace(key){
 }
 FACE_DEFS.forEach(f=> ensureFaceState(f.key)); // 시작 시 전부 흰색 빈 캔버스로 초기화(기존 외형과 동일)
 
+// ===================== 하우스형 모드 (일체형 코드는 그대로 두고, 별도 엔진을 같은 화면에 얹어서 사용) =====================
+// ===================== 하우스형 접는 방법 엔진 (일체형 엔진과 완전히 분리된 모듈) =====================
+// 일체형 코드는 건드리지 않고, 같은 scene/camera/renderer 위에 별도의 그룹으로 하우스형을 올려서 사용한다.
+// 단위: 1 = 100mm. 면 이미지는 호스트(편집기/뷰어)의 faceState 캔버스 텍스처를 faceMat(key).map 으로 받는다.
+function createHouseMode(ctx){
+  const { scene, camera, renderer, wrap, orbit } = ctx;
+  const onStep = ctx.onStep || function(){};
+
+  let W = 2.60, D = 1.90, H = 1.00;           // 기본 260 x 190 x 100 mm
+  let active = false;
+  const group = new THREE.Group(); group.visible = false; scene.add(group);
+
+  // ---------- 조명 (끈 질감용) : 활성화되는 동안 호스트의 기존 조명은 꺼 둔다 ----------
+  const ownLights = new THREE.Group(); group.add(ownLights);
+  const dl = new THREE.DirectionalLight(0xffffff, 0.55); dl.position.set(4, 8, 6); ownLights.add(dl);
+  ownLights.add(new THREE.AmbientLight(0xffffff, 0.75));
+  let hostLights = [];
+
+  // ---------- 면 정의 / 재질 ----------
+  const FACES = [
+    { key:'h_front',   label:'전면' },
+    { key:'h_back',    label:'후면' },
+    { key:'h_side1',   label:'측면1(좌)' },
+    { key:'h_side2',   label:'측면2(우)' },
+    { key:'h_slopeF',  label:'전면 경사면' },
+    { key:'h_slopeB',  label:'후면 경사면' },
+    { key:'h_slopeS1', label:'측면 경사면1(좌)' },
+    { key:'h_slopeS2', label:'측면 경사면2(우)' },
+    { key:'h_topF',    label:'상단(전면)' },
+    { key:'h_topB',    label:'상단(후면)' },
+    { key:'h_floor1',  label:'바닥1' },
+    { key:'h_floor2L', label:'바닥2(좌)' },
+    { key:'h_floor2R', label:'바닥2(우)' },
+    { key:'h_floor3',  label:'바닥3' },
+  ];
+  const faceMats = {};
+  FACES.forEach(f=> faceMats[f.key] = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.FrontSide }));
+  const matInner = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.BackSide });   // 상자 안쪽면은 전부 흰색
+  const edgeMat = new THREE.LineBasicMaterial({ color:0x6a6a6a });
+
+  // ---------- 끈 재질 (새끼줄 같은 꼬임 질감 + 색상 선택) ----------
+  function ropeTexture(bump){
+    const size = 128, c = document.createElement('canvas'); c.width = size; c.height = size;
+    const g = c.getContext('2d');
+    g.fillStyle = bump ? '#808080' : '#ffffff'; g.fillRect(0,0,size,size);
+    const n = 6, sw = size/n;
+    g.strokeStyle = bump ? '#141414' : '#b8b8b8'; g.lineWidth = sw*0.45;
+    for(let i=-n;i<n*2;i++){ g.beginPath(); g.moveTo(i*sw,size); g.lineTo(i*sw+size,0); g.stroke(); }
+    g.strokeStyle = bump ? '#f5f5f5' : '#ffffff'; g.lineWidth = sw*0.18;
+    for(let i=-n;i<n*2;i++){ g.beginPath(); g.moveTo(i*sw+sw*0.5,size); g.lineTo(i*sw+sw*0.5+size,0); g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+  function makeRopeMat(repU, repV){
+    const m = new THREE.MeshStandardMaterial({ color:0xc9a06a, roughness:0.8, metalness:0.0 });
+    m.bumpMap = ropeTexture(true); m.map = ropeTexture(false);
+    [m.bumpMap, m.map].forEach(t=> t.repeat.set(repU, repV));
+    m.bumpScale = 0.9;
+    return m;
+  }
+  const ropeMatTube = makeRopeMat(40, 2);   // 줄(튜브): u=길이 방향, v=둘레
+  const ropeMatCyl  = makeRopeMat(2, 5);    // 끝 가닥/팁(원통): u=둘레, v=길이 방향
+  let ropeColor = '#c9a06a';
+  function setRopeColor(hex){
+    ropeColor = hex || '#c9a06a';
+    ropeMatTube.color.set(ropeColor); ropeMatCyl.color.set(ropeColor);
+  }
+  setRopeColor(ropeColor);
+
+  // ---------- 기하 헬퍼 ----------
+  // uvm: {ox,oy,tw,th} -> u=(x+ox)/tw, v=(y+oy)/th  (여러 조각을 한 장의 통이미지로 이어 붙이기 위함)
+  function applyUV(geo, uvm){
+    const pos = geo.attributes.position, uv = geo.attributes.uv;
+    for(let i=0;i<uv.count;i++) uv.setXY(i, (pos.getX(i)+uvm.ox)/uvm.tw, (pos.getY(i)+uvm.oy)/uvm.th);
+    uv.needsUpdate = true;
+  }
+  function panelFromShape(shape, key, uvm, skip){
+    const geo = new THREE.ShapeGeometry(shape, 10);
+    applyUV(geo, uvm);
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(geo, faceMats[key]), new THREE.Mesh(geo, matInner));
+    let eg = new THREE.EdgesGeometry(geo);
+    if(skip){   // 모델링용 이음선(램프/탭 경계 등)은 그리지 않음
+      const a = eg.attributes.position.array, keep = [];
+      for(let i=0;i<a.length;i+=6){ if(!skip(a[i+1], a[i+4])) for(let k=0;k<6;k++) keep.push(a[i+k]); }
+      eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(keep,3));
+    }
+    g.add(new THREE.LineSegments(eg, edgeMat));
+    return g;
+  }
+  function slotPath(cx, y0, y1, w){
+    const r = w/2, p = new THREE.Path();
+    p.moveTo(cx-r, y0+r); p.lineTo(cx-r, y1-r); p.absarc(cx, y1-r, r, Math.PI, 0, true);
+    p.lineTo(cx+r, y0+r); p.absarc(cx, y0+r, r, 0, Math.PI, true);
+    return p;
+  }
+  // 위로 뻗는 직사각형(아래변 중앙이 힌지). uvm 은 호출 쪽에서 조각 위치에 맞게 지정
+  function upRect(w, h, rTop, holes, slots, key, uvm){
+    const s = new THREE.Shape(), r = rTop||0;
+    s.moveTo(-w/2,0); s.lineTo(w/2,0);
+    if(r>0){ s.lineTo(w/2,h-r); s.quadraticCurveTo(w/2,h,w/2-r,h); s.lineTo(-w/2+r,h); s.quadraticCurveTo(-w/2,h,-w/2,h-r); }
+    else { s.lineTo(w/2,h); s.lineTo(-w/2,h); }
+    s.closePath();
+    (holes||[]).forEach(o=>{ const p=new THREE.Path(); p.absarc(o.x,o.y,o.r,0,Math.PI*2,true); s.holes.push(p); });
+    (slots||[]).forEach(o=> s.holes.push(slotPath(o.x, o.y0, o.y1, o.w)));
+    return panelFromShape(s, key, uvm);
+  }
+  function upTrap(wb, wt, h, slots, key, uvm){
+    const s = new THREE.Shape();
+    s.moveTo(-wb/2,0); s.lineTo(wb/2,0); s.lineTo(wt/2,h); s.lineTo(-wt/2,h); s.closePath();
+    (slots||[]).forEach(o=> s.holes.push(slotPath(o.x, o.y0, o.y1, o.w)));
+    return panelFromShape(s, key, uvm);
+  }
+  // 바닥 날개(전개도 픽셀 좌표 -> 실제 치수). 세로 길이는 D 기준(전개도 D=269px)
+  let kxW = 1, kyF = 1;
+  function flapShape(pts, wPx, wReal, key, uvm, skip){
+    const kx = wReal/wPx, ky = kyF;
+    const s = new THREE.Shape(); let first = true;
+    pts.forEach(p=>{
+      if(p.length===2){ const x=p[0]*kx, y=-p[1]*ky; if(first){ s.moveTo(x,y); first=false; } else s.lineTo(x,y); }
+      else s.quadraticCurveTo(p[0]*kx,-p[1]*ky, p[2]*kx,-p[3]*ky);
+    });
+    s.closePath();
+    return panelFromShape(s, key, uvm, skip);
+  }
+  function flapUVM(wReal, wPx, maxPx){   // 날개 한 장 전체(bbox)에 이미지를 펴서 입힘
+    const kx = wReal/wPx, tw = wPx*kx, th = maxPx*kyF;
+    return { ox: tw/2, oy: th, tw, th };
+  }
+  function floorFlap1(){
+    return flapShape([[-184.5,0],[184.5,0],[180.5,170],[103.5,170],[93.5,170,93.5,160],[93.5,134],[-93.5,134],[-93.5,160],[-93.5,170,-103.5,170],[-180.5,170]], 369, W, 'h_floor1', flapUVM(W,369,170));
+  }
+  function floorFlap2(mirror, key){
+    const m = mirror ? -1 : 1;
+    const pts = [[-134.5,0],[134.5,0],[129.5,170],[-2.5,170],[-24.5,170,-24.5,133],[2.5,92]].map(p=> p.length===2 ? [p[0]*m,p[1]] : [p[0]*m,p[1],p[2]*m,p[3]]);
+    return flapShape(pts, 269, D, key, flapUVM(D,269,170));
+  }
+  function rectDown(a, len, r, key, uvm, skip){
+    const sh = new THREE.Shape();
+    sh.moveTo(-a,0); sh.lineTo(a,0);
+    if(r>0){ sh.lineTo(a,-len+r); sh.quadraticCurveTo(a,-len,a-r,-len); sh.lineTo(-a+r,-len); sh.quadraticCurveTo(-a,-len,-a,-len+r); }
+    else { sh.lineTo(a,-len); sh.lineTo(-a,-len); }
+    sh.closePath();
+    return panelFromShape(sh, key, uvm, skip);
+  }
+  function floorFlap3(){   // 바닥3: 몸통(사다리꼴) + 끼움 탭(경사 구간 -> 평평한 구간), 모두 한 장의 통이미지
+    const g = new THREE.Group(), kx = W/369, ky = kyF;
+    const tw = 369*kx, th = 170*ky;
+    g.add(flapShape([[-184.5,0],[184.5,0],[92.5,133],[-92.5,133]], 369, W, 'h_floor3', { ox:tw/2, oy:th, tw, th }));
+    const a = 92.5*kx, tabLen = 37*ky, RL = Math.min(0.045, tabLen*0.45);
+    const ramp = new THREE.Group(); ramp.position.set(0,-133*ky,0); g.add(ramp);
+    ramp.add(rectDown(a, RL, 0, 'h_floor3', { ox:tw/2, oy:th-133*ky, tw, th }, (ya,yb)=> Math.abs(ya-yb)<1e-6));
+    const tipB = new THREE.Group(); tipB.position.set(0,-RL,0); ramp.add(tipB);
+    tipB.add(rectDown(a, tabLen-RL, 12*kx, 'h_floor3', { ox:tw/2, oy:th-133*ky-RL, tw, th }, (ya,yb)=> Math.abs(ya)<1e-6 && Math.abs(yb)<1e-6));
+    g.userData.ramp = ramp; g.userData.tabB = tipB; g.userData.RL = RL;
+    return g;
+  }
+
+  // ---------- 몸통 4벽 납작함 <-> 사각형 ----------
+  let flipPivot, boxRoot, front, back, side1, side2;
+  let gussets = [];
+  let SQ, FL, REL_FL, REL_SQ;
+  let SIDE_TILT = 30*Math.PI/180, PHI = 0;
+  function relTransform(state, parentKey, childKey){
+    const p = state[parentKey], c = state[childKey];
+    const cosP = Math.cos(-p.rotY), sinP = Math.sin(-p.rotY);
+    const dx = c.pos[0]-p.pos[0], dz = c.pos[2]-p.pos[2];
+    return { pos:[ dx*cosP + dz*sinP, c.pos[1]-p.pos[1], -dx*sinP + dz*cosP ], rotY: c.rotY - p.rotY };
+  }
+  function lerpWall(g, sq, fl, t){
+    g.position.set(fl.pos[0]+(sq.pos[0]-fl.pos[0])*t, fl.pos[1]+(sq.pos[1]-fl.pos[1])*t, fl.pos[2]+(sq.pos[2]-fl.pos[2])*t);
+    g.rotation.y = fl.rotY + (sq.rotY-fl.rotY)*t;
+  }
+  function composedFrom(parentPos, parentRotY, relFl, relSq, t){
+    const rp = [0,1,2].map(i=> relFl.pos[i]+(relSq.pos[i]-relFl.pos[i])*t);
+    const rr = relFl.rotY + (relSq.rotY-relFl.rotY)*t;
+    const c = Math.cos(parentRotY), s = Math.sin(parentRotY);
+    return { pos:[ parentPos[0]+rp[0]*c+rp[2]*s, parentPos[1]+rp[1], parentPos[2]-rp[0]*s+rp[2]*c ], rotY: parentRotY+rr };
+  }
+  function avg2(a,b){ return { pos:[0,1,2].map(i=>(a.pos[i]+b.pos[i])/2), rotY:(a.rotY+b.rotY)/2 }; }
+  function setWallFold(foldT){
+    lerpWall(front, SQ.front, FL.front, foldT);
+    lerpWall(back,  SQ.back,  FL.back,  foldT);
+    const fS = { pos:front.position.toArray(), rotY:front.rotation.y };
+    const bS = { pos:back.position.toArray(),  rotY:back.rotation.y  };
+    const s2 = avg2(composedFrom(fS.pos,fS.rotY,REL_FL.frontSide2,REL_SQ.frontSide2,foldT), composedFrom(bS.pos,bS.rotY,REL_FL.backSide2,REL_SQ.backSide2,foldT));
+    side2.position.set(...s2.pos); side2.rotation.y = s2.rotY;
+    const s1 = avg2(composedFrom(bS.pos,bS.rotY,REL_FL.backSide1,REL_SQ.backSide1,foldT), composedFrom(fS.pos,fS.rotY,REL_FL.frontSide1,REL_SQ.frontSide1,foldT));
+    side1.position.set(...s1.pos); side1.rotation.y = s1.rotY;
+    const zf = Math.max(0, 1-foldT) * 0.006;
+    back.position.z -= zf; side2.position.z -= zf; front.position.z += zf; side1.position.z += zf;
+  }
+
+  // ---------- 끈 ----------
+  function makeCord(sf){
+    const g = new THREE.Group();
+    const V = (x,y,z)=> new THREE.Vector3(x,y,z);
+    const hx = W*92/369, yh = 0.5*sf, c = Math.cos(PHI), sn = Math.sin(PHI), top = H/2, zz = 0.022;
+    const n = V(0, sn, c);
+    const P = (x, ys, off)=> V(x, top + ys*c, -ys*sn).addScaledVector(n, off);
+    const k = Math.min(1, yh/0.4);   // 구멍에서 나온 끈이 꺾이지 않고 둥글게 아래로 이어지도록 보정점
+    const half = sx=>[ P(sx*hx,yh,0.0), P(sx*hx,yh,0.03), P(sx*hx,yh-0.05*k,0.042), P(sx*hx,yh-0.12*k,0.038),
+      P(sx*hx,yh*0.55,0.022), P(sx*hx,0,0.022),
+      V(sx*hx,top-0.16*H,zz), V(sx*hx,top-0.39*H,zz), V(sx*hx*0.82,top-0.57*H,zz), V(sx*hx*0.45,top-0.68*H,zz) ];
+    const pts = [...half(-1), V(0,top-0.71*H,zz), ...half(1).reverse()];
+    const loop = new THREE.Group(); g.add(loop);
+    loop.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, 0.022, 12, false), ropeMatTube));
+    g.userData.loop = loop; g.userData.n = n; g.userData.ends = [];
+    [-1,1].forEach(sx=>{
+      const sg = new THREE.Group(); sg.position.copy(P(sx*hx, yh, 0));
+      sg.quaternion.setFromUnitVectors(V(0,1,0), n);
+      const sgeo = new THREE.CylinderGeometry(0.022,0.022,1,12); sgeo.translate(0,0.5,0);
+      const stub = new THREE.Mesh(sgeo, ropeMatCyl); sg.add(stub);
+      const tip = new THREE.Group(); sg.add(tip);
+      tip.add(new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.028,0.2,14), new THREE.MeshStandardMaterial({color:0x111111, roughness:0.6, metalness:0})));
+      g.add(sg); g.userData.ends.push({ stub, tip });
+    });
+    g.visible = false;
+    return g;
+  }
+  const ease = t=> t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+  const clamp01 = v=> Math.max(0, Math.min(1, v));
+  function cordPose(c, u){
+    const e = t=> ease(clamp01(t));
+    const ins = e(u/0.45), rot = e((u-0.45)/0.25), pull = e((u-0.7)/0.3);
+    const loopOff = 0.4*(1-ins);
+    const tipPos = 0.4 - 0.52*ins + 0.09*pull;
+    c.userData.loop.position.copy(c.userData.n).multiplyScalar(loopOff);
+    c.userData.ends.forEach(o=>{
+      o.stub.position.y = tipPos; o.stub.scale.y = Math.max(0.001, 0.03 + loopOff - tipPos);
+      o.tip.position.y = tipPos; o.tip.rotation.z = Math.PI/2*rot;
+    });
+    c.visible = u > 0.001;
+  }
+
+  // ---------- 면별 캔버스 비율 (호스트가 텍스처 캔버스 크기를 정할 때 사용) ----------
+  let SLOPE_H = 0, TOP_H = 0, TUCK_H = 0, SRECT_H = 0;
+  function dimsDerive(){
+    SLOPE_H = 0.8*H; TUCK_H = 0.25*H; SRECT_H = 0.6*H;
+    SIDE_TILT = 30*Math.PI/180;
+    for(let i=0;i<40;i++) SIDE_TILT = Math.max(30*Math.PI/180, Math.atan((D/4) / (SLOPE_H*Math.cos(SIDE_TILT))));
+    PHI = Math.atan((D/4) / (SLOPE_H*Math.cos(SIDE_TILT))) - Math.PI/180;
+    TOP_H = Math.max(0.2*H, D/2 - SLOPE_H*Math.sin(PHI) - 0.002);
+  }
+  dimsDerive();
+  function faceAspect(key){
+    switch(key){
+      case 'h_front': case 'h_back': return W/H;
+      case 'h_side1': case 'h_side2': return D/H;
+      case 'h_slopeF': case 'h_slopeB': return W/SLOPE_H;
+      case 'h_slopeS1': case 'h_slopeS2': return D/(SLOPE_H+SRECT_H);
+      case 'h_topF': case 'h_topB': return W/(TOP_H+TUCK_H);
+      case 'h_floor1': case 'h_floor3': return W/(D/2);
+      case 'h_floor2L': case 'h_floor2R': return (0.2*W)/D;
+      default: return 1;
+    }
+  }
+
+  // ---------- 상자 생성 ----------
+  const plates = [];
+  function disposeTree(o){ o.traverse(c=>{ if(c.geometry) c.geometry.dispose(); }); }
+  function build(){
+    if(flipPivot){ group.remove(flipPivot); disposeTree(flipPivot); }
+    plates.length = 0;
+    dimsDerive();
+    kxW = W/369; kyF = D/269;
+    flipPivot = new THREE.Group(); group.add(flipPivot);
+    boxRoot = new THREE.Group(); flipPivot.add(boxRoot);
+    flipPivot.position.set(0, H/2, 0); boxRoot.position.set(0, -H/2, 0);
+
+    const SLOPE_F = SLOPE_H;
+    function wall(w, key){
+      const g = new THREE.Group();
+      const p = upRect(w, H, 0, null, null, key, { ox:w/2, oy:0, tw:w, th:H }); p.position.y = -H/2; g.add(p);
+      // 안쪽 아랫변 선: 면과 같은 평면에 있는 모서리선은 안쪽에서 보이지 않을 수 있어, 안쪽으로 살짝 띄운 선을 따로 그림
+      const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute([-w/2,0,-0.0015, w/2,0,-0.0015],3));
+      p.add(new THREE.LineSegments(lg, edgeMat));
+      boxRoot.add(g); return g;
+    }
+    front = wall(W,'h_front'); back = wall(W,'h_back'); side1 = wall(D,'h_side1'); side2 = wall(D,'h_side2');
+    const pivotAt = (parent, y)=>{ const p = new THREE.Group(); p.position.set(0,y,0); parent.add(p); return p; };
+
+    const holes = [{x:-W*92/369, y:SLOPE_F/2, r:0.027},{x:W*92/369, y:SLOPE_F/2, r:0.027}];
+    [[front,'h_slopeF','h_topF'],[back,'h_slopeB','h_topB']].forEach(([w,ks,kt])=>{
+      const slopeP = pivotAt(w, H/2);          slopeP.add(upRect(W, SLOPE_F, 0, holes, null, ks, { ox:W/2, oy:0, tw:W, th:SLOPE_F }));
+      const topP   = pivotAt(slopeP, SLOPE_F); topP.add(upRect(W, TOP_H, 0, null, null, kt, { ox:W/2, oy:0, tw:W, th:TOP_H+TUCK_H }));
+      const tuckP  = pivotAt(topP, TOP_H);     tuckP.add(upRect(W, TUCK_H, 0.1*H, null, null, kt, { ox:W/2, oy:TOP_H, tw:W, th:TOP_H+TUCK_H }));
+      const cord = makeCord(SLOPE_F); w.add(cord); w.userData.cord = cord;
+      w.userData.slopeP = slopeP; w.userData.topP = topP; w.userData.tuckP = tuckP;
+    });
+    const SLIT_W = 0.04, SLIT_L = 0.35*H;
+    [[side1,'h_slopeS1'],[side2,'h_slopeS2']].forEach(([w,k])=>{
+      const th = SLOPE_H + SRECT_H;
+      const trapP = pivotAt(w, H/2);         trapP.add(upTrap(D, D/2, SLOPE_H, [{x:0, y0:SLOPE_H-0.002-SLIT_L, y1:SLOPE_H-0.002, w:SLIT_W}], k, { ox:D/2, oy:0, tw:D, th }));
+      const rectP = pivotAt(trapP, SLOPE_H); rectP.add(upRect(D/2, SRECT_H, 0.105*H, null, [{x:0, y0:0.002, y1:0.002+SLIT_L, w:SLIT_W}], k, { ox:D/2, oy:SLOPE_H, tw:D, th }));
+      w.userData.trapP = trapP; w.userData.rectP = rectP;
+    });
+    // 바닥 날개 (벽 아랫변이 힌지, 아래로 뻗음)
+    const fl1 = pivotAt(front, -H/2), fl3 = pivotAt(back, -H/2), fl2a = pivotAt(side1, -H/2), fl2b = pivotAt(side2, -H/2);
+    fl1.add(floorFlap1()); const f3g = floorFlap3(); fl3.add(f3g); back.userData.f3g = f3g;
+    fl2a.add(floorFlap2(false,'h_floor2L')); fl2b.add(floorFlap2(true,'h_floor2R'));
+    front.userData.floorP = fl1; back.userData.floorP = fl3; side1.userData.floorP = fl2a; side2.userData.floorP = fl2b;
+    fl3.userData.layer = 0.003; fl2a.userData.layer = fl2b.userData.layer = 0.008; fl1.userData.layer = 0.013;
+    [fl1,fl2a,fl2b,fl3].forEach(p=> p.children.forEach(c=>{ c.userData.base = c.position.z; }));
+
+    // 바닥 마감 판: 접힌 날개 모양은 가리고 격자선만 보이게. 바깥쪽은 4개 구역에 각 바닥 면의 이미지를 그대로 보여줌
+    const hw = W/2, hd = D/2, hl = -W*0.3, hr = W*0.3;
+    const gridPts = (y)=> [ hl,y,0, hr,y,0,  hl,y,0, -hw,y,hd,  hl,y,0, -hw,y,-hd,  hr,y,0, hw,y,hd,  hr,y,0, hw,y,-hd ];
+    const mkLines = (y)=>{
+      const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(gridPts(y),3));
+      const lm = new THREE.LineBasicMaterial({ color:0x6a6a6a, transparent:true, opacity:0 });
+      return { obj:new THREE.LineSegments(lg, lm), lm };
+    };
+    // 바깥(아래를 향함): [키, 구역 다각형(x,z)]
+    const regions = [
+      ['h_floor1',  [[hl,0],[hr,0],[hw,hd],[-hw,hd]]],
+      ['h_floor3',  [[hl,0],[-hw,-hd],[hw,-hd],[hr,0]]],
+      ['h_floor2R', [[-hw,hd],[hl,0],[-hw,-hd]]],
+      ['h_floor2L', [[hw,hd],[hw,-hd],[hr,0]]],
+    ];
+    const outerGroup = new THREE.Group(); boxRoot.add(outerGroup); outerGroup.visible = false;
+    const outerItems = [];
+    regions.forEach(([key, poly])=>{
+      const sh = new THREE.Shape(); poly.forEach((p,i)=> i ? sh.lineTo(p[0],p[1]) : sh.moveTo(p[0],p[1]));
+      const geo = new THREE.ShapeGeometry(sh);
+      let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+      poly.forEach(p=>{ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); y0=Math.min(y0,p[1]); y1=Math.max(y1,p[1]); });
+      applyUV(geo, { ox:-x0, oy:-y0, tw:x1-x0, th:y1-y0 });
+      geo.rotateX(Math.PI/2);   // 법선이 아래(-y)를 향하게
+      const pm = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.FrontSide, transparent:true, opacity:0 });
+      outerGroup.add(new THREE.Mesh(geo, pm));
+      outerItems.push({ key, pm });
+    });
+    const outL = mkLines(-0.0012); outerGroup.add(outL.obj);
+    // 안쪽(위를 향함): 흰색
+    const innerGroup = new THREE.Group(); innerGroup.position.y = 0.034; boxRoot.add(innerGroup); innerGroup.visible = false;
+    const ipm = new THREE.MeshBasicMaterial({ color:0xffffff, side:THREE.DoubleSide, transparent:true, opacity:0 });
+    const ig = new THREE.PlaneGeometry(W, D); ig.rotateX(-Math.PI/2);
+    innerGroup.add(new THREE.Mesh(ig, ipm));
+    const inL = mkLines(0.0012); innerGroup.add(inL.obj);
+    { // 안쪽 바닥 둘레선(전면·후면·양측면 안쪽 아랫변): 안쪽 흰 판 위에 항상 또렷하게
+      const e = 0.0015, x0 = -W/2+e, x1 = W/2-e, z0 = -D/2+e, z1 = D/2-e, y = 0.0012;
+      const rg = new THREE.BufferGeometry();
+      rg.setAttribute('position', new THREE.Float32BufferAttribute([x0,y,z0,x1,y,z0, x1,y,z0,x1,y,z1, x1,y,z1,x0,y,z1, x0,y,z1,x0,y,z0],3));
+      innerGroup.add(new THREE.LineSegments(rg, edgeMat));
+    }
+    plates.push({ outerGroup, outerItems, outL, innerGroup, ipm, inL });
+
+    SQ = {
+      front: { pos:[0, H/2, D/2],  rotY:0 },
+      side1: { pos:[W/2, H/2, 0],  rotY:Math.PI/2 },
+      back:  { pos:[0, H/2, -D/2], rotY:Math.PI },
+      side2: { pos:[-W/2, H/2, 0], rotY:Math.PI*1.5 },
+    };
+    FL = {
+      side2: { pos:[D/2, H/2, 0],   rotY:Math.PI },
+      back:  { pos:[D+W/2, H/2, 0], rotY:Math.PI },
+      front: { pos:[W/2, H/2, 0],   rotY:0 },
+      side1: { pos:[W+D/2, H/2, 0], rotY:0 },
+    };
+    REL_FL = { frontSide2:relTransform(FL,'front','side2'), backSide2:relTransform(FL,'back','side2'), backSide1:relTransform(FL,'back','side1'), frontSide1:relTransform(FL,'front','side1') };
+    REL_SQ = { frontSide2:relTransform(SQ,'front','side2'), backSide2:relTransform(SQ,'back','side2'), backSide1:relTransform(SQ,'back','side1'), frontSide1:relTransform(SQ,'front','side1') };
+    // ---------- 경사면 옆 삼각형(거셋): 사다리꼴 옆변 ↔ 전·후면 경사면 세로변 사이를 잇고, 경사면이 기울면 안쪽으로 접혀 들어감 ----------
+    gussets = [];
+    setWallFold(1); flipPivot.updateMatrixWorld(true);
+    [front, back].forEach(w=>{ [-1,1].forEach(sx=>{
+      const sp = w.userData.slopeP, V3 = THREE.Vector3;
+      const Cl = new V3(sx*W/2, 0, 0), Al = new V3(sx*W/2, SLOPE_H, 0);
+      const Cw = sp.localToWorld(Cl.clone());
+      let best = null;
+      [side1, side2].forEach(sd=>{ [-1,1].forEach(ss=>{
+        const tp = sd.userData.trapP, d = tp.localToWorld(new V3(ss*D/2,0,0)).distanceTo(Cw);
+        if(!best || d < best.d) best = { d, tp, ss, key: sd===side1 ? 'h_slopeS1' : 'h_slopeS2' };
+      }); });
+      const Bl = new V3(best.ss*D/4, SLOPE_H, 0);
+      const pos = new Float32Array(18), lpos = new Float32Array(12);
+      const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(pos,3));
+      const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(lpos,3));
+      // 측면 경사면 통이미지(아래 사다리꼴 + 좌우 삼각형 + 위 직사각형) 중 삼각형 영역을 그대로 이어서 입힘
+      const ss = best.ss, thS = SLOPE_H + SRECT_H;
+      const uvOf = (x,y)=> [ (x + D/2)/D, y/thS ];
+      const uC = uvOf(ss*D/2, 0), uA = uvOf(ss*D/2, SLOPE_H), uB = uvOf(ss*D/4, SLOPE_H), uM = [(uA[0]+uB[0])/2, (uA[1]+uB[1])/2];
+      const order = ss > 0 ? [uC,uA,uM, uC,uM,uB] : [uC,uM,uA, uC,uB,uM];
+      mg.setAttribute('uv', new THREE.Float32BufferAttribute(order.flat(), 2));
+      mg.userData = {}; lg.userData = {};
+      const mesh = new THREE.Mesh(mg, faceMats[best.key]);
+      const meshIn = new THREE.Mesh(mg, matInner);
+      const lines = new THREE.LineSegments(lg, edgeMat);
+      mesh.frustumCulled = false; meshIn.frustumCulled = false; lines.frustumCulled = false;
+      mesh.userData.dynBox = meshIn.userData.dynBox = lines.userData.dynBox = true;   // 매 프레임 모양이 바뀌므로 경계상자를 다시 계산
+      boxRoot.add(mesh); boxRoot.add(meshIn); boxRoot.add(lines);
+      gussets.push({ sp, tp:best.tp, Cl, Al, Bl, pos, lpos, mg, lg, ss });
+    }); });
+    applyPose(STATE);
+  }
+
+  const _gC = new THREE.Vector3(), _gA = new THREE.Vector3(), _gB = new THREE.Vector3(), _gM = new THREE.Vector3(), _gN = new THREE.Vector3(), _gT = new THREE.Vector3();
+  function updateGussets(){
+    if(!boxRoot || !gussets.length) return;
+    boxRoot.updateMatrixWorld(true);
+    const L = D/4;
+    gussets.forEach(g=>{
+      boxRoot.worldToLocal(g.sp.localToWorld(_gC.copy(g.Cl)));
+      boxRoot.worldToLocal(g.sp.localToWorld(_gA.copy(g.Al)));
+      boxRoot.worldToLocal(g.tp.localToWorld(_gB.copy(g.Bl)));
+      const len = _gA.distanceTo(_gB);
+      _gM.copy(_gA).add(_gB).multiplyScalar(0.5);
+      const off = Math.sqrt(Math.max(0, (L/2)*(L/2) - (len/2)*(len/2)));
+      if(off > 1e-5){
+        _gN.copy(_gA).sub(_gC).cross(_gT.copy(_gB).sub(_gC)).normalize();
+        if(_gN.dot(_gT.set(0, _gC.y, 0).sub(_gC)) < 0) _gN.negate();
+        _gM.addScaledVector(_gN, off);
+      }
+      const P = g.pos, Lp = g.lpos;
+      const put = (arr,i,v)=>{ arr[i*3]=v.x; arr[i*3+1]=v.y; arr[i*3+2]=v.z; };
+      if(g.ss > 0){ put(P,0,_gC); put(P,1,_gA); put(P,2,_gM);  put(P,3,_gC); put(P,4,_gM); put(P,5,_gB); }
+      else        { put(P,0,_gC); put(P,1,_gM); put(P,2,_gA);  put(P,3,_gC); put(P,4,_gB); put(P,5,_gM); }
+      put(Lp,0,_gA); put(Lp,1,_gM); put(Lp,2,_gM); put(Lp,3,_gB);
+      g.mg.attributes.position.needsUpdate = true; g.lg.attributes.position.needsUpdate = true;
+      g.mg.computeBoundingSphere(); g.lg.computeBoundingSphere();
+    });
+  }
+
+  // ---------- 포즈 / 단계 ----------
+  const KEYS = ['wallFold','flip','f1','f2','f3','tab','plate','rectFold','tilt','slope','cF','cB','top','tuck'];
+  const ZERO = { wallFold:0, flip:0, f1:0, f2:0, f3:0, tab:0, plate:0, rectFold:0, tilt:0, slope:0, cF:0, cB:0, top:0, tuck:0 };
+  const POSES = [
+    { ...ZERO },
+    { ...ZERO, wallFold:1, flip:1, f1:1, f2:1, f3:1, tab:1, plate:1 },
+    { ...ZERO, wallFold:1, f1:1, f2:1, f3:1, tab:1, plate:1, rectFold:1, tilt:1, slope:1, tuck:1 },
+    { ...ZERO, wallFold:1, f1:1, f2:1, f3:1, tab:1, plate:1, rectFold:1, tilt:1, slope:1, tuck:1, cF:1, cB:1 },
+    { ...ZERO, wallFold:1, f1:1, f2:1, f3:1, tab:1, plate:1, rectFold:1, tilt:1, slope:1, tuck:1, cF:1, cB:1, top:1 },
+  ];
+  const SEQ = [
+    null,
+    { wallFold:[0,0.154], flip:[0.168,0.364], f1:[0.406,0.546], f2:[0.56,0.714], f3:[0.728,0.92], tab:[0.77,0.90], plate:[0.93,1.0] },
+    { flip:[0,0.15], rectFold:[0.18,0.36], tilt:[0.38,0.56], slope:[0.58,0.80], tuck:[0.82,1.0] },
+    { cF:[0,0.55], cB:[0.45,1.0] },
+    { top:[0,1.0] },
+  ];
+  const DURS = [0, 7500, 6000, 4500, 2083];  // 4단계 추가 1.2배 빠르게(2500->2083)
+  const STEPS = [
+    { num:'0단계', desc:'납작하게 접힌 상태예요.\n실제 상자는 이 상태로 배송돼요.' },
+    { num:'1단계', desc:'상자를 펼쳐서 뒤집은 뒤, 바닥1 → 바닥2(좌·우) → 바닥3 순서로 접어요.\n마지막 바닥3 끝의 작은 직사각형을 바닥1의 홈에 끼워 바닥을 평평하게 고정해요.' },
+    { num:'2단계', desc:'상자를 바로 세운 뒤, 측면 경사면의 위쪽 직사각형을 안쪽으로 180° 접고 아래 사다리꼴을 안쪽으로 약 30° 세워요.\n전면·후면 경사면을 안쪽으로 기울여 사다리꼴 양쪽 변에 맞닿게 하고, 접혀 들어가는 부분을 안쪽으로 90° 꺾어요.' },
+    { num:'3단계', desc:'끈의 양쪽 끝을 바깥에서 경사면 구멍으로 끼워 넣어요.\n끈 끝의 팁(약 2cm)이 구멍과 직각이 되어 걸려 고정되고, 끈은 아래로 늘어져요.' },
+    { num:'4단계', desc:'상단(전면·후면)을 안쪽으로 수평이 되게 접고,\n접혀 들어가는 부분을 측면 경사면 중앙의 슬릿에 끼워 고정해요.' },
+  ];
+  // ---------- 변형: 하우스형(바닥 접착) — 바닥 접는 단계 없이 접힌 상태에서 바로 사각형으로 펴짐 ----------
+  const _BASE = { POSES: POSES.slice(), SEQ: SEQ.slice(), DURS: DURS.slice(), STEPS: STEPS.slice() };
+  const _GLUE = {
+    POSES: [ { ...ZERO },
+      { ...ZERO, wallFold:1, f1:1, f2:1, f3:1, tab:1, plate:1 },
+      POSES[2], POSES[3], POSES[4] ],
+    SEQ: [ null,
+      { wallFold:[0,0.8], plate:[0.78,1.0] },
+      { rectFold:[0.035,0.247], tilt:[0.27,0.482], slope:[0.506,0.765], tuck:[0.788,1.0] },
+      SEQ[3], SEQ[4] ],
+    DURS: [0, 1100, 5100, 4500, 2083],
+    STEPS: [ STEPS[0],
+      { num:'1단계', desc:'납작하게 접힌 상자를 사각형으로 펼쳐요.\n바닥은 이미 접착되어 있어서, 펼치면 사각형 바닥이 그대로 만들어져요.' },
+      STEPS[2], STEPS[3], STEPS[4] ],
+  };
+  let glueVariant = false;
+  function setVariant(glue){
+    glueVariant = !!glue;
+    const src = glueVariant ? _GLUE : _BASE;
+    POSES.splice(0, POSES.length, ...src.POSES);
+    SEQ.splice(0, SEQ.length, ...src.SEQ);
+    DURS.splice(0, DURS.length, ...src.DURS);
+    STEPS.splice(0, STEPS.length, ...src.STEPS);
+  }
+  const STATE = { ...ZERO };
+  function poseAt(f, q){
+    const a = POSES[f-1], b = POSES[f], seq = SEQ[f], out = {};
+    KEYS.forEach(k=>{
+      const w = seq[k];
+      const local = w ? clamp01((q - w[0])/(w[1]-w[0])) : (q>=1 ? 1 : 0);
+      out[k] = a[k] + (b[k]-a[k]) * ease(local);
+    });
+    return out;
+  }
+  function applyPose(s){
+    if(!flipPivot) return;
+    setWallFold(s.wallFold);
+    const lift = H * 0.9 * Math.sin(Math.PI * s.flip);
+    flipPivot.position.set(0, H/2 + lift, 0);
+    flipPivot.rotation.x = Math.PI * s.flip;
+    [[front,'f1'],[back,'f3'],[side1,'f2'],[side2,'f2']].forEach(([w,key])=>{
+      const p = w.userData.floorP, a = s[key] * Math.PI/2;
+      p.rotation.x = a;
+      p.children.forEach(c=>{ c.position.z = (c.userData.base||0) - p.userData.layer * Math.sin(a); });
+    });
+    { const f3g = back.userData.f3g, psi = Math.asin(Math.min(1, 0.026 / f3g.userData.RL)) * s.tab;
+      f3g.userData.ramp.rotation.x = psi; f3g.userData.tabB.rotation.x = -psi; }
+    { const op = s.plate, pl = plates[0];
+      [front,back,side1,side2].forEach(w=>{ w.userData.floorP.visible = !glueVariant && op<0.999; });
+      pl.outerGroup.visible = op>0.001; pl.innerGroup.visible = op>0.001;
+      pl.outerItems.forEach(o=>{
+        const fm = faceMats[o.key];
+        if(o.pm.map !== fm.map){ o.pm.map = fm.map; o.pm.needsUpdate = true; }
+        o.pm.opacity = op;
+      });
+      pl.outL.lm.opacity = op; pl.ipm.opacity = op; pl.inL.lm.opacity = op; }
+    cordPose(front.userData.cord, s.cF); cordPose(back.userData.cord, s.cB);
+    [side1, side2].forEach(w=>{
+      w.userData.trapP.rotation.x = -SIDE_TILT * s.tilt;
+      w.userData.rectP.rotation.x = -Math.PI * s.rectFold;
+      w.userData.rectP.position.z = -0.004 * Math.min(1, s.rectFold*4);
+    });
+    [front, back].forEach(w=>{
+      w.userData.slopeP.rotation.x = -PHI * s.slope;
+      w.userData.topP.rotation.x   =  PHI * s.slope - Math.PI/2 * s.top;
+      w.userData.tuckP.rotation.x  = -Math.PI/2 * s.tuck;
+    });
+    flipPivot.updateMatrixWorld(true);
+    updateGussets();
+  }
+
+  // ---------- 컨트롤 (사방 자유 회전: 트랙볼) ----------
+  const tb = new THREE.TrackballControls(camera, renderer.domElement);
+  tb.rotateSpeed = 3.0; tb.zoomSpeed = 1.2; tb.panSpeed = 0.8;
+  tb.staticMoving = false; tb.dynamicDampingFactor = 0.12;
+  tb.enabled = false;
+
+  // ---------- 카메라: 포즈의 바운딩박스에 맞춰 부드럽게 따라감 ----------
+  const _box = new THREE.Box3(), _boxTmp = new THREE.Box3();
+  function desiredFrame(){
+    flipPivot.updateMatrixWorld(true);
+    _box.makeEmpty();
+    // 보이는 물체만으로 중심 계산(숨겨진 끈·바닥날개 등이 중심을 왼쪽/위로 끌어당기던 문제 방지)
+    flipPivot.traverseVisible(o=>{
+      if(!(o.isMesh || o.isLine) || !o.geometry) return;
+      if(!o.geometry.boundingBox || o.userData.dynBox) o.geometry.computeBoundingBox();
+      if(o.geometry.boundingBox.isEmpty()) return;
+      _boxTmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); _box.union(_boxTmp);
+    });
+    const c = _box.getCenter(new THREE.Vector3());
+    const forward = tb.target.clone().sub(camera.position).normalize();
+    camera.updateMatrixWorld();
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+    const aspect = wrap.clientWidth/wrap.clientHeight;
+    const vF = camera.fov*Math.PI/180, tanV = Math.tan(vF/2), tanH = Math.tan(vF/2)*aspect;
+    { // 원근 때문에 3D 중심과 화면상 중심이 어긋나는 만큼 보정 → 화면 정중앙에 오도록
+      camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+      let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+      for(const x of [_box.min.x,_box.max.x]) for(const y of [_box.min.y,_box.max.y]) for(const z of [_box.min.z,_box.max.z]){
+        const q = new THREE.Vector3(x,y,z).project(camera);
+        mnx=Math.min(mnx,q.x); mxx=Math.max(mxx,q.x); mny=Math.min(mny,q.y); mxy=Math.max(mxy,q.y);
+      }
+      const dd = camera.position.distanceTo(c);
+      c.addScaledVector(right, 0.5*(mnx+mxx)/2*dd*tanH).addScaledVector(up, 0.5*(mny+mxy)/2*dd*tanV);
+    }
+    let req = 0;
+    for(const x of [_box.min.x,_box.max.x]) for(const y of [_box.min.y,_box.max.y]) for(const z of [_box.min.z,_box.max.z]){
+      const rel = new THREE.Vector3(x,y,z).sub(c);
+      const f = rel.dot(forward);
+      req = Math.max(req, Math.abs(rel.dot(right))/tanH - f, Math.abs(rel.dot(up))/tanV - f);
+    }
+    return { center:c, dist:req*1.3 };
+  }
+  function followCamera(k){
+    const d = desiredFrame();
+    const off = camera.position.clone().sub(tb.target);
+    const curDist = off.length();
+    tb.target.lerp(d.center, k);
+    const nd = curDist + (d.dist - curDist)*k;
+    camera.position.copy(tb.target).add(off.normalize().multiplyScalar(nd));
+  }
+  function snapCamera(){ for(let i=0;i<10;i++) followCamera(1); }
+
+  // ---------- 단계 이동 / 자동 재생 ----------
+  let cur = 0, queue = [], seg = null, followUntil = 0;
+  let autoTimer = null, autoOn = false, autoDone = null;
+  function startSeg(){
+    if(!queue.length){ seg = null; followUntil = performance.now()+1500; return; }
+    const next = queue.shift();
+    const forward = next > cur;
+    const f = forward ? next : cur;
+    seg = { f, forward, start:performance.now(), dur:DURS[f] * (forward?1:0.8), next };
+  }
+  let target = 0;
+  function goToStep(idx){
+    idx = Math.max(0, Math.min(STEPS.length-1, idx));
+    target = idx;
+    const path = []; let c = seg ? seg.next : cur;
+    while(c !== idx){ c += (idx>c?1:-1); path.push(c); }
+    queue = path;
+    if(!seg) startSeg();
+    onStep(idx);
+  }
+  function stopAutoPlay(){
+    autoOn = false; if(autoTimer){ clearTimeout(autoTimer); autoTimer = null; }
+  }
+  function autoPlay(done){
+    stopAutoPlay(); autoOn = true; autoDone = done;
+    queue = []; seg = null; cur = 0; target = 0; Object.assign(STATE, ZERO); applyPose(STATE); snapCamera(); onStep(0);
+    let idx = 0; const GAP = 900;
+    function playNext(){
+      if(!autoOn) return;
+      idx++;
+      if(idx >= STEPS.length){ stopAutoPlay(); autoDone && autoDone(); return; }
+      goToStep(idx);
+      autoTimer = setTimeout(waitThenNext, 300);
+    }
+    function waitThenNext(){
+      if(!autoOn) return;
+      if(seg || queue.length){ autoTimer = setTimeout(waitThenNext, 200); return; }
+      if(idx >= STEPS.length-1){ autoTimer = setTimeout(()=>{ stopAutoPlay(); autoDone && autoDone(); }, GAP); return; }
+      autoTimer = setTimeout(playNext, GAP);
+    }
+    autoTimer = setTimeout(playNext, GAP);
+  }
+  // 1·2단계 진행 중에는 화면을 30° 더 위에서 내려다보도록 카메라를 부드럽게 기울임(3·4단계/0단계에서는 원래 각도로 복귀)
+  let tiltApplied = 0;
+  const TILT_UP = 30*Math.PI/180;
+  function updateTilt(){
+    const stepNow = seg ? seg.f : cur;
+    const want = (stepNow===1 || stepNow===2) ? TILT_UP : 0;
+    if(Math.abs(want - tiltApplied) < 1e-4){ tiltApplied = want; return; }
+    const d = (want - tiltApplied) * 0.04;
+    tiltApplied += d;
+    camera.updateMatrixWorld();
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+    const off = camera.position.clone().sub(tb.target).applyAxisAngle(right, -d);
+    camera.position.copy(tb.target).add(off);
+    camera.up.applyAxisAngle(right, -d);
+    camera.lookAt(tb.target);
+  }
+  // 3·4단계에서는 상자를 정면 기준 왼쪽으로 10° 틀어 보이도록 카메라를 월드 Y축으로 공전
+  let yawApplied = 0;
+  const YAW_LEFT = 30*Math.PI/180;
+  function updateYaw(){
+    const stepNow = seg ? seg.f : cur;
+    const want = (stepNow>=3) ? YAW_LEFT : 0;
+    if(Math.abs(want - yawApplied) < 1e-4){ yawApplied = want; return; }
+    const d = (want - yawApplied) * 0.04;
+    yawApplied += d;
+    const Y = new THREE.Vector3(0,1,0);
+    const off = camera.position.clone().sub(tb.target).applyAxisAngle(Y, d);
+    camera.position.copy(tb.target).add(off);
+    camera.up.applyAxisAngle(Y, d);
+    camera.lookAt(tb.target);
+  }
+  function tick(now){
+    if(!active) return;
+    updateTilt(); updateYaw();
+    if(seg){
+      const t = clamp01((now - seg.start)/seg.dur);
+      const q = seg.forward ? t : 1 - t;
+      Object.assign(STATE, poseAt(seg.f, q));
+      applyPose(STATE);
+      followCamera(0.07);
+      if(t >= 1){
+        cur = seg.next;
+        Object.assign(STATE, POSES[cur]); applyPose(STATE);
+        startSeg();
+      }
+    } else if(now < followUntil){
+      followCamera(0.08);
+    }
+    tb.update();
+  }
+
+  // ---------- 진입 / 이탈 ----------
+  function setDims(w, d, h){ W = w; D = d; H = h; build(); }
+  function enter(opts){
+    opts = opts || {};
+    setVariant(!!opts.glue);
+    if(opts.w) W = opts.w; if(opts.d) D = opts.d; if(opts.h) H = opts.h;
+    hostLights = scene.children.filter(o=> o.isLight);
+    hostLights.forEach(l=> l.visible = false);
+    active = true; group.visible = true;
+    orbit.enabled = false;
+    build();
+    stopAutoPlay(); queue = []; seg = null; cur = 0; target = 0; tiltApplied = 0; Object.assign(STATE, ZERO); applyPose(STATE);
+    camera.up.set(0,1,0);
+    tb.enabled = true; tb.target.set(0, H, 0);
+    camera.position.set(7*2/3, 9.6*2/3, 11.7*2/3);
+    tb.handleResize();
+    snapCamera();
+    onStep(0);
+  }
+  function leave(){
+    if(!active) return;
+    stopAutoPlay();
+    active = false; group.visible = false;
+    hostLights.forEach(l=> l.visible = true);
+    tb.enabled = false;
+    camera.up.set(0,1,0);
+    orbit.target.copy(tb.target);
+    camera.lookAt(orbit.target);
+    orbit.enabled = true; orbit.update();
+  }
+  function resize(){ tb.handleResize(); }
+
+  return {
+    group, FACES, faceMat:(k)=>faceMats[k], faceAspect,
+    get active(){ return active; }, get step(){ return target; },
+    STEPS, setVariant, enter, leave, setDims, setRopeColor, getRopeColor:()=>ropeColor,
+    goToStep, autoPlay, stopAutoPlay, tick, resize, snapCamera,
+    get dims(){ return { w:W, d:D, h:H }; },
+  };
+}
+
+const HOUSE = createHouseMode({ scene, camera, renderer, wrap, orbit: controls,
+  onStep: (i)=>{ currentStepIdx = i; updatePanelUI(); } });
+const RECT_STEPS = STEPS.slice();
+const RECT_FACE_DEFS = FACE_DEFS;
+let rectHiddenObjs = [], rectStepMem = 0;
+function rebuildStepsList(){
+  stepsListEl.innerHTML = '';
+  STEPS.forEach((s,i)=>{
+    const el = document.createElement('div'); el.className = 'step-item'; el.textContent = s.num;
+    el.addEventListener('click', ()=> goToStep(i));
+    stepsListEl.appendChild(el);
+  });
+  updatePanelUI();
+}
+function enterHouseMode(wmm, dmm, hmm, rope, glue){
+  if(typeof stopAutoPlay === 'function') stopAutoPlay();
+  HOUSE.setVariant(!!glue);
+  if(!HOUSE_ACTIVE){
+    rectStepMem = currentStepIdx;
+    rectHiddenObjs = scene.children.filter(c=> c!==HOUSE.group && !c.isLight && !c.isCamera).map(c=>({ c, v:c.visible }));
+    rectHiddenObjs.forEach(o=> o.c.visible = false);
+    HOUSE_ACTIVE = true;
+    FACE_DEFS = HOUSE.FACES;
+    STEPS.length = 0; HOUSE.STEPS.forEach(s=> STEPS.push(s));
+    rebuildStepsList();
+  } else { STEPS.length = 0; HOUSE.STEPS.forEach(s=> STEPS.push(s)); rebuildStepsList(); }
+  currentShape = glue ? 'house_glue' : 'house';
+  if(rope) HOUSE.setRopeColor(rope);
+  HOUSE.enter({ w:wmm/100, d:dmm/100, h:hmm/100, glue:!!glue });
+  FACE_DEFS.forEach(f=> ensureFaceState(f.key));
+  syncAllFaceCanvasSizes();
+  FACE_DEFS.forEach(f=> redrawFace(f.key));
+}
+function leaveHouseMode(){
+  if(!HOUSE_ACTIVE) return;
+  HOUSE.leave();
+  HOUSE_ACTIVE = false;
+  rectHiddenObjs.forEach(o=> o.c.visible = o.v);
+  rectHiddenObjs = [];
+  FACE_DEFS = RECT_FACE_DEFS;
+  STEPS.length = 0; RECT_STEPS.forEach(s=> STEPS.push(s));
+  currentStepIdx = Math.min(rectStepMem, STEPS.length-1);
+  rebuildStepsList();
+  const c = measureBBoxCenter(STATE);
+  controls.target.copy(c);
+  camera.position.set(c.x+3.5, c.y+6.2, c.z+7.8);
+  controls.update();
+}
+window.addEventListener('resize', ()=> HOUSE.resize());
+
 // ===================== 프로젝트(JSON) 불러오기 - base_uploaded3.html의 applyProject()를
 // DOM 편집 요소(dimW/dimD/dimH/renderFaceUploadRows/editFaceSelect/refreshEditor)에 의존하지 않도록
 // 최소화해서 재구성한 버전. 로직(치수 반영→buildBox→카메라 재조정→면 텍스처 복원)은 완전히 동일함 =====================
 async function applyProject(project){
   if(!project || !project.faces) throw new Error('잘못된 프로젝트 파일입니다.');
+  const isHouseProj = project.shape === 'house' || project.shape === 'house_glue';
+  if(isHouseProj){
+    enterHouseMode(parseFloat(project.w)||260, parseFloat(project.d)||190, parseFloat(project.h)||100, project.ropeColor, project.shape === 'house_glue');
+  } else if(HOUSE_ACTIVE){
+    leaveHouseMode();
+    currentShape = 'rect1';
+  }
+  if(!isHouseProj){
   if(project.w) W = parseFloat(project.w)/100;
   if(project.d) D = parseFloat(project.d)/100;
   if(project.h) H = parseFloat(project.h)/100;
@@ -1052,6 +1827,7 @@ async function applyProject(project){
   ensureWidestStepFitsView(); // 불러온 프로젝트의 치수에 따라 0단계 폭이 달라질 수 있으므로 다시 확인
   goToStep(0);
   applyPose(STATE);
+  }
 
   Object.keys(faceState).forEach(k=> delete faceState[k]);
   FACE_DEFS.forEach(f=> ensureFaceState(f.key));
