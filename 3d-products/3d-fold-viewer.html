@@ -1644,7 +1644,7 @@ function createHouseMode(ctx){
   function snapCamera(){
     tb.minDistance = 0; tb.maxDistance = Infinity;
     for(let i=0;i<10;i++) followCamera(1);
-    const d0 = camera.position.distanceTo(tb.target); tb.minDistance = d0*0.45; tb.maxDistance = d0*2.2;   // 확대/축소 범위 제한
+    const d0 = camera.position.distanceTo(tb.target); tb.minDistance = d0*0.06; tb.maxDistance = d0*6;   // 상자를 완전히 놓치지 않을 정도의 아주 넓은 범위만 제한
   }
 
   // ---------- 단계 이동 / 자동 재생 ----------
