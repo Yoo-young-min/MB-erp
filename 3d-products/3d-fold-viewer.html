@@ -1573,23 +1573,41 @@ function createHouseMode(ctx){
   // 모바일: 두 손가락 확대/축소 때 손가락 중심이 흔들리며 상자가 화면 밖으로 밀려나는 현상(팬) 방지 + 확대/축소 범위 제한
   tb.panSpeed = 0.3;
   { const el = renderer.domElement;
-    el.addEventListener('touchstart', e=>{ if(e.touches.length >= 2) tb.noPan = true; }, { passive:true });
-    const endT = e=>{ if(e.touches.length === 0) tb.noPan = false; };
+    el.style.touchAction = 'none';
+    let pinch = false, lastD = 0;
+    const dist2 = e=> Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    el.addEventListener('touchstart', e=>{
+      if(e.touches.length >= 2){ pinch = true; tb.enabled = false; lastD = dist2(e); }   // 두 손가락: 트랙볼의 팬/줌을 끄고 직접 확대·축소만 처리
+    }, { passive:true });
+    el.addEventListener('touchmove', e=>{
+      if(!pinch || e.touches.length < 2) return;
+      e.preventDefault();
+      const d = dist2(e); if(lastD > 0 && d > 0){
+        const off = camera.position.clone().sub(tb.target);
+        const len = Math.min(tb.maxDistance, Math.max(tb.minDistance, off.length() * (lastD / d)));
+        camera.position.copy(tb.target).add(off.setLength(len));   // 중심(target)은 그대로 → 상자가 화면 밖으로 밀려나지 않음
+      }
+      lastD = d;
+    }, { passive:false });
+    const endT = e=>{ if(e.touches.length === 0 && pinch){ pinch = false; if(active) tb.enabled = true; } };
     el.addEventListener('touchend', endT, { passive:true }); el.addEventListener('touchcancel', endT, { passive:true });
   }
 
   // ---------- 카메라: 포즈의 바운딩박스에 맞춰 부드럽게 따라감 ----------
   const _box = new THREE.Box3(), _boxTmp = new THREE.Box3();
   function desiredFrame(){
+    camera.lookAt(tb.target); camera.updateMatrixWorld();   // 카메라 방향이 갱신되기 전(진입 직후)에도 정확히 계산
     flipPivot.updateMatrixWorld(true);
-    _box.makeEmpty();
-    // 보이는 물체만으로 중심 계산(숨겨진 끈·바닥날개 등이 중심을 왼쪽/위로 끌어당기던 문제 방지)
+    // 보이는 물체만으로 중심 계산(숨겨진 끈·바닥날개 등이 중심을 왼쪽/위로 끌어당기던 문제 방지).
+    // 각 부품의 (회전된) 경계상자 모서리 점들을 모아 실제 화면상 윤곽에 가깝게 맞춤
+    const pts = [];
     flipPivot.traverseVisible(o=>{
       if(!(o.isMesh || o.isLine) || !o.geometry) return;
       if(!o.geometry.boundingBox || o.userData.dynBox) o.geometry.computeBoundingBox();
-      if(o.geometry.boundingBox.isEmpty()) return;
-      _boxTmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); _box.union(_boxTmp);
+      const bb = o.geometry.boundingBox; if(bb.isEmpty()) return;
+      for(let i=0;i<8;i++) pts.push(new THREE.Vector3(i&1?bb.max.x:bb.min.x, i&2?bb.max.y:bb.min.y, i&4?bb.max.z:bb.min.z).applyMatrix4(o.matrixWorld));
     });
+    _box.makeEmpty(); pts.forEach(v=> _box.expandByPoint(v));
     const c = _box.getCenter(new THREE.Vector3());
     const forward = tb.target.clone().sub(camera.position).normalize();
     camera.updateMatrixWorld();
@@ -1600,16 +1618,16 @@ function createHouseMode(ctx){
     { // 원근 때문에 3D 중심과 화면상 중심이 어긋나는 만큼 보정 → 화면 정중앙에 오도록
       camera.updateMatrixWorld(); camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
       let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
-      for(const x of [_box.min.x,_box.max.x]) for(const y of [_box.min.y,_box.max.y]) for(const z of [_box.min.z,_box.max.z]){
-        const q = new THREE.Vector3(x,y,z).project(camera);
+      for(const v of pts){
+        const q = v.clone().project(camera);
         mnx=Math.min(mnx,q.x); mxx=Math.max(mxx,q.x); mny=Math.min(mny,q.y); mxy=Math.max(mxy,q.y);
       }
       const dd = camera.position.distanceTo(c);
       c.addScaledVector(right, 0.5*(mnx+mxx)/2*dd*tanH).addScaledVector(up, 0.5*(mny+mxy)/2*dd*tanV);
     }
     let req = 0;
-    for(const x of [_box.min.x,_box.max.x]) for(const y of [_box.min.y,_box.max.y]) for(const z of [_box.min.z,_box.max.z]){
-      const rel = new THREE.Vector3(x,y,z).sub(c);
+    for(const v of pts){
+      const rel = v.clone().sub(c);
       const f = rel.dot(forward);
       req = Math.max(req, Math.abs(rel.dot(right))/tanH - f, Math.abs(rel.dot(up))/tanV - f);
     }
