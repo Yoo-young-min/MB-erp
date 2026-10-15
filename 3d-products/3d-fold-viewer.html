@@ -28,7 +28,7 @@
   .load-btn{width:100%; padding:9px; margin-top:8px; font-size:12.5px; font-weight:600; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .load-btn:hover{border-color:var(--accent);}
 
-  #hint{position:absolute; top:18px; left:50%; transform:translateX(-50%); z-index:5; color:#ffffff; font-size:15px; font-weight:600; background:rgba(0,0,0,.85); padding:11px 20px; border-radius:20px; pointer-events:none; max-width:80%; text-align:center;}
+  #hint{position:absolute; top:18px; left:50%; transform:translateX(-50%); z-index:5; color:#ffffff; font-size:15px; font-weight:600; background:rgba(0,0,0,.85); padding:11px 20px; border-radius:20px; pointer-events:none; max-width:80%; text-align:center; word-break:keep-all;}
 
   #loadingMsg{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:6; color:var(--muted); font-size:13px; background:rgba(0,0,0,.6); padding:10px 16px; border-radius:8px;}
 
@@ -43,6 +43,8 @@
     .step-item{flex:1; padding:7px 0; font-size:11.5px;}
     .autoplay-btn, .load-btn{padding:8px; font-size:11.5px;}
     #hint{top:auto; bottom:16px; font-size:12.5px; padding:9px 16px; max-width:88%;}
+    #hint{width:max-content;}
+    #hint span{display:block; white-space:nowrap;}   /* 모바일: '터치하여' 뒤에서 줄바꿈 → 단어가 중간에 끊기지 않게 */
   }
 </style>
 </head>
@@ -56,7 +58,7 @@
   <input type="file" id="projectFileInput" accept=".json,application/json" style="display:none;">
 </div>
 
-<div id="hint">마우스나 손으로 터치하여 자유롭게 회전 · 확대/축소해 보세요</div>
+<div id="hint"><span>마우스나 손으로 터치하여</span> <span>자유롭게 회전, 확대/축소해 보세요</span></div>
 
 <div id="viewer-wrap">
   <canvas id="viewer"></canvas>
