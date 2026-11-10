@@ -3,6 +3,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>2027_e_catalogue</title>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#fff;font-family:"Malgun Gothic","Segoe UI",sans-serif;color:#333;font-size:13px}
@@ -56,7 +57,7 @@ html,body{height:100%;overflow:hidden;background:#fff;font-family:"Malgun Gothic
     <button class="nb" id="bp" onclick="pp()">◀</button>
     <span id="pginfo">- / -</span>
     <button class="nb" id="bn" onclick="np()">▶</button>
-    <div id="gobox"><input id="goin" type="number" inputmode="numeric" min="1" placeholder="페이지"><button id="gobtn" onclick="gopg()">이동</button></div>
+    <div id="gobox"><input id="goin" type="number" inputmode="numeric" min="1" placeholder="쪽"><button id="gobtn" onclick="gopg()">이동</button></div>
   </div>
 </div>
 <div id="popview"><div id="popbox"><button class="pclose" onclick="cpop()">✕</button><div id="ptbl"></div></div></div>
@@ -271,7 +272,7 @@ function gopg(){
   var last=total-PS;
   if(!(n>=1&&n<=last)){inp.value="";inp.placeholder="1~"+last;inp.focus();return;}
   for(var k=0;k<views.length;k++){if(views[k].indexOf(n-1+PS)>=0){vi=k;break;}}
-  show();nav();inp.value="";inp.placeholder="페이지";inp.blur();
+  show();nav();inp.value="";inp.placeholder="쪽";inp.blur();
 }
 function nav(){
   var v=views[vi]||[];
