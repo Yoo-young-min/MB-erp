@@ -630,6 +630,11 @@
     }
     const specialItems=loadSpecialItems();
     const combined=[];
+    // ★ 특수품목으로 분리된 행인지 (기준수량 이하로 제외된 특수품목은 일반 행으로 취급)
+    const isSpecialRow=e=>{
+      const first=e.items?.[0]||"";
+      return specialItems.includes(normalizeItemName(first))&&!isExcludedBySpecial(first);
+    };
     pageKeys.forEach(key=>{
       const raw=localStorage.getItem("sendListData_"+key); if(!raw) return;
       JSON.parse(raw).forEach(item=>{
@@ -640,7 +645,7 @@
   else {
     // ★ 제외된 특수품목은 일반 행으로 합치기
     const exists=combined.find(e=>
-      e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr);
+      e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr&&!isSpecialRow(e));
     if(!exists) combined.push({...item,items:itemText?[itemText]:[]});
     else if(itemText) exists.items.push(itemText);
   }
@@ -649,7 +654,7 @@
         const exists=combined.find(e=>
           !specialItems.includes(itemName)&&
           e.name===item.name&&e.mobile===item.mobile&&e.addr===item.addr&&
-          !specialItems.includes(normalizeItemName(e.items?.[0]||"")));
+          !isSpecialRow(e));
         if(!exists) combined.push({...item,items:itemText?[itemText]:[]});
         else if(itemText) exists.items.push(itemText);
       });
