@@ -943,12 +943,10 @@
         });
         if(!rows.length) return;
         const rowsStr=JSON.stringify(rows);
-        if(localStorage.getItem("shipLogLastRows")===rowsStr) return; // 변경 없으면 전송 안 함
-        localStorage.setItem("shipLogLastRows",rowsStr);
+        if(localStorage.getItem("shipLogLastRows2")===rowsStr) return; // 변경 없으면 전송 안 함
+        localStorage.setItem("shipLogLastRows2",rowsStr);
         const body=JSON.stringify({date,round,rows});
-        const blob=new Blob([body],{type:"text/plain;charset=utf-8"});
-        if(!(navigator.sendBeacon&&navigator.sendBeacon(SHIP_LOG_URL,blob)))
-          fetch(SHIP_LOG_URL,{method:"POST",mode:"no-cors",keepalive:true,body});
+        fetch(SHIP_LOG_URL,{method:"POST",mode:"no-cors",credentials:"omit",keepalive:true,body});
       }catch(err){ console.warn("발송로그 저장 실패",err); }
     }
 
