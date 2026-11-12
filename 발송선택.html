@@ -898,6 +898,73 @@
 
   </script>
 
+  <script>
+  // ★ 발송로그 구글 시트 자동 저장 — 개인정보(이름/전화/주소) 제외
+  (function(){
+    const SHIP_LOG_URL="https://script.google.com/macros/s/AKfycbwKQ-0gWWzSUS9B2u9RWbj-RU_W3Z1fihVWPRT6Ua3hm054b7MOS7yu_fdksBwdMWWfjQ/exec";
+    const num=v=>(v||"").replace(/,/g,"").trim();
+
+    // PC별로 따로 저장 (서로 덮어쓰지 않음). PC 이름 지정: "발송선택.html?pc=물류" 로 한 번 열기
+    // 이 PC 저장 끄기: ?shiplog=off / 다시 켜기: ?shiplog=on
+    const qp=new URLSearchParams(location.search);
+    if(qp.get("pc")) localStorage.setItem("shipLogPC",qp.get("pc").trim());
+    if(qp.get("shiplog")==="off") localStorage.setItem("shipLogDisabled","1");
+    if(qp.get("shiplog")==="on")  localStorage.removeItem("shipLogDisabled");
+    if(localStorage.getItem("shipLogDisabled")==="1") return;
+    if(!localStorage.getItem("shipLogPC"))
+      localStorage.setItem("shipLogPC","PC"+Math.random().toString(36).slice(2,6).toUpperCase());
+    const PC_ID=localStorage.getItem("shipLogPC");
+
+    // 택배수/단가 칸을 처음 건드리기 전 값(=계산값) 기억
+    document.addEventListener("focusin",function(e){
+      const td=e.target;
+      if(td.tagName!=="TD"||!td.closest("#orderTable")) return;
+      if((td.cellIndex===10||td.cellIndex===11)&&td.dataset.calcOrig===undefined)
+        td.dataset.calcOrig=td.innerText;
+    },true);
+
+    function sendShipLog(){
+      try{
+        const t=new Date(),p=v=>String(v).padStart(2,"0");
+        const date=t.getFullYear()+"-"+p(t.getMonth()+1)+"-"+p(t.getDate());
+        const round=parseInt(localStorage.getItem("packRound")||"1")+"-"+PC_ID; // 예: 1-물류
+        const rows=[];
+        document.querySelectorAll("#orderTable tr").forEach(row=>{
+          const c=row.cells; if(!c||!c[8]) return;
+          const col0=c[0].innerText.trim(); if(col0==="제외") return;
+          const item=c[8].innerText.trim(); if(!item) return;
+          const count=num(c[10].innerText), price=num(c[11].innerText);
+          const cc=c[10].dataset.calcOrig, cp=c[11].dataset.calcOrig;
+          const calcCount=cc!==undefined?num(cc):count;
+          const calcPrice=cp!==undefined?num(cp):price;
+          const cargo=col0==="3PL"?"3PL":(c[2].innerText.trim()==="화물"?"화물":(c[3].innerText.trim()==="화택"?"화택":""));
+          rows.push({path:c[14].innerText.trim(),item,calcCount,calcPrice,count,price,
+            edited:(calcCount!==count||calcPrice!==price),cargo});
+        });
+        if(!rows.length) return;
+        const rowsStr=JSON.stringify(rows);
+        if(localStorage.getItem("shipLogLastRows")===rowsStr) return; // 변경 없으면 전송 안 함
+        localStorage.setItem("shipLogLastRows",rowsStr);
+        const body=JSON.stringify({date,round,rows});
+        const blob=new Blob([body],{type:"text/plain;charset=utf-8"});
+        if(!(navigator.sendBeacon&&navigator.sendBeacon(SHIP_LOG_URL,blob)))
+          fetch(SHIP_LOG_URL,{method:"POST",mode:"no-cors",keepalive:true,body});
+      }catch(err){ console.warn("발송로그 저장 실패",err); }
+    }
+
+    // 자동 전송: 표가 바뀌고 5초간 변화 없으면 전송, 페이지 떠날 때 즉시 전송
+    let timer=null;
+    const schedule=()=>{ clearTimeout(timer); timer=setTimeout(sendShipLog,5000); };
+    const flush=()=>{ if(timer){ clearTimeout(timer); timer=null; } sendShipLog(); };
+    document.addEventListener("DOMContentLoaded",function(){
+      const tbody=document.getElementById("orderTable");
+      new MutationObserver(schedule).observe(tbody,{subtree:true,childList:true,characterData:true});
+    });
+    window.addEventListener("pagehide",flush);
+    document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flush(); });
+  })();
+  </script>
+
   <script src="버튼.js"></script>
   <script src="택배수금액계산.js"></script>
 
