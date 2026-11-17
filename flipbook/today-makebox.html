@@ -123,7 +123,10 @@ table.sise td:nth-child(3){text-align:right;width:4.2em;white-space:nowrap;color
 .mbnews h2{margin:0;padding:1.1vmin 2.8vmin;background:linear-gradient(90deg,#e8b86d,#f3d29b);color:#3a2a12;font-size:1.05em}
 .mbnews h2 .new{font-size:.7em;background:#c0552b;color:#fff;border-radius:1em;padding:.05em .6em;letter-spacing:.05em}
 .mbbody{flex:1}
-.tabbody{height:12.5em;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.tabbody{height:12.5em;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#d9b77a #f5eee2;padding-right:.4em}
+.tabbody::-webkit-scrollbar{width:5px;-webkit-appearance:none}
+.tabbody::-webkit-scrollbar-track{background:#f5eee2;border-radius:3px}
+.tabbody::-webkit-scrollbar-thumb{background:#d9b77a;border-radius:3px}
 .tabbody .poem{font-size:.98em;line-height:1.75}
 /* 카탈로그 안에서는 페이지 전체를 같은 비율로 (편집기에서 얹은 내용과 자리가 어긋나지 않게) */
 html.emb,html.emb body{overflow:hidden;height:100%}
@@ -206,7 +209,7 @@ footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padd
     </div>
   </section>
 
-  <footer>메이크박스 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
+  <footer>메이크박스 · 레츠에코 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
 </div>
 
 <script>
@@ -300,7 +303,7 @@ try{
 /* 카탈로그 안에서는 확대·이동·넘기기를 카탈로그에 넘겨줘요 → 페이지와 편집기에서 얹은 내용이 함께 커져요 */
 (function(){
   if(window.parent===window)return;
-  var P=window.parent,zoomed=false,moved=false,md=null,lastTap=0,lx=0,ly=0,tStart=null;
+  var P=window.parent,zoomed=false,moved=false,md=null,lastTap=0,lx=0,ly=0,tStart=null,inScroll=false;
   function pt(e){return {x:e.clientX,y:e.clientY,sx:e.screenX,sy:e.screenY};}
   function send(m){try{P.postMessage(m,"*");}catch(_){}}
   window.addEventListener("message",function(e){if(e.source===P&&e.data&&typeof e.data.fbzoomed==="boolean")zoomed=e.data.fbzoomed;});
@@ -311,16 +314,24 @@ try{
   window.addEventListener("mouseup",function(){if(md){md=null;send({fbz:"mu"});}});
   function tl(list){var a=[];for(var i=0;i<list.length;i++)a.push(pt(list[i]));return a;}
   window.addEventListener("touchstart",function(e){
-    if(e.touches.length===1){moved=false;tStart=pt(e.touches[0]);}
-    if(e.touches.length>=2)moved=true;
+    if(e.touches.length===1){
+      moved=false;tStart=pt(e.touches[0]);
+      /* 업계 소식처럼 안에서 넘겨 보는 칸은 한 손가락이면 그 칸만 스크롤 (카탈로그는 그대로) */
+      var sb=e.target.closest&&e.target.closest(".tabbody");
+      inScroll=!!(sb&&sb.scrollHeight>sb.clientHeight+2);
+      if(inScroll)return;
+    }
+    if(e.touches.length>=2){moved=true;inScroll=false;}
     send({fbz:"ts",t:tl(e.touches)});
   },{passive:true});
   window.addEventListener("touchmove",function(e){
-    if(tStart&&e.touches.length===1){var p=pt(e.touches[0]);if(Math.abs(p.sx-tStart.sx)+Math.abs(p.sy-tStart.sy)>8)moved=true;}
+    if(tStart&&e.touches.length===1){var p=pt(e.touches[0]);if(Math.abs(p.x-tStart.x)+Math.abs(p.y-tStart.y)>8)moved=true;}
+    if(inScroll&&e.touches.length===1)return;
     if(e.touches.length>=2||zoomed)e.preventDefault();
     send({fbz:"tm",t:tl(e.touches)});
   },{passive:false});
   window.addEventListener("touchend",function(e){
+    if(inScroll){if(e.touches.length===0)inScroll=false;if(moved)return;}
     send({fbz:"te",t:tl(e.touches)});
     if(e.touches.length===0&&!moved&&e.changedTouches.length===1){
       var p=pt(e.changedTouches[0]),now=Date.now();
