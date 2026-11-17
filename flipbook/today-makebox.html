@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>오늘의 메이크박스</title>
+<style>
+/* ══════════ 여기만 고치면 돼요 (설정) ══════════ */
+</style>
+<script>
+/* ① 원재료 시세 — 매주 한 번 KAMIS(www.kamis.or.kr)에서 보고 숫자만 바꿔주세요.
+      SISE_SAMPLE 을 false 로 바꾸면 '예시 값' 표시가 사라져요. */
+var SISE_DATE   = "2026-11-17";
+var SISE_SAMPLE = true;
+var SISE = [
+  {name:"쌀 (20kg)",      price:"00,000원", diff:"-"},
+  {name:"찹쌀 (1kg)",     price:"0,000원",  diff:"-"},
+  {name:"붉은팥 (국산 1kg)", price:"00,000원", diff:"-"}
+];
+/* ② 쇼츠 영상 — 유튜브 쇼츠 주소 끝의 영상 ID를 넣으세요.
+      예) https://youtube.com/shorts/AbCdEf12345  →  "AbCdEf12345"   (비우면 '준비 중' 표시) */
+var SHORTS_ID = "";
+/* ③ 명절·행사 (날짜 순서 상관없음, 지난 날짜는 자동으로 숨겨져요) */
+var EVENTS = [
+  ["2026-12-22","동지","팥죽 · 팥시루떡"],
+  ["2026-12-25","크리스마스","케이크 대신 떡 선물"],
+  ["2027-01-01","신정","새해 인사 떡"],
+  ["2027-02-07","설날","가래떡 · 떡국떡 · 선물세트"],
+  ["2027-02-21","정월대보름","약식 · 오곡밥"],
+  ["2027-05-08","어버이날","답례떡 · 꽃떡"],
+  ["2027-05-15","스승의날","답례떡"],
+  ["2027-06-09","단오","수리취떡"],
+  ["2027-09-15","추석","송편 · 선물세트"],
+  ["2027-12-22","동지","팥죽 · 팥시루떡"]
+];
+</script>
+<style>
+:root{--gold:#c9a15a;--gold2:#e8b86d;--ink:#2b2622;--muted:#8a7f72;--paper:#fffaf2;--card:#fff;--line:#eadfcc}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  font-size:clamp(11px,2.3vmin,17px);line-height:1.5;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wrap{min-height:100%;padding:4.5vmin 4.5vmin 3vmin;display:flex;flex-direction:column;gap:2.6vmin}
+header{text-align:center;padding-bottom:2vmin;border-bottom:2px solid var(--gold2)}
+.kicker{font-size:.8em;letter-spacing:.35em;color:var(--gold);font-weight:700}
+h1{font-size:2.3em;font-weight:800;letter-spacing:-.02em;margin:.2em 0 .1em}
+h1 b{color:var(--gold)}
+.today{font-size:1em;color:var(--muted)}
+.hello{font-size:.92em;margin-top:.3em}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4vmin}
+.card{background:var(--card);border:1px solid var(--line);border-radius:2.2vmin;padding:2.6vmin 2.8vmin;position:relative}
+.card h2{font-size:.95em;color:var(--gold);font-weight:800;margin-bottom:1.2vmin;display:flex;align-items:center;gap:.4em}
+.badge{font-size:.72em;background:#fbe3c6;color:#a2531e;border-radius:1em;padding:.1em .6em;font-weight:700}
+.dday-main{display:flex;align-items:baseline;gap:.5em;flex-wrap:wrap}
+.dday-main .ev{font-size:1.5em;font-weight:800}
+.dday-main .d{font-size:2.1em;font-weight:900;color:#c0552b}
+.dday-main .tip{width:100%;font-size:.85em;color:var(--muted)}
+.dday-list{margin-top:1.2vmin;border-top:1px dashed var(--line);padding-top:1vmin;font-size:.88em}
+.dday-list div{display:flex;justify-content:space-between;padding:.15em 0}
+.dday-list span:last-child{color:#c0552b;font-weight:700}
+table.sise{width:100%;border-collapse:collapse;font-size:.9em}
+table.sise td{padding:.35em 0;border-bottom:1px solid #f2ead9}
+table.sise td:nth-child(2){text-align:right;font-weight:800}
+table.sise td:nth-child(3){text-align:right;width:3.2em;color:var(--muted);font-size:.85em}
+.src{font-size:.72em;color:var(--muted);margin-top:.8vmin}
+.src a{color:var(--gold)}
+.story{display:flex;gap:2.4vmin;align-items:center}
+.story .ico{font-size:2.8em;line-height:1}
+.story b{font-size:1.1em}
+.story p{font-size:.9em;color:#5a5047}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;border:2px solid var(--gold);color:#8a6327;background:#fff;
+  border-radius:1.6em;padding:.45em 1.1em;font-weight:800;font-size:.9em;text-decoration:none;cursor:pointer;font-family:inherit}
+.btn:active{background:var(--gold2)}
+.weather{display:flex;align-items:center;justify-content:space-between;gap:2vmin;flex-wrap:wrap}
+.tabs{display:flex;gap:1.2vmin;margin-bottom:1.2vmin}
+.tabs button{flex:1;border:1px solid var(--line);background:#faf5ec;border-radius:1.2em;padding:.35em;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;font-size:.9em}
+.tabs button.on{background:var(--gold2);color:#222;border-color:var(--gold2)}
+.poem{font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;white-space:pre-line;text-align:center;font-size:1.05em;line-height:1.9}
+.poem small{display:block;font-family:inherit;font-size:.75em;color:var(--muted);margin-top:.8em;line-height:1.5}
+.essay{font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;font-size:.98em;line-height:1.85;text-indent:1em}
+.video{aspect-ratio:9/16;max-height:52vmin;margin:0 auto;border-radius:1.6vmin;overflow:hidden;background:#f3ece0;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;font-size:.9em}
+.video iframe{width:100%;height:100%;border:0}
+footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padding-top:1vmin}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">MAKEBOX DAILY</div>
+    <h1>오늘의 <b>메이크박스</b></h1>
+    <div class="today" id="today"></div>
+    <div class="hello" id="hello"></div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>📅 다가오는 날</h2>
+      <div class="dday-main" id="dmain"></div>
+      <div class="dday-list" id="dlist"></div>
+    </section>
+    <section class="card">
+      <h2>🌾 원재료 시세 <span class="badge" id="sbadge">예시 값</span></h2>
+      <table class="sise" id="sise"></table>
+      <div class="src"><span id="sdate"></span> · 출처 <a href="https://www.kamis.or.kr" target="_blank" rel="noopener">KAMIS 농산물유통정보</a></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>🍡 이달의 떡 이야기</h2>
+    <div class="story" id="story"></div>
+  </section>
+
+  <section class="card weather">
+    <div><h2 style="margin:0">🌤 오늘 날씨</h2><div style="font-size:.85em;color:var(--muted)">배송·포장 계획 전에 확인하세요</div></div>
+    <a class="btn" href="https://www.weather.go.kr" target="_blank" rel="noopener">기상청 날씨누리 보기 ›</a>
+  </section>
+
+  <section class="card">
+    <div class="tabs"><button class="on" onclick="tab(0)">오늘의 시</button><button onclick="tab(1)">짧은 수필</button><button onclick="tab(2)">영상</button></div>
+    <div id="t0" class="poem">엄마야 누나야 강변 살자
+뜰에는 반짝이는 금모래 빛
+뒷문 밖에는 갈잎의 노래
+엄마야 누나야 강변 살자<small>김소월 「엄마야 누나야」 (1922, 저작권 보호기간 만료)</small></div>
+    <div id="t1" class="hide">
+      <p class="essay">상자를 접는 일은 생각보다 조용한 일이다. 반듯하게 접힌 선을 따라 손끝을 누르면, 납작하던 종이가 어느새 마음을 담을 자리가 된다. 그 안에 들어갈 떡은 누군가의 새벽에서 왔다. 쌀을 불리고, 찌고, 치고, 빚은 시간이 고스란히 담긴다. 그래서 우리는 상자의 모서리 하나에도 공을 들인다. 받는 사람이 뚜껑을 여는 그 짧은 순간, 만든 이의 정성이 먼저 닿기를 바라면서.</p>
+      <small style="display:block;text-align:right;color:var(--muted);font-size:.75em;margin-top:.6em">— 메이크박스</small>
+    </div>
+    <div id="t2" class="hide"><div class="video" id="video"></div></div>
+  </section>
+
+  <footer>메이크박스 · 레츠에코 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
+</div>
+
+<script>
+var WD=["일","월","화","수","목","금","토"];
+var now=new Date(),t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+document.getElementById("today").textContent=now.getFullYear()+"년 "+(now.getMonth()+1)+"월 "+now.getDate()+"일 "+WD[now.getDay()]+"요일";
+var h=now.getHours();
+document.getElementById("hello").textContent=h<11?"좋은 아침이에요. 오늘도 맛있는 떡 많이 파세요 ☀️":h<17?"바쁜 오후, 잠깐 쉬어가세요 🍵":"오늘도 수고 많으셨어요 🌙";
+
+/* D-day */
+var up=EVENTS.map(function(e){var p=e[0].split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);return {d:d,name:e[1],tip:e[2],n:Math.round((d-t0)/864e5)};})
+  .filter(function(e){return e.n>=0;}).sort(function(a,b){return a.n-b.n;});
+var dm=document.getElementById("dmain"),dl=document.getElementById("dlist");
+if(up.length){
+  var f=up[0];
+  dm.innerHTML='<span class="ev">'+f.name+'</span><span class="d">'+(f.n===0?"D-DAY":"D-"+f.n)+'</span><span class="tip">'+f.tip+' 준비하실 때예요</span>';
+  dl.innerHTML=up.slice(1,4).map(function(e){return '<div><span>'+e.name+' <small style="color:#8a7f72">('+(e.d.getMonth()+1)+'/'+e.d.getDate()+')</small></span><span>D-'+e.n+'</span></div>';}).join("");
+}else{dm.innerHTML='<span class="tip">등록된 일정이 없어요</span>';}
+
+/* 시세 */
+document.getElementById("sise").innerHTML=SISE.map(function(s){return "<tr><td>"+s.name+"</td><td>"+s.price+"</td><td>"+s.diff+"</td></tr>";}).join("");
+document.getElementById("sdate").textContent=SISE_DATE.replace(/-/g,".")+" 기준";
+if(!SISE_SAMPLE)document.getElementById("sbadge").className="hide";
+
+/* 이달의 떡 */
+var STORY=[
+ ["🥢","가래떡","길게 뽑아 오래 살라는 뜻, 동그랗게 썰어 엽전처럼 재물이 들라는 뜻을 담아요."],
+ ["🌕","약식","정월대보름에 오곡밥과 함께 먹던 떡. 찹쌀에 꿀·대추·밤을 넣어 '약'이라 불렀어요."],
+ ["🌸","진달래 화전","삼짇날 봄꽃을 얹어 지져 먹던 떡. 봄을 접시에 올리는 방법이었죠."],
+ ["🌿","쑥떡","이른 봄 어린 쑥으로 만든 떡. 향긋한 봄맛의 대표 주자예요."],
+ ["💐","답례떡","어버이날·스승의날, 고마운 마음을 떡 한 상자에 담아 전해요."],
+ ["🛞","수리취떡","단오에 먹던 떡. 수레바퀴 무늬를 찍어 '차륜병'이라고도 불러요."],
+ ["☁️","증편","막걸리로 부풀린 떡. 더운 여름에도 잘 쉬지 않아 여름 떡으로 사랑받았어요."],
+ ["🤍","백설기","흰 무리떡은 티 없이 깨끗하게 자라라는 바람을 담아 백일상에 올려요."],
+ ["🌓","송편","추석의 떡. 솔잎 향을 입혀 찌고, 반달 모양에 앞날이 차오르길 빌었어요."],
+ ["🏠","시루떡","10월 상달, 집안의 평안을 빌며 고사에 올리던 떡이에요."],
+ ["🎓","찹쌀떡","'척 붙어라!' 시험을 앞둔 이들에게 건네는 응원의 떡이에요."],
+ ["🔴","팥시루떡 · 팥죽","동지에는 붉은 팥으로 나쁜 기운을 쫓는다고 믿었어요."]
+][now.getMonth()];
+document.getElementById("story").innerHTML='<div class="ico">'+STORY[0]+'</div><div><b>'+(now.getMonth()+1)+'월의 떡 · '+STORY[1]+'</b><p>'+STORY[2]+'</p></div>';
+
+/* 영상 */
+var v=document.getElementById("video");
+if(SHORTS_ID){v.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(SHORTS_ID)+'?rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';}
+else{v.innerHTML='🎬<br>메이크박스 쇼츠<br>준비 중이에요';}
+
+function tab(i){[0,1,2].forEach(function(k){document.getElementById("t"+k).className=k===i?(k===0?"poem":""):"hide";document.querySelectorAll(".tabs button")[k].className=k===i?"on":"";});}
+</script>
+</body>
+</html>
