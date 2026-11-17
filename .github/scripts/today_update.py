@@ -40,6 +40,14 @@ PRESS = {"yna.co.kr": "연합뉴스", "newsis.com": "뉴시스", "news1.kr": "�
          "kyeongin.com": "경인일보", "newspim.com": "뉴스핌", "bizwatch.co.kr": "비즈워치", "foodnews.co.kr": "식품음료신문",
          "thinkfood.co.kr": "식품저널", "foodbank.co.kr": "식품외식경제", "aflnews.co.kr": "농수축산신문"}
 
+# ── 원재료 시세 (KAMIS 소매가격, 전국 평균) ──
+#    [화면에 보일 이름, 품목 이름에 들어갈 말, 품종 이름에 들어갈 말(없으면 "")]  ※ 단위(20kg 등)는 자동으로 붙어요
+SISE_ITEMS = [
+    ["쌀",          "쌀",   "20kg"],
+    ["찹쌀",        "찹쌀", ""],
+    ["붉은팥(국산)", "팥",   "국산"],
+]
+
 def get(url, headers=None):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": "makebox-today/1.0"})
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -130,8 +138,51 @@ def news():
         data["news_time"] = now.strftime("%-m/%-d %H시")
         print("소식", len(result), "건")
 
+# ───────── 원재료 시세 ─────────
+def sise():
+    key, uid = os.environ.get("KAMIS_KEY", "").strip(), os.environ.get("KAMIS_ID", "").strip()
+    if not (key and uid):
+        print("KAMIS 키 없음 → 시세 건너뜀"); return
+    url = ("https://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
+           "&p_product_cls_code=01&p_item_category_code=100&p_convert_kg_yn=N&p_returntype=json"
+           "&p_cert_key=" + urllib.parse.quote(key) + "&p_cert_id=" + urllib.parse.quote(uid))
+    try:
+        d = json.loads(get(url))
+        items = d["data"]["item"]
+        if isinstance(items, dict): items = [items]
+    except Exception as e:
+        print("시세 실패", e, str(locals().get("d", ""))[:200]); return
+    def num(x):
+        try: return int(str(x).replace(",", "").strip())
+        except Exception: return None
+    out, day = [], ""
+    for label, iname, kname in SISE_ITEMS:
+        cands = [it for it in items if iname == str(it.get("item_name", "")).strip()
+                 and kname in str(it.get("kind_name", "")) and num(it.get("dpr1"))]
+        if not cands:
+            cands = [it for it in items if iname in str(it.get("item_name", ""))
+                     and kname in str(it.get("kind_name", "")) and num(it.get("dpr1"))]
+        if not cands:
+            print("시세 품목 못 찾음:", label); continue
+        it = next((c for c in cands if "상품" in str(c.get("rank", ""))), cands[0])
+        now_p, mon_p = num(it.get("dpr1")), num(it.get("dpr5"))
+        if mon_p:
+            r = (now_p - mon_p) / mon_p * 100
+            diff = "-" if abs(r) < 0.05 else ("▲" if r > 0 else "▼") + "%.1f%%" % abs(r)
+        else:
+            diff = "-"
+        unit = str(it.get("unit", "")).strip()
+        out.append([label + (" (%s)" % unit if unit else ""), "{:,}원".format(now_p), diff])
+        day = day or str(it.get("day1", ""))
+    if out:
+        data["sise"] = out
+        m = re.search(r"(\d{1,2})/(\d{1,2})", day)
+        data["sise_time"] = ("%s.%s" % (m.group(1), m.group(2))) if m else now.strftime("%-m.%-d")
+        print("시세", len(out), "품목")
+
 weather()
 news()
+sise()
 data["updated"] = now.strftime("%Y-%m-%d %H:%M")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 json.dump(data, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
