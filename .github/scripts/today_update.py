@@ -17,8 +17,9 @@ REGIONS = [
 # ── 뉴스 검색어 (분야: 검색어들) ──
 NEWS_Q = {
     "떡·쌀": ["떡집", "떡 가격", "쌀값", "찹쌀 가격"],
-    "K-떡": ["떡 수출", "K-떡", "쌀가공식품 수출", "한국 떡 해외"],
-    "제지·포장": ["제지 가격 인상", "골판지 가격", "백판지", "포장재 가격"],}
+    "K-떡": ["떡 수출", "K-떡", "떡볶이 수출", "쌀가공식품 수출", "한국 떡 해외"],
+    "제지·포장": ["제지 가격 인상", "골판지 가격", "백판지", "포장재 가격"],
+}
 NEWS_PER_CAT = 4
 NEWS_DAYS = 21                      # 3주 지난 기사는 빼요
 EXCLUDE = ["떡상", "떡락", "떡잎", "떡밥", "떡실신", "주가", "코인"]
@@ -88,14 +89,15 @@ def news():
     cid, sec = os.environ.get("NAVER_ID", "").strip(), os.environ.get("NAVER_SECRET", "").strip()
     if not (cid and sec):
         print("NAVER 키 없음 → 소식 건너뜀"); return
-    hd = {"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": sec, "User-Agent": "makebox-today/1.0"}
+    # 2026.7월부터 네이버 검색 API는 네이버 클라우드 'NAVER API HUB'로 옮겨졌어요
+    hd = {"X-NCP-APIGW-API-KEY-ID": cid, "X-NCP-APIGW-API-KEY": sec, "User-Agent": "makebox-today/1.0"}
     cut = now - timedelta(days=NEWS_DAYS)
     seen, result = set(), []
     for cat, qs in NEWS_Q.items():
         pool = []
         for q in qs:
             try:
-                items = json.loads(get("https://openapi.naver.com/v1/search/news.json?display=20&sort=date&query=" +
+                items = json.loads(get("https://naverapihub.apigw.ntruss.com/search/v1/news?display=20&sort=date&query=" +
                                        urllib.parse.quote(q), hd))["items"]
             except Exception as e:
                 print("소식 실패", q, e); continue
