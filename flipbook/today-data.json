@@ -1,82 +1,117 @@
 {
- "updated": "2026-11-17 13:18",
+ "updated": "2026-11-17 20:44",
  "weather": [
   [
    "서울·경기",
-   "흐림",
-   14
+   "비",
+   11
   ],
   [
    "인천",
-   "흐림",
-   14
+   "비",
+   11
   ],
   [
    "강원 영서",
-   "흐림",
-   13
+   "비",
+   10
   ],
   [
    "강원 영동",
-   "흐림",
-   14
+   "비",
+   10
   ],
   [
    "충북",
-   "흐림",
-   16
+   "비",
+   12
   ],
   [
    "충남·대전",
-   "흐림",
-   15
+   "비",
+   12
   ],
   [
    "전북",
-   "흐림",
-   16
+   "비",
+   13
   ],
   [
    "전남·광주",
    "흐림",
-   17
+   13
   ],
   [
    "경북·대구",
    "흐림",
-   16
+   12
   ],
   [
    "경남·부산",
    "흐림",
-   18
+   14
   ],
   [
    "울산",
    "흐림",
-   17
+   13
   ],
   [
    "제주",
    "비",
-   19
+   16
   ]
  ],
- "wx_time": "11/17 11시 발표",
+ "wx_time": "11/17 20시 발표",
  "news": [
   [
    "떡·쌀",
-   "떡 팔아 건물주 김덕식, 연예인 100명 사는 아파트 주민",
-   "mediafine.co.kr",
+   "쌀 생산량 작년보다 0.9% 감소..산지 쌀값 강보합 전망",
+   "phmbc.co.kr",
    "2026-11-17",
-   "https://www.mediafine.co.kr/news/articleView.html?idxno=95449"
+   "http://www.phmbc.co.kr/www/news/desk_news?idx=205478&mode=view"
   ],
   [
    "떡·쌀",
-   "수능 시즌 별미 옛말…편의점 떡, 사계절 디저트 각광",
-   "헤럴드경제",
+   "\"쌀은 국민 주식\"…공공비축미 늘려 식량안보 대비해야",
+   "newsfarco.kr",
    "2026-11-17",
-   "https://biz.heraldcorp.com/article/10939570?ref=naver"
+   "http://www.newsfarm.co.kr/news/articleView.html?idxno=102986"
+  ],
+  [
+   "떡·쌀",
+   "올 쌀 생산량 '350만8000톤'…벼 수매가 작년보다 상승",
+   "agrinet.co.kr",
+   "2026-11-17",
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=408938"
+  ],
+  [
+   "제지·포장",
+   "한창제지, 3분기 누적 영업익 66억…흑자 전환",
+   "cstimes.com",
+   "2026-11-17",
+   "https://www.cstimes.com/news/articleView.html?idxno=728279"
+  ],
+  [
+   "제지·포장",
+   "\"원재료·포장재·이력 정보…수출 농식품 공급망 통합 관리 필요\"",
+   "agrinet.co.kr",
+   "2026-11-17",
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=408933"
+  ],
+  [
+   "떡·쌀",
+   "[비즈톡톡] 엿 대신 초코모찌… 수능 선물도 ‘떡 디저트’ 열풍",
+   "조선일보",
+   "2026-11-17",
+   "https://biz.chosun.com/distribution/channel/2026/11/17/BEWNQILSXFBRJPWMTRRU26CIBQ/?utm_source=naver&utm_medium=original&utm_campaign=biz"
+  ],
+  [
+   "제지·포장",
+   "한창제지, 3분기 영업이익 10억원 달성…전년 동기 대비 흑자 전환",
+   "widedaily.com",
+   "2026-11-17",
+   "https://www.widedaily.com/news/articleView.html?idxno=303917"
   ],
   [
    "K-떡",
@@ -93,63 +128,14 @@
    "https://www.newsis.com/view/NISX20261117_0003871106"
   ],
   [
-   "떡·쌀",
-   "수능 D-2…요아정, 합격 응원 '찹쌀떡’ 예약 문의 늘었다",
-   "이데일리",
-   "2026-11-17",
-   "https://www.edaily.co.kr/News/Read?newsId=02624006645646704&mediaCodeNo=257&utm_source=naver&utm_medium=referral&utm_campaign=news_syndication&utm_content=original_article"
-  ],
-  [
-   "떡·쌀",
-   "[르포] 수능 코앞인데...'찰싹 합격'은 옛말?…100년 떡집 한산, 여긴 '북...",
-   "파이낸셜뉴스",
-   "2026-11-17",
-   "https://www.fnnews.com/news/202611161444042102"
-  ],
-  [
-   "K-떡",
-   "\"동네 떡집이 매출 800억 기업으로\"…전통 떡에 과학을 입혔다",
-   "머니투데이",
-   "2026-11-16",
-   "https://www.mt.co.kr/economy/2026/11/16/2026111117510824701"
-  ],
-  [
    "K-떡",
    "익산농협 생크림 찹쌀떡, 미국 4차 수출...K-디저트 열풍 이어간다.",
    "sjbnews.com",
    "2026-11-15",
    "https://sjbnews.com/news/news.php?number=892592"
-  ],
-  [
-   "K-떡",
-   "익산농협 생크림 찹쌀떡, 네 번째 미국 수출길",
-   "jeollailbo.com",
-   "2026-11-14",
-   "http://www.jeollailbo.com/news/articleView.html?idxno=816616"
-  ],
-  [
-   "제지·포장",
-   "택배 물량 늘어난다…골판지·포장재 중소형株 '함박웃음'",
-   "pinpointnews.co.kr",
-   "2026-11-14",
-   "https://www.pinpointnews.co.kr/news/articleView.html?idxno=504027"
-  ],
-  [
-   "제지·포장",
-   "[Who Is ?] 한경록 한솔제지 대표이사",
-   "businesspost.co.kr",
-   "2026-11-11",
-   "https://www.businesspost.co.kr/BP?command=article_view&num=451675"
-  ],
-  [
-   "제지·포장",
-   "캐나다 골판지 상자 시장동향",
-   "dreakotra.or.kr",
-   "2026-11-10",
-   "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=190&CONTENTS_NO=2&bbsGbn=254&bbsSn=254&pNttSn=245101"
   ]
  ],
- "news_time": "11/17 13시",
+ "news_time": "11/17 20시",
  "sise": [
   [
    "쌀 (20kg)",
