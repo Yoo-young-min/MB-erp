@@ -14,12 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 날씨·업계 소식 가져오기
+      - name: 날씨·업계 소식·시세 가져오기
         run: python3 .github/scripts/today_update.py
         env:
           KMA_KEY: ${{ secrets.KMA_KEY }}
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_SECRET: ${{ secrets.NAVER_SECRET }}
+          KAMIS_KEY: ${{ secrets.KAMIS_KEY }}
+          KAMIS_ID: ${{ secrets.KAMIS_ID }}
       - name: 바뀐 내용 저장
         run: |
           git config user.name "today-bot"
