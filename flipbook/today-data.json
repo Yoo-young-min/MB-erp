@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-17 13:01",
+ "updated": "2026-11-17 13:18",
  "weather": [
   [
    "서울·경기",
@@ -66,6 +66,13 @@
  "news": [
   [
    "떡·쌀",
+   "떡 팔아 건물주 김덕식, 연예인 100명 사는 아파트 주민",
+   "mediafine.co.kr",
+   "2026-11-17",
+   "https://www.mediafine.co.kr/news/articleView.html?idxno=95449"
+  ],
+  [
+   "떡·쌀",
    "수능 시즌 별미 옛말…편의점 떡, 사계절 디저트 각광",
    "헤럴드경제",
    "2026-11-17",
@@ -98,13 +105,6 @@
    "파이낸셜뉴스",
    "2026-11-17",
    "https://www.fnnews.com/news/202611161444042102"
-  ],
-  [
-   "떡·쌀",
-   "고경표 음주운전, 내년 개봉 ‘원조x떡집’은 어떻게 되나?",
-   "sportsworldi.com",
-   "2026-11-16",
-   "https://www.sportsworldi.com/newsView/20261116519508"
   ],
   [
    "K-떡",
@@ -149,5 +149,23 @@
    "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=190&CONTENTS_NO=2&bbsGbn=254&bbsSn=254&pNttSn=245101"
   ]
  ],
- "news_time": "11/17 13시"
+ "news_time": "11/17 13시",
+ "sise": [
+  [
+   "쌀 (20kg)",
+   "63,321원",
+   "▼0.3%"
+  ],
+  [
+   "찹쌀 (1kg)",
+   "5,158원",
+   "▼1.2%"
+  ],
+  [
+   "붉은팥(국산) (500g)",
+   "13,375원",
+   "▼1.9%"
+  ]
+ ],
+ "sise_time": "11.16"
 }
