@@ -79,12 +79,13 @@ h1 b{color:var(--gold)}
 .hello{font-size:.92em;margin-top:.3em}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4vmin}
 .card{background:var(--card);border:1px solid var(--line);border-radius:2.2vmin;padding:2.6vmin 2.8vmin;position:relative}
-.card h2{font-size:.95em;color:var(--gold);font-weight:800;margin-bottom:1.2vmin;display:flex;align-items:center;gap:.4em}
+.card h2{font-size:1.08em;color:#8a5a14;font-weight:900;margin-bottom:1.2vmin;display:flex;align-items:center;gap:.4em}
 .badge{font-size:.72em;background:#fbe3c6;color:#a2531e;border-radius:1em;padding:.1em .6em;font-weight:700}
-.dday-main{display:flex;align-items:baseline;gap:.5em;flex-wrap:wrap}
+.dday-main{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:.8em}
+.dday-main .left{display:flex;align-items:baseline;gap:.4em;white-space:nowrap}
 .dday-main .ev{font-size:1.5em;font-weight:800}
 .dday-main .d{font-size:2.1em;font-weight:900;color:#c0552b}
-.dday-main .tip{width:100%;font-size:.85em;color:var(--muted)}
+.dday-main .tip{font-size:.82em;line-height:1.35;color:var(--muted)}
 .dday-list{margin-top:1.2vmin;border-top:1px dashed var(--line);padding-top:1vmin;font-size:.88em}
 .dday-list div{display:flex;justify-content:space-between;padding:.15em 0}
 .dday-list span:last-child{color:#c0552b;font-weight:700}
@@ -150,8 +151,8 @@ html.emb .tabbody{touch-action:pan-y}
 .nc{display:inline-block;font-size:.7em;font-weight:800;border-radius:1em;padding:.05em .6em;margin-right:.4em;vertical-align:.12em;background:#fbe3c6;color:#a2531e}
 .nc.p{background:#dfeee0;color:#3d6b42}
 .tabs{display:flex;gap:1.2vmin;margin-bottom:1.2vmin}
-.tabs button{flex:1;border:1px solid var(--line);background:#faf5ec;border-radius:1.2em;padding:.35em;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;font-size:.9em}
-.tabs button.on{background:var(--gold2);color:#222;border-color:var(--gold2)}
+.tabs button{flex:1;border:1px solid var(--line);background:#faf5ec;border-radius:1.2em;padding:.35em;font-weight:800;color:#6b5a44;font-size:1em;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--gold2);color:#2b1d08;border-color:#d9a24f;font-weight:900}
 .poem{font-family:"Nanum Myeongjo","Batang","Noto Serif KR",serif;white-space:pre-line;text-align:center;font-size:1.05em;line-height:1.9}
 .poem small{display:block;font-family:inherit;font-size:.75em;color:var(--muted);margin-top:.8em;line-height:1.5}
 footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padding-top:1vmin}
@@ -205,7 +206,7 @@ footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padd
     </div>
   </section>
 
-  <footer>메이크박스&nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
+  <footer>메이크박스 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
 </div>
 
 <script>
@@ -221,8 +222,8 @@ var up=EVENTS.map(function(e){var p=e[0].split("-");var d=new Date(+p[0],+p[1]-1
 var dm=document.getElementById("dmain"),dl=document.getElementById("dlist");
 if(up.length){
   var f=up[0];
-  dm.innerHTML='<span class="ev">'+f.name+'</span><span class="d">'+(f.n===0?"D-DAY":"D-"+f.n)+'</span><span class="tip">'+f.tip+' 준비하실 때예요</span>';
-  dl.innerHTML=up.slice(1,3).map(function(e){return '<div><span>'+e.name+' <small style="color:#8a7f72">('+(e.d.getMonth()+1)+'/'+e.d.getDate()+')</small></span><span>D-'+e.n+'</span></div>';}).join("");
+  dm.innerHTML='<div class="left"><span class="ev">'+f.name+'</span><span class="d">'+(f.n===0?"D-DAY":"D-"+f.n)+'</span></div><span class="tip">'+f.tip+'<br>준비하실 때예요</span>';
+  dl.innerHTML=up.slice(1,4).map(function(e){return '<div><span>'+e.name+' <small style="color:#8a7f72">('+(e.d.getMonth()+1)+'/'+e.d.getDate()+')</small></span><span>D-'+e.n+'</span></div>';}).join("");
 }else{dm.innerHTML='<span class="tip">등록된 일정이 없어요</span>';}
 
 /* 시세 */
