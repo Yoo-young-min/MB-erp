@@ -151,60 +151,86 @@ def news():
         data["news_time"] = now.strftime("%-m/%-d %H시")
         print("소식", len(result), "건")
 
-# ───────── 원재료 시세 ─────────
+# ───────── 원재료 시세 (공공데이터포털 · aT 일별 도·소매 가격) ─────────
+# 기상청과 같은 공공데이터포털 열쇠(KMA_KEY)를 같이 써요.
+SISE_CODES = {"쌀": "111", "찹쌀": "112", "팥": "142", "콩": "141", "녹두": "143"}
+
 def sise():
-    key, uid = os.environ.get("KAMIS_KEY", "").strip(), os.environ.get("KAMIS_ID", "").strip()
-    if not (key and uid):
-        print("KAMIS 키 없음 → 시세 건너뜀"); return
-    base = ("www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
-            "&p_product_cls_code=01&p_item_category_code=100&p_convert_kg_yn=N&p_returntype=json"
-            "&p_cert_key=" + urllib.parse.quote(key) + "&p_cert_id=" + urllib.parse.quote(uid))
-    # 오늘 가격이 아직 안 올라왔으면 하루씩 거슬러 올라가며 찾아요 (최대 10일)
-    items, code = None, ""
-    for back in range(0, 11):
-        day_s = (now - timedelta(days=back)).strftime("%Y-%m-%d")
-        try:
-            q = base + "&p_regday=" + day_s
-            d = json.loads(get_retry(["https://" + q, "http://" + q]))
-        except Exception as e:
-            print("시세 실패", day_s, e); return
-        dd = d.get("data")
-        if isinstance(dd, dict) and dd.get("item"):
-            items = dd["item"]
-            if isinstance(items, dict): items = [items]
-            break
-        code = (dd.get("error_code") if isinstance(dd, dict) else (dd[0] if isinstance(dd, list) and dd else dd))
-        if str(code) in ("200", "900"):   # 200: 요청 오류, 900: 인증 실패
-            print("시세 실패 (KAMIS 코드 %s) — 200은 요청 오류, 900은 인증키/아이디 확인" % code); return
-    if not items:
-        print("시세 실패 — 최근 10일 가격 없음 (KAMIS 코드 %s)" % code); return
+    key = os.environ.get("KMA_KEY", "").strip()
+    if not key:
+        print("공공데이터 키 없음 → 시세 건너뜀"); return
+    k = key if "%" in key else urllib.parse.quote(key, safe="")
+    end_d = now.date(); start_d = end_d - timedelta(days=45)
+    def pick(row, names):
+        for n in names:
+            if n in row and str(row[n]).strip() not in ("", "-", "None"): return str(row[n]).strip()
+        return ""
     def num(x):
-        try: return int(str(x).replace(",", "").strip())
+        try: return float(str(x).replace(",", "").strip())
         except Exception: return None
-    out, day = [], ""
+    out, last_day, debug = [], "", None
     for label, iname, kname in SISE_ITEMS:
-        cands = [it for it in items if iname == str(it.get("item_name", "")).strip()
-                 and kname in str(it.get("kind_name", "")) and num(it.get("dpr1"))]
-        if not cands:
-            cands = [it for it in items if iname in str(it.get("item_name", ""))
-                     and kname in str(it.get("kind_name", "")) and num(it.get("dpr1"))]
-        if not cands:
-            print("시세 품목 못 찾음:", label); continue
-        it = next((c for c in cands if "상품" in str(c.get("rank", ""))), cands[0])
-        now_p, mon_p = num(it.get("dpr1")), num(it.get("dpr5"))
-        if mon_p:
-            r = (now_p - mon_p) / mon_p * 100
+        code = SISE_CODES.get(iname)
+        if not code:
+            print("시세 품목코드 없음:", iname); continue
+        rows = []
+        for page in range(1, 6):
+            url = ("https://apis.data.go.kr/B552845/perDay/price?serviceKey=" + k +
+                   "&returnType=json&pageNo=%d&numOfRows=1000" % page +
+                   "&cond%5Bexmn_ymd%3A%3AGTE%5D=" + start_d.strftime("%Y%m%d") +
+                   "&cond%5Bexmn_ymd%3A%3ALTE%5D=" + end_d.strftime("%Y%m%d") +
+                   "&cond%5Bctgry_cd%3A%3AEQ%5D=100&cond%5Bitem_cd%3A%3AEQ%5D=" + code)
+            try:
+                txt = get(url, timeout=40)
+                d = json.loads(txt)
+            except Exception as e:
+                print("시세 실패", label, e, (locals().get("txt") or "")[:150]); break
+            body = d.get("response", {}).get("body", {}) if isinstance(d, dict) else {}
+            it = body.get("items", {})
+            it = it.get("item", []) if isinstance(it, dict) else it
+            if isinstance(it, dict): it = [it]
+            if not it:
+                if page == 1: print("시세 자료 없음", label, str(d)[:200])
+                break
+            rows += it
+            total = num(body.get("totalCount")) or 0
+            if len(rows) >= total: break
+        if not rows: continue
+        debug = debug or rows[0]
+        # 소매 + 품종 + 상품 등급만
+        def ok(r, need_grade):
+            se = pick(r, ["se_nm", "se_cd"])
+            if se and not ("소매" in se or se in ("01", "1")): return False
+            if kname and kname not in pick(r, ["vrty_nm", "kind_nm"]): return False
+            if need_grade and "상품" not in pick(r, ["grd_nm", "rank_nm"]): return False
+            return True
+        sel = [r for r in rows if ok(r, True)] or [r for r in rows if ok(r, False)]
+        by = {}
+        for r in sel:
+            p = num(pick(r, ["exmn_dd_prc", "exmn_dd_avg_prc", "prc"]))
+            dt = pick(r, ["exmn_ymd"]).replace("-", "")
+            if p and dt: by.setdefault(dt, []).append(p)
+        if not by:
+            print("시세 품목 못 찾음:", label, "| 예시 줄:", json.dumps(rows[0], ensure_ascii=False)[:300]); continue
+        days = sorted(by)
+        latest = days[-1]
+        avg = lambda dt: sum(by[dt]) / len(by[dt])
+        now_p = round(avg(latest))
+        ld = datetime.strptime(latest, "%Y%m%d").date()
+        old = [x for x in days if datetime.strptime(x, "%Y%m%d").date() <= ld - timedelta(days=28)]
+        diff = "-"
+        if old:
+            mon_p = avg(old[-1]); r = (now_p - mon_p) / mon_p * 100
             diff = "-" if abs(r) < 0.05 else ("▲" if r > 0 else "▼") + "%.1f%%" % abs(r)
-        else:
-            diff = "-"
-        unit = str(it.get("unit", "")).strip()
+        unit = (pick(sel[0], ["unit_sz"]) + pick(sel[0], ["unit"])).strip() if sel else ""
         out.append([label + (" (%s)" % unit if unit else ""), "{:,}원".format(now_p), diff])
-        day = day or str(it.get("day1", ""))
+        last_day = max(last_day, latest)
     if out:
         data["sise"] = out
-        m = re.search(r"(\d{1,2})/(\d{1,2})", day)
-        data["sise_time"] = ("%s.%s" % (m.group(1), m.group(2))) if m else now.strftime("%-m.%-d")
+        data["sise_time"] = "%d.%d" % (int(last_day[4:6]), int(last_day[6:8]))
         print("시세", len(out), "품목")
+    elif debug:
+        print("시세 예시 줄:", json.dumps(debug, ensure_ascii=False)[:400])
 
 weather()
 news()
