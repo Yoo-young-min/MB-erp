@@ -48,10 +48,23 @@ SISE_ITEMS = [
     ["붉은팥(국산)", "팥",   "국산"],
 ]
 
-def get(url, headers=None):
+def get(url, headers=None, timeout=20):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": "makebox-today/1.0"})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
+
+def get_retry(urls, tries=3, timeout=60):
+    """느린 서버용: 주소 여러 개(https/http)를 번갈아 최대 tries번씩 시도"""
+    import time
+    last = None
+    for t in range(tries):
+        for u in urls:
+            try:
+                return get(u, timeout=timeout)
+            except Exception as e:
+                last = e
+        time.sleep(5)
+    raise last
 
 old = {}
 if os.path.exists(OUT):
@@ -143,7 +156,7 @@ def sise():
     key, uid = os.environ.get("KAMIS_KEY", "").strip(), os.environ.get("KAMIS_ID", "").strip()
     if not (key and uid):
         print("KAMIS 키 없음 → 시세 건너뜀"); return
-    base = ("https://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
+    base = ("www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
             "&p_product_cls_code=01&p_item_category_code=100&p_convert_kg_yn=N&p_returntype=json"
             "&p_cert_key=" + urllib.parse.quote(key) + "&p_cert_id=" + urllib.parse.quote(uid))
     # 오늘 가격이 아직 안 올라왔으면 하루씩 거슬러 올라가며 찾아요 (최대 10일)
@@ -151,7 +164,8 @@ def sise():
     for back in range(0, 11):
         day_s = (now - timedelta(days=back)).strftime("%Y-%m-%d")
         try:
-            d = json.loads(get(base + "&p_regday=" + day_s))
+            q = base + "&p_regday=" + day_s
+            d = json.loads(get_retry(["https://" + q, "http://" + q]))
         except Exception as e:
             print("시세 실패", day_s, e); return
         dd = d.get("data")
