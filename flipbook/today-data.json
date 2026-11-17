@@ -1,3 +1,153 @@
 {
- "updated": "2026-11-17 10:43"
+ "updated": "2026-11-17 12:07",
+ "weather": [
+  [
+   "서울·경기",
+   "흐림",
+   13
+  ],
+  [
+   "인천",
+   "흐림",
+   14
+  ],
+  [
+   "강원 영서",
+   "흐림",
+   13
+  ],
+  [
+   "강원 영동",
+   "흐림",
+   14
+  ],
+  [
+   "충북",
+   "흐림",
+   15
+  ],
+  [
+   "충남·대전",
+   "흐림",
+   15
+  ],
+  [
+   "전북",
+   "흐림",
+   16
+  ],
+  [
+   "전남·광주",
+   "흐림",
+   17
+  ],
+  [
+   "경북·대구",
+   "흐림",
+   16
+  ],
+  [
+   "경남·부산",
+   "흐림",
+   18
+  ],
+  [
+   "울산",
+   "흐림",
+   17
+  ],
+  [
+   "제주",
+   "비",
+   18
+  ]
+ ],
+ "wx_time": "11/17 11시 발표",
+ "news": [
+  [
+   "제지·포장",
+   "세타필 vs 라로슈포제, 가격 6.9배 차이…보습효과는",
+   "이데일리",
+   "2026-11-17",
+   "https://www.edaily.co.kr/News/Read?newsId=03578486645646704&mediaCodeNo=257&utm_source=naver&utm_medium=referral&utm_campaign=news_syndication&utm_content=original_article"
+  ],
+  [
+   "떡·쌀",
+   "\"일주일에 다섯 번 와요\"…카자흐 청년들 사랑방 된 편의점 CU",
+   "머니투데이",
+   "2026-11-17",
+   "https://www.mt.co.kr/living/2026/11/17/2026111610334240557"
+  ],
+  [
+   "K-떡",
+   "K-푸드 접근성 좋아지는 카자흐스탄, 식품박람회서 1430만 달러 상담",
+   "weeklytrade.co.kr",
+   "2026-11-17",
+   "https://weeklytrade.co.kr/news/view.html?section=1&category=3&item=&no=102270"
+  ],
+  [
+   "떡·쌀",
+   "'주머니는 가볍게, 인심은 넉넉하게' 태안군, 신규 착한가격업소 16개소...",
+   "cctimes.kr",
+   "2026-11-17",
+   "http://www.cctimes.kr/news/articleView.html?idxno=937591"
+  ],
+  [
+   "떡·쌀",
+   "브랜드별로 정리한, 역대 가장 비싼 시계 11점",
+   "gqkorea.co.kr",
+   "2026-11-17",
+   "https://www.gqkorea.co.kr/2026/11/17/%eb%b8%8c%eb%9e%9c%eb%93%9c%eb%b3%84%eb%a1%9c-%ec%a0%95%eb%a6%ac%ed%95%9c-%ec%97%ad%eb%8c%80-%ea%b0%80%ec%9e%a5-%eb%b9%84%ec%8b%bc-%ec%8b%9c%ea%b3%84-11%ec%a0%90/?utm_source=naver&utm_medium=partnership"
+  ],
+  [
+   "떡·쌀",
+   "김해시, 2026년산 공공비축미곡 매입 '순조'",
+   "newsgn.com",
+   "2026-11-17",
+   "https://www.newsgn.com/news/articleView.html?idxno=586124"
+  ],
+  [
+   "K-떡",
+   "'순창 코리아 떡볶이 페스타' 21일 개막…이틀간 발효테마파크서",
+   "뉴스1",
+   "2026-11-17",
+   "https://www.news1.kr/local/jeonbuk/6356545"
+  ],
+  [
+   "K-떡",
+   "BBQ, 홍대·명동 매장 매출 43% 증가 \"외국인 발길 늘어\"",
+   "whitepaper.co.kr",
+   "2026-11-17",
+   "http://www.whitepaper.co.kr/news/articleView.html?idxno=268850"
+  ],
+  [
+   "K-떡",
+   "aT, K-푸드 카자흐스탄서 수출 상담 1430만 달러 성과",
+   "pointdaily.co.kr",
+   "2026-11-17",
+   "https://www.pointdaily.co.kr/news/articleView.html?idxno=326284"
+  ],
+  [
+   "제지·포장",
+   "[Why] 같은 플라스틱병인데 아시아·유럽만 원료값 뚝 떨어진 이유는?",
+   "조선일보",
+   "2026-11-17",
+   "https://biz.chosun.com/international/international_general/2026/11/17/NBBGWUMUMBARLI2SJQSYWXVTLA/?utm_source=naver&utm_medium=original&utm_campaign=biz"
+  ],
+  [
+   "제지·포장",
+   "한창제지, 3분기 영업이익 10억…전년比 흑자 전환",
+   "뉴시스",
+   "2026-11-17",
+   "https://www.newsis.com/view/NISX20261117_0003871106"
+  ],
+  [
+   "제지·포장",
+   "롯데웰푸드, 내년 10%대 이익 성장 기대…목표가 19만원 유지",
+   "파이낸셜뉴스",
+   "2026-11-17",
+   "https://www.fnnews.com/news/202611170803349203"
+  ]
+ ],
+ "news_time": "11/17 12시"
 }
