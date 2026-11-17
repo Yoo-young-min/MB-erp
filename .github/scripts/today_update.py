@@ -17,12 +17,19 @@ REGIONS = [
 # ── 뉴스 검색어 (분야: 검색어들) ──
 NEWS_Q = {
     "떡·쌀": ["떡집", "떡 가격", "쌀값", "찹쌀 가격"],
-    "K-떡": ["떡 수출", "K-떡", "떡볶이 수출", "쌀가공식품 수출", "한국 떡 해외"],
+    "K-떡": ["떡 수출", "K-떡", "쌀가공식품 수출", "한국 떡 해외"],
     "제지·포장": ["제지 가격 인상", "골판지 가격", "백판지", "포장재 가격"],
+}
+# ── 기사 '제목'에 이 단어 중 하나는 꼭 있어야 들어와요 (본문에만 있는 기사는 빼요) ──
+MUST = {
+    "떡·쌀": ["떡", "쌀", "찹쌀", "방앗간"],
+    "K-떡": ["떡", "쌀가공"],
+    "제지·포장": ["제지", "종이", "골판지", "백판지", "판지", "펄프", "포장재", "포장", "박스", "상자"],
 }
 NEWS_PER_CAT = 4
 NEWS_DAYS = 21                      # 3주 지난 기사는 빼요
-EXCLUDE = ["떡상", "떡락", "떡잎", "떡밥", "떡실신", "주가", "코인"]
+# ── 제목에 이 단어가 있으면 빼요 ──
+EXCLUDE = ["떡볶이", "떡상", "떡락", "떡잎", "떡밥", "떡실신", "떡칠", "떡진", "주가", "코인", "시계"]
 PRESS = {"yna.co.kr": "연합뉴스", "newsis.com": "뉴시스", "news1.kr": "뉴스1", "mk.co.kr": "매일경제",
          "hankyung.com": "한국경제", "chosun.com": "조선일보", "joongang.co.kr": "중앙일보", "donga.com": "동아일보",
          "hani.co.kr": "한겨레", "khan.co.kr": "경향신문", "sedaily.com": "서울경제", "edaily.co.kr": "이데일리",
@@ -104,6 +111,7 @@ def news():
             for it in items:
                 title = html.unescape(re.sub(r"<[^>]+>", "", it["title"])).strip()
                 if any(x in title for x in EXCLUDE): continue
+                if not any(x in title for x in MUST.get(cat, [""])): continue
                 norm = re.sub(r"[^가-힣A-Za-z0-9]", "", title)[:24]
                 if norm in seen: continue
                 try: dt = datetime.strptime(it["pubDate"], "%a, %d %b %Y %H:%M:%S %z").astimezone(KST)
