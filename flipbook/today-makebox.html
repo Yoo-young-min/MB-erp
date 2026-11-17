@@ -103,7 +103,7 @@ h1 b{color:var(--gold)}
 table.sise{width:100%;border-collapse:collapse;font-size:.9em}
 table.sise td{padding:.35em 0;border-bottom:1px solid #f2ead9}
 table.sise td:nth-child(2){text-align:right;font-weight:800}
-table.sise td:nth-child(3){text-align:right;width:3.2em;color:var(--muted);font-size:.85em}
+table.sise td:nth-child(3){text-align:right;width:4.2em;white-space:nowrap;color:var(--muted);font-size:.85em}
 .src{font-size:.72em;color:var(--muted);margin-top:.8vmin}
 .src a{color:var(--gold)}
 .story{display:flex;gap:2.4vmin;align-items:center}
@@ -210,9 +210,13 @@ if(up.length){
 }else{dm.innerHTML='<span class="tip">등록된 일정이 없어요</span>';}
 
 /* 시세 */
-document.getElementById("sise").innerHTML=SISE.map(function(s){return "<tr><td>"+s.name+"</td><td>"+s.price+"</td><td>"+s.diff+"</td></tr>";}).join("");
-document.getElementById("sdate").textContent=SISE_DATE.replace(/-/g,".")+" 기준";
-if(!SISE_SAMPLE)document.getElementById("sbadge").className="hide";
+function siseRender(list,dateTxt,demo){
+  document.getElementById("sise").innerHTML=list.map(function(s){
+    var c=/▲/.test(s[2])?"#c0552b":/▼/.test(s[2])?"#2f6db5":"";
+    return "<tr><td>"+esc(s[0])+"</td><td>"+esc(s[1])+"</td><td"+(c?' style="color:'+c+'"':"")+">"+esc(s[2])+"</td></tr>";}).join("");
+  document.getElementById("sdate").textContent=dateTxt;
+  document.getElementById("sbadge").className=demo?"badge":"hide";
+}
 
 /* 이달의 떡 */
 var STORY=[
@@ -256,6 +260,7 @@ function wxRender(list,meta,demo){
   },2600);
 }
 wxRender(WX_DEMO,"예시 화면 · 자동 연결 전",true);
+siseRender(SISE.map(function(s){return [s.name,s.price,s.diff];}),SISE_DATE.replace(/-/g,".")+" 기준",SISE_SAMPLE);
 
 /* 업계 소식 */
 function newsRender(list,meta){
@@ -271,6 +276,7 @@ try{
   fetch("today-data.json?v="+Date.now(),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(d){
     if(!d)return;
     if(d.weather&&d.weather.length)wxRender(d.weather,"기상청 예보 · "+(d.wx_time||""),false);
+    if(d.sise&&d.sise.length)siseRender(d.sise,(d.sise_time||"")+" 기준 · 소매 전국평균 · 한 달 전 대비",false);
     if(d.news&&d.news.length)newsRender(d.news,"네이버 뉴스 검색 · "+(d.news_time||"")+" 갱신 · 제목을 누르면 원문이 열려요");
   }).catch(function(){});
 }catch(e){}
