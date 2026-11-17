@@ -143,15 +143,27 @@ def sise():
     key, uid = os.environ.get("KAMIS_KEY", "").strip(), os.environ.get("KAMIS_ID", "").strip()
     if not (key and uid):
         print("KAMIS 키 없음 → 시세 건너뜀"); return
-    url = ("https://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
-           "&p_product_cls_code=01&p_item_category_code=100&p_convert_kg_yn=N&p_returntype=json"
-           "&p_cert_key=" + urllib.parse.quote(key) + "&p_cert_id=" + urllib.parse.quote(uid))
-    try:
-        d = json.loads(get(url))
-        items = d["data"]["item"]
-        if isinstance(items, dict): items = [items]
-    except Exception as e:
-        print("시세 실패", e, str(locals().get("d", ""))[:200]); return
+    base = ("https://www.kamis.or.kr/service/price/xml.do?action=dailyPriceByCategoryList"
+            "&p_product_cls_code=01&p_item_category_code=100&p_convert_kg_yn=N&p_returntype=json"
+            "&p_cert_key=" + urllib.parse.quote(key) + "&p_cert_id=" + urllib.parse.quote(uid))
+    # 오늘 가격이 아직 안 올라왔으면 하루씩 거슬러 올라가며 찾아요 (최대 10일)
+    items, code = None, ""
+    for back in range(0, 11):
+        day_s = (now - timedelta(days=back)).strftime("%Y-%m-%d")
+        try:
+            d = json.loads(get(base + "&p_regday=" + day_s))
+        except Exception as e:
+            print("시세 실패", day_s, e); return
+        dd = d.get("data")
+        if isinstance(dd, dict) and dd.get("item"):
+            items = dd["item"]
+            if isinstance(items, dict): items = [items]
+            break
+        code = (dd.get("error_code") if isinstance(dd, dict) else (dd[0] if isinstance(dd, list) and dd else dd))
+        if str(code) in ("200", "900"):   # 200: 요청 오류, 900: 인증 실패
+            print("시세 실패 (KAMIS 코드 %s) — 200은 요청 오류, 900은 인증키/아이디 확인" % code); return
+    if not items:
+        print("시세 실패 — 최근 10일 가격 없음 (KAMIS 코드 %s)" % code); return
     def num(x):
         try: return int(str(x).replace(",", "").strip())
         except Exception: return None
