@@ -116,9 +116,9 @@ table.sise td:nth-child(3){text-align:right;width:4.2em;white-space:nowrap;color
 .weather{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2vmin;padding-right:1.2vmin}
 .weather .btn{justify-self:end;white-space:nowrap}
 .wxbox{min-width:0;border-left:1px dashed var(--line);border-right:1px dashed var(--line);padding:0 1.2vmin}
-.wxroll{height:2.2em;overflow:hidden}
+.wxroll{height:2.2em;overflow:hidden;font-size:1.05em}
 .wxroll ul{list-style:none}
-.wxroll li{height:2.2em;display:flex;align-items:center;justify-content:center;gap:.55em;white-space:nowrap;font-size:1.05em}
+.wxroll li{height:2.2em;display:flex;align-items:center;justify-content:center;gap:.55em;white-space:nowrap}
 .wxroll .rg{font-weight:800;min-width:4.8em;text-align:right}
 .wxroll .ic{font-size:1.45em;line-height:1}
 .wxroll .sk{color:var(--muted);font-size:.85em;min-width:3.6em}
@@ -255,7 +255,7 @@ function wxRender(list,meta,demo){
   document.getElementById("wbadge").className=demo?"badge":"hide";
   var i=0;if(wxT)clearInterval(wxT);
   wxT=setInterval(function(){
-    i++;ul.style.transition="transform .6s ease";ul.style.transform="translateY(-"+(i*2.2)+"em)";
+    i++;ul.style.transition="transform .6s ease";ul.style.transform="translateY(-"+(ul.children[i].getBoundingClientRect().top-ul.getBoundingClientRect().top)+"px)";
     if(i>=list.length){setTimeout(function(){ul.style.transition="none";ul.style.transform="translateY(0)";i=0;},650);}
   },2600);
 }
