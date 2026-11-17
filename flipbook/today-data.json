@@ -1,10 +1,10 @@
 {
- "updated": "2026-11-17 12:50",
+ "updated": "2026-11-17 13:01",
  "weather": [
   [
    "서울·경기",
    "흐림",
-   13
+   14
   ],
   [
    "인천",
@@ -24,7 +24,7 @@
   [
    "충북",
    "흐림",
-   15
+   16
   ],
   [
    "충남·대전",
@@ -59,7 +59,7 @@
   [
    "제주",
    "비",
-   18
+   19
   ]
  ],
  "wx_time": "11/17 11시 발표",
@@ -149,5 +149,5 @@
    "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=190&CONTENTS_NO=2&bbsGbn=254&bbsSn=254&pNttSn=245101"
   ]
  ],
- "news_time": "11/17 12시"
+ "news_time": "11/17 13시"
 }
