@@ -2,12 +2,17 @@ name: 오늘의 메이크박스 자동 갱신
 
 on:
   schedule:
-    # 한국시간 06:15, 09:15, 12:15, 15:15, 18:15 (GitHub 시간은 한국보다 9시간 느림)
-    - cron: "15 21,0,3,6,9 * * *"
+    # 한국시간 아침 6시 50분부터 밤 10시 50분까지 매시간 (GitHub 시간은 한국보다 9시간 느림)
+    # ※ GitHub이 바쁠 때는 몇십 분 늦게 돌기도 해요
+    - cron: "50 21-23,0-13 * * *"
   workflow_dispatch:   # Actions 화면의 'Run workflow' 버튼으로 바로 실행
 
 permissions:
   contents: write
+
+concurrency:
+  group: today-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -27,4 +32,4 @@ jobs:
           git config user.name "today-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add flipbook/today-data.json
-          git diff --cached --quiet || (git commit -m "오늘의 메이크박스 데이터 갱신" && git push)
+          git diff --cached --quiet || (git commit -m "오늘의 메이크박스 데이터 갱신" && (git push || (git pull --rebase && git push)))
