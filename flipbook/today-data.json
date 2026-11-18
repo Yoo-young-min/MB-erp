@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-19 07:50",
+ "updated": "2026-11-19 08:50",
  "weather": [
   [
    "서울·경기",
@@ -19,27 +19,27 @@
   [
    "강원 영동",
    "맑음",
-   1
+   2
   ],
   [
    "충북",
    "맑음",
-   0
+   1
   ],
   [
    "충남·대전",
-   "맑음",
-   0
+   "구름많음",
+   1
   ],
   [
    "전북",
    "구름많음",
-   2
+   3
   ],
   [
    "전남·광주",
-   "맑음",
-   4
+   "흐림",
+   5
   ],
   [
    "경북·대구",
@@ -54,7 +54,7 @@
   [
    "울산",
    "맑음",
-   3
+   4
   ],
   [
    "제주",
@@ -62,8 +62,29 @@
    10
   ]
  ],
- "wx_time": "11/19 7시 관측",
+ "wx_time": "11/19 8시 관측",
  "news": [
+  [
+   "제지·포장",
+   "롯데마트, 친환경 포장재 상품 소비 활성화 나서",
+   "m-i.kr",
+   "2026-11-19",
+   "https://www.m-i.kr/news/articleView.html?idxno=2020563"
+  ],
+  [
+   "떡·쌀",
+   "이웃집 백만장자, 떡 사업가 김덕식 100억 매각 제안도 거절한 이유",
+   "topstarnews.net",
+   "2026-11-19",
+   "https://www.topstarnews.net/news/articleView.html?idxno=16280331"
+  ],
+  [
+   "제지·포장",
+   "롯데마트, '포장을 보다' 캠페인 개최…\"친환경 소비 확산\"",
+   "newsdreakr",
+   "2026-11-19",
+   "http://www.newsdream.kr/news/articleView.html?idxno=122492"
+  ],
   [
    "제지·포장",
    "롯데마트, 지속가능성 A등급 포장재 상품 소비 촉진 행사 전개",
@@ -105,30 +126,9 @@
    "knnews.co.kr",
    "2026-11-18",
    "https://www.knnews.co.kr/news/articleView.php?idxno=1555413"
-  ],
-  [
-   "제지·포장",
-   "\"친환경 포장재 제품 사면 할인\"… 공제조합, 유통 3사와 '포장을 보다'...",
-   "biz.newdaily.co.kr",
-   "2026-11-18",
-   "https://biz.newdaily.co.kr/site/data/html/2026/11/18/2026111850317.html"
-  ],
-  [
-   "떡·쌀",
-   "3대 이어온 전통 방앗간의 ‘K-디저트’ 진화… 대구 숙희떡집, 퓨전 떡...",
-   "isplus.com",
-   "2026-11-18",
-   "https://isplus.com/article/view/isp202611180186"
-  ],
-  [
-   "제지·포장",
-   "남아공 포장기계 시장",
-   "dreakotra.or.kr",
-   "2026-11-18",
-   "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=190&CONTENTS_NO=2&bbsGbn=254&bbsSn=254&pNttSn=245111"
   ]
  ],
- "news_time": "11/19 07시",
+ "news_time": "11/19 08시",
  "sise": [
   [
    "쌀 (20kg)",
@@ -142,8 +142,8 @@
   ],
   [
    "붉은팥(국산) (500g)",
-   "13,333원",
-   "▼2.2%"
+   "13,185원",
+   "-"
   ]
  ],
  "sise_time": "11.18"
