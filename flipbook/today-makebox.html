@@ -123,7 +123,7 @@ table.sise td:nth-child(3){text-align:right;width:4.2em;white-space:nowrap;color
 .mbnews h2{margin:0;padding:1.1vmin 2.8vmin;background:linear-gradient(90deg,#e8b86d,#f3d29b);color:#3a2a12;font-size:1.05em}
 .mbnews h2 .new{font-size:.7em;background:#c0552b;color:#fff;border-radius:1em;padding:.05em .6em;letter-spacing:.05em}
 .mbbody{flex:1}
-.tabbody{height:12.5em;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#d9b77a #f5eee2;padding-right:.4em}
+.tabbody{position:relative;height:12.5em;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#d9b77a #f5eee2;padding-right:.4em}
 .tabbody::-webkit-scrollbar{width:5px;-webkit-appearance:none}
 .tabbody::-webkit-scrollbar-track{background:#f5eee2;border-radius:3px}
 .tabbody::-webkit-scrollbar-thumb{background:#d9b77a;border-radius:3px}
@@ -140,7 +140,7 @@ html.emb .grid{gap:1.9vmin}
 html.emb .card{padding:1.9vmin 2.4vmin}
 html.emb .card h2{margin-bottom:.8vmin}
 html.emb .mbnews{padding:0;flex:none;height:35vmin}
-html.emb .tabbody{height:8.6em}
+html.emb .tabbody{height:8.1em}
 html.emb .tabs{margin-bottom:.8vmin}
 html.emb .dday-list{margin-top:.8vmin;padding-top:.6vmin}
 html.emb footer{padding-top:0}
@@ -192,7 +192,7 @@ footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padd
     <section class="card">
       <h2>🌾 원재료 시세 <span class="badge" id="sbadge">예시 값</span></h2>
       <table class="sise" id="sise"></table>
-      <div class="src"><span id="sdate"></span> · 출처 <a href="https://www.kamis.or.kr" target="_blank" rel="noopener">KAMIS 농산물유통정보</a></div>
+      <div class="src"><span id="sdate"></span><br>출처 <a href="https://www.kamis.or.kr" target="_blank" rel="noopener">KAMIS 농산물유통정보</a></div>
     </section>
     <section class="card weather">
       <h2>🌤 오늘 날씨 <span class="badge" id="wbadge">예시</span></h2>
@@ -289,6 +289,25 @@ function newsRender(list,meta){
   document.getElementById("nmeta").textContent=meta;
 }
 newsRender(NEWS,"제목을 누르면 기사 원문이 새 창으로 열려요");
+
+/* 업계 소식 롤링 — 3.5초마다 한 기사씩 위로 넘어가요. 손대고 있는 동안·직후 8초는 멈춰요 */
+(function(){
+  var box=document.querySelector(".tabbody"),idx=0,hold=0;
+  function pause(){hold=Date.now()+8000;}
+  ["touchstart","mousedown","wheel","keydown"].forEach(function(ev){box.addEventListener(ev,pause,{passive:true});});
+  box.addEventListener("mouseenter",function(){hold=Infinity;});
+  box.addEventListener("mouseleave",function(){hold=Date.now()+2000;});
+  setInterval(function(){
+    if(Date.now()<hold||document.hidden)return;
+    if(document.getElementById("t0").className==="hide")return;          /* 이달의 시를 보고 있을 땐 멈춤 */
+    var items=document.querySelectorAll("#news .nw");if(items.length<2)return;
+    var max=box.scrollHeight-box.clientHeight;if(max<4)return;
+    idx++;
+    var top=idx<items.length?items[idx].offsetTop:0;
+    if(top>max+2||idx>=items.length){idx=0;top=0;}
+    try{box.scrollTo({top:top,behavior:"smooth"});}catch(e){box.scrollTop=top;}
+  },3500);
+})();
 
 /* 자동 갱신 데이터 (GitHub이 하루 몇 번 만들어 둔 today-data.json) */
 try{
