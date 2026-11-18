@@ -1,10 +1,11 @@
 name: 오늘의 메이크박스 자동 갱신
 
 on:
-  schedule:
-    # 한국시간 아침 6시 50분부터 밤 10시 50분까지 매시간 (GitHub 시간은 한국보다 9시간 느림)
-    # ※ GitHub이 바쁠 때는 몇십 분 늦게 돌기도 해요
-    - cron: "50 21-23,0-13 * * *"
+    schedule:
+    # 비상용 — 매시간 갱신은 cron-job.org가 해요. 이건 그게 멈췄을 때를 대비한 하루 두 번
+    # 한국시간 아침 6시 23분, 저녁 7시 37분 (GitHub이 덜 바쁜 시간, 정각 피함)
+    - cron: "23 21 * * *"
+    - cron: "37 10 * * *"
   workflow_dispatch:   # Actions 화면의 'Run workflow' 버튼으로 바로 실행
 
 permissions:
