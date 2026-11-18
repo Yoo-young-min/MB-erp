@@ -73,25 +73,53 @@ if os.path.exists(OUT):
 data = dict(old)
 
 # ───────── 날씨 ─────────
+def kma(k, op, base_date, base_time, nx, ny, rows):
+    url = ("https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/" + op + "?serviceKey=" + k +
+           "&pageNo=1&numOfRows=%d&dataType=JSON&base_date=%s&base_time=%s&nx=%d&ny=%d" % (rows, base_date, base_time, nx, ny))
+    q = url.split("://", 1)[1]
+    return json.loads(get_retry(["https://" + q, "http://" + q], tries=2, timeout=30))["response"]["body"]["items"]["item"]
+
+PTY_TXT = {"1": "비", "2": "비/눈", "3": "눈", "4": "소나기", "5": "비", "6": "비/눈", "7": "눈"}
+SKY_TXT = {"1": "맑음", "3": "구름많음", "4": "흐림"}
+
 def weather():
     key = os.environ.get("KMA_KEY", "").strip()
     if not key:
         print("KMA_KEY 없음 → 날씨 건너뜀"); return
     k = key if "%" in key else urllib.parse.quote(key, safe="")
-    # 발표시각 02,05,08,11,14,17,20,23시 (+15분 뒤 사용 가능)
+    # ① 지금 날씨(초단기실황): 매시 정각 관측 → 40분쯤 뒤 공개
+    tn = now - timedelta(minutes=45)
+    n_date, n_time = tn.strftime("%Y%m%d"), tn.strftime("%H00")
+    # ② 하늘 상태(초단기예보): 매시 30분 발표 → 45분쯤 뒤 공개
+    tf = now - timedelta(minutes=50)
+    f_date, f_time = tf.strftime("%Y%m%d"), tf.strftime("%H30")
+    # ③ 위 둘이 안 되면 단기예보(하루 8번 발표)로
     t = now - timedelta(minutes=15)
     bases = [2, 5, 8, 11, 14, 17, 20, 23]
     h = max([b for b in bases if b <= t.hour], default=None)
     bd = t if h is not None else t - timedelta(days=1)
     h = 23 if h is None else h
-    base_date, base_time = bd.strftime("%Y%m%d"), "%02d00" % h
+    v_date, v_time = bd.strftime("%Y%m%d"), "%02d00" % h
     target = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    out = []
+    out, used_now = [], 0
     for name, nx, ny in REGIONS:
-        url = ("https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=" + k +
-               "&pageNo=1&numOfRows=200&dataType=JSON&base_date=%s&base_time=%s&nx=%d&ny=%d" % (base_date, base_time, nx, ny))
         try:
-            items = json.loads(get(url))["response"]["body"]["items"]["item"]
+            obs = {it["category"]: it["obsrValue"] for it in kma(k, "getUltraSrtNcst", n_date, n_time, nx, ny, 20)}
+            tmp = round(float(obs["T1H"]))
+            txt = PTY_TXT.get(str(obs.get("PTY", "0")))
+            if not txt:
+                try:
+                    fc = kma(k, "getUltraSrtFcst", f_date, f_time, nx, ny, 60)
+                    sk = sorted([it for it in fc if it["category"] == "SKY"], key=lambda it: it["fcstDate"] + it["fcstTime"])
+                    txt = SKY_TXT.get(sk[0]["fcstValue"], "맑음") if sk else "맑음"
+                except Exception:
+                    txt = "맑음"
+            out.append([name, txt, tmp]); used_now += 1
+            continue
+        except Exception as e:
+            print("지금 날씨 실패", name, str(e)[:80], "→ 단기예보로")
+        try:
+            items = kma(k, "getVilageFcst", v_date, v_time, nx, ny, 200)
         except Exception as e:
             print("날씨 실패", name, e); continue
         by = {}
@@ -102,15 +130,18 @@ def weather():
         pick = next((x for x in keys if x >= want and "TMP" in by[x]), keys[0] if keys else None)
         if not pick: continue
         v = by[pick]
-        pty, sky = v.get("PTY", "0"), v.get("SKY", "1")
-        txt = {"1": "비", "2": "비/눈", "3": "눈", "4": "소나기"}.get(pty) or {"1": "맑음", "3": "구름많음", "4": "흐림"}.get(sky, "맑음")
+        txt = PTY_TXT.get(v.get("PTY", "0")) or SKY_TXT.get(v.get("SKY", "1"), "맑음")
         try: tmp = round(float(v.get("TMP")))
         except Exception: continue
         out.append([name, txt, tmp])
     if out:
         data["weather"] = out
-        data["wx_time"] = "%d/%d %d시 발표" % (bd.month, bd.day, h)
-        print("날씨", len(out), "곳")
+        if used_now:
+            data["wx_time"] = "%d/%d %d시 관측" % (tn.month, tn.day, tn.hour)
+        else:
+            data["wx_time"] = "%d/%d %d시 발표" % (bd.month, bd.day, h)
+        print("날씨", len(out), "곳 (지금 날씨 %d곳)" % used_now)
+
 
 # ───────── 업계 소식 ─────────
 def news():
