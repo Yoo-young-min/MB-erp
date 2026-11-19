@@ -290,6 +290,16 @@ window.addEventListener("message",function(e){
   var t=m.fbz,c,a,b,bk=document.getElementById("book");
   if(t==="wheel"){c=fzPt(fr,m.p);zAt(c.x,c.y,zs*Math.exp(-m.dy*(m.dm===1?0.05:0.0018)));}
   else if(t==="dbl"){c=fzPt(fr,m.p);if(zs>1.001)zreset();else zAt(c.x,c.y,2.5);}
+  else if(t==="tap"){
+    /* 휴대폰 브라우저가 바로가기 대신 아래 웹 페이지로 터치를 보냈을 때: 그 자리의 바로가기·팝업을 대신 눌러 줘요 */
+    c=fzPt(fr,m.p);var pgEl=fr.parentElement,hit=null;
+    if(pgEl){
+      var cand=[].slice.call(pgEl.querySelectorAll(".link-layer a")).concat([].slice.call(pgEl.querySelectorAll(".ov .etap")));
+      for(var q=cand.length-1;q>=0;q--){var rr=cand[q].getBoundingClientRect();
+        if(c.x>=rr.left&&c.x<=rr.right&&c.y>=rr.top&&c.y<=rr.bottom){hit=cand[q];break;}}
+    }
+    if(hit){zMoved=false;hit.click();}
+  }
   else if(t==="md"){c=fzPt(fr,m.p);FZ.md=zs>1.001?{x:c.x,y:c.y,zx:zx,zy:zy}:null;}
   else if(t==="mm"){if(FZ.md){c=fzPt(fr,m.p);var _zb=zBase();zx=FZ.md.zx+c.x-FZ.md.x;zy=FZ.md.zy+c.y-FZ.md.y;zClamp(_zb);zApply();}}
   else if(t==="mu"){FZ.md=null;}

@@ -209,7 +209,7 @@ footer{text-align:center;font-size:.75em;color:var(--muted);margin-top:auto;padd
     </div>
   </section>
 
-  <footer>메이크박스 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
+  <footer>메이크박스 · 레츠에코 &nbsp;|&nbsp; 다음 장부터 제품 카탈로그가 시작돼요 ›</footer>
 </div>
 
 <script>
@@ -356,7 +356,7 @@ try{
       var p=pt(e.changedTouches[0]),now=Date.now();
       if(now-lastTap<320&&Math.abs(p.x-lx)<30&&Math.abs(p.y-ly)<30&&!(e.target.closest&&e.target.closest("a,button"))){
         e.preventDefault();lastTap=0;send({fbz:"dbl",p:p});
-      }else{lastTap=now;lx=p.x;ly=p.y;}
+      }else{lastTap=now;lx=p.x;ly=p.y;send({fbz:"tap",p:p});}
     }
     if(e.touches.length===0)tStart=null;
   },{passive:false});
