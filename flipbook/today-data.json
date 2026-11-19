@@ -1,40 +1,40 @@
 {
- "updated": "2026-11-19 08:50",
+ "updated": "2026-11-19 09:50",
  "weather": [
   [
    "서울·경기",
    "맑음",
-   0
-  ],
-  [
-   "인천",
-   "구름많음",
    1
   ],
   [
-   "강원 영서",
-   "맑음",
-   0
-  ],
-  [
-   "강원 영동",
+   "인천",
    "맑음",
    2
   ],
   [
-   "충북",
+   "강원 영서",
    "맑음",
+   2
+  ],
+  [
+   "강원 영동",
+   "맑음",
+   3
+  ],
+  [
+   "충북",
+   "흐림",
    1
   ],
   [
    "충남·대전",
-   "구름많음",
-   1
+   "흐림",
+   2
   ],
   [
    "전북",
-   "구름많음",
-   3
+   "흐림",
+   4
   ],
   [
    "전남·광주",
@@ -44,7 +44,7 @@
   [
    "경북·대구",
    "맑음",
-   3
+   4
   ],
   [
    "경남·부산",
@@ -54,22 +54,50 @@
   [
    "울산",
    "맑음",
-   4
+   5
   ],
   [
    "제주",
    "흐림",
-   10
+   11
   ]
  ],
- "wx_time": "11/19 8시 관측",
+ "wx_time": "11/19 9시 관측",
  "news": [
   [
    "제지·포장",
-   "롯데마트, 친환경 포장재 상품 소비 활성화 나서",
-   "m-i.kr",
+   "운송 상자가 매장 진열대로…태림포장, 투피스 박스 공급 확대",
+   "nongaek.com",
    "2026-11-19",
-   "https://www.m-i.kr/news/articleView.html?idxno=2020563"
+   "http://www.nongaek.com/news/articleView.html?idxno=97532"
+  ],
+  [
+   "떡·쌀",
+   "고품질 쌀 생산 노력 결실…강진군 공공비축미 '특등' 비율 51%",
+   "뉴스1",
+   "2026-11-19",
+   "https://www.news1.kr/local/gwangju-jeonnam/6359011"
+  ],
+  [
+   "제지·포장",
+   "[미르의 알기쉬운 비즈니스]유럽 환경규제가 기회로…한국 포장재, 인도...",
+   "mediapen.com",
+   "2026-11-19",
+   "https://www.mediapen.com/news/view/1138467"
+  ],
+  [
+   "제지·포장",
+   "롯데마트, 친환경 포장재 상품 구매하면 엘포인트 쏜다",
+   "newsquest.co.kr",
+   "2026-11-19",
+   "https://www.newsquest.co.kr/news/articleView.html?idxno=305364"
+  ],
+  [
+   "제지·포장",
+   "쿠팡, 친환경 포장재 적용 상품 기획전...25일까지 할인 혜택",
+   "popcornnews.net",
+   "2026-11-19",
+   "http://www.popcornnews.net/news/articleView.html?idxno=140646"
   ],
   [
    "떡·쌀",
@@ -79,32 +107,11 @@
    "https://www.topstarnews.net/news/articleView.html?idxno=16280331"
   ],
   [
-   "제지·포장",
-   "롯데마트, '포장을 보다' 캠페인 개최…\"친환경 소비 확산\"",
-   "newsdreakr",
-   "2026-11-19",
-   "http://www.newsdream.kr/news/articleView.html?idxno=122492"
-  ],
-  [
-   "제지·포장",
-   "롯데마트, 지속가능성 A등급 포장재 상품 소비 촉진 행사 전개",
-   "popcornnews.net",
-   "2026-11-19",
-   "http://www.popcornnews.net/news/articleView.html?idxno=140625"
-  ],
-  [
    "K-떡",
    "[소셜＋] K-디저트 '겹겹이 찹쌀떡' 원조 공방…표절 판가름 쟁점은?",
    "연합뉴스",
    "2026-11-19",
    "https://www.yna.co.kr/view/AKR20261118150200505?input=1195m"
-  ],
-  [
-   "제지·포장",
-   "친환경 포장 상품 소비 독려…롯데마트, '포장을 보다' 행사 전개",
-   "뉴스1",
-   "2026-11-19",
-   "https://www.news1.kr/industry/distribution/6358523"
   ],
   [
    "떡·쌀",
@@ -119,16 +126,9 @@
    "busanmbc.co.kr",
    "2026-11-18",
    "https://busanmbc.co.kr/01_new/new01_view.asp?idx=291161"
-  ],
-  [
-   "떡·쌀",
-   "수능 선물도 모바일 시대… 찹쌀떡·엿 대신 상품권이 대세",
-   "knnews.co.kr",
-   "2026-11-18",
-   "https://www.knnews.co.kr/news/articleView.php?idxno=1555413"
   ]
  ],
- "news_time": "11/19 08시",
+ "news_time": "11/19 09시",
  "sise": [
   [
    "쌀 (20kg)",
@@ -142,8 +142,8 @@
   ],
   [
    "붉은팥(국산) (500g)",
-   "13,185원",
-   "-"
+   "13,333원",
+   "▼2.2%"
   ]
  ],
  "sise_time": "11.18"
