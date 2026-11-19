@@ -1,29 +1,29 @@
 {
- "updated": "2026-11-19 09:50",
+ "updated": "2026-11-19 10:50",
  "weather": [
   [
    "서울·경기",
    "맑음",
-   1
+   2
   ],
   [
    "인천",
    "맑음",
-   2
+   3
   ],
   [
    "강원 영서",
    "맑음",
-   2
+   3
   ],
   [
    "강원 영동",
    "맑음",
-   3
+   4
   ],
   [
    "충북",
-   "흐림",
+   "구름많음",
    1
   ],
   [
@@ -33,43 +33,64 @@
   ],
   [
    "전북",
-   "흐림",
-   4
+   "비/눈",
+   3
   ],
   [
    "전남·광주",
    "흐림",
-   5
+   6
   ],
   [
    "경북·대구",
    "맑음",
-   4
+   6
   ],
   [
    "경남·부산",
    "맑음",
-   5
+   7
   ],
   [
    "울산",
    "맑음",
-   5
+   6
   ],
   [
    "제주",
-   "흐림",
+   "비",
    11
   ]
  ],
- "wx_time": "11/19 9시 관측",
+ "wx_time": "11/19 10시 관측",
  "news": [
   [
    "제지·포장",
-   "운송 상자가 매장 진열대로…태림포장, 투피스 박스 공급 확대",
-   "nongaek.com",
+   "롯데마트, '포장을 보다' 프로모션…\"친환경 상품 구매하고 엘포인트 받...",
+   "pointdaily.co.kr",
    "2026-11-19",
-   "http://www.nongaek.com/news/articleView.html?idxno=97532"
+   "https://www.pointdaily.co.kr/news/articleView.html?idxno=326613"
+  ],
+  [
+   "제지·포장",
+   "쿠팡, 친환경 포장 상품 150여종 한자리에… 최대 2000원 할인 혜택",
+   "koreaittimes.com",
+   "2026-11-19",
+   "https://www.koreaittimes.com/news/articleView.html?idxno=159310"
+  ],
+  [
+   "제지·포장",
+   "[유통브리핑] 롯데마트, 친환경 포장 상품 구매 행사 외",
+   "seoulfn.com",
+   "2026-11-19",
+   "https://www.seoulfn.com/news/articleView.html?idxno=643282"
+  ],
+  [
+   "제지·포장",
+   "롯데마트, 친환경 프로모션 '포장을 보다' 진행",
+   "ftoday.co.kr",
+   "2026-11-19",
+   "http://www.ftoday.co.kr/news/articleView.html?idxno=370093"
   ],
   [
    "떡·쌀",
@@ -77,27 +98,6 @@
    "뉴스1",
    "2026-11-19",
    "https://www.news1.kr/local/gwangju-jeonnam/6359011"
-  ],
-  [
-   "제지·포장",
-   "[미르의 알기쉬운 비즈니스]유럽 환경규제가 기회로…한국 포장재, 인도...",
-   "mediapen.com",
-   "2026-11-19",
-   "https://www.mediapen.com/news/view/1138467"
-  ],
-  [
-   "제지·포장",
-   "롯데마트, 친환경 포장재 상품 구매하면 엘포인트 쏜다",
-   "newsquest.co.kr",
-   "2026-11-19",
-   "https://www.newsquest.co.kr/news/articleView.html?idxno=305364"
-  ],
-  [
-   "제지·포장",
-   "쿠팡, 친환경 포장재 적용 상품 기획전...25일까지 할인 혜택",
-   "popcornnews.net",
-   "2026-11-19",
-   "http://www.popcornnews.net/news/articleView.html?idxno=140646"
   ],
   [
    "떡·쌀",
@@ -128,7 +128,7 @@
    "https://busanmbc.co.kr/01_new/new01_view.asp?idx=291161"
   ]
  ],
- "news_time": "11/19 09시",
+ "news_time": "11/19 10시",
  "sise": [
   [
    "쌀 (20kg)",
