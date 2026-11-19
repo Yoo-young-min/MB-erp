@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-19 14:50",
+ "updated": "2026-11-19 15:50",
  "weather": [
   [
    "서울·경기",
@@ -13,7 +13,7 @@
   ],
   [
    "강원 영서",
-   "맑음",
+   "흐림",
    4
   ],
   [
@@ -28,18 +28,18 @@
   ],
   [
    "충남·대전",
-   "흐림",
+   "구름많음",
    5
   ],
   [
    "전북",
-   "비",
+   "흐림",
    4
   ],
   [
    "전남·광주",
-   "비",
-   4
+   "흐림",
+   5
   ],
   [
    "경북·대구",
@@ -54,16 +54,44 @@
   [
    "울산",
    "흐림",
-   7
+   6
   ],
   [
    "제주",
-   "흐림",
-   12
+   "비",
+   10
   ]
  ],
- "wx_time": "11/19 14시 관측",
+ "wx_time": "11/19 15시 관측",
  "news": [
+  [
+   "떡·쌀",
+   "강진원 강진군수, 수매 현장 누비며 농심 챙겼다…강진 쌀 품질도 ‘껑...",
+   "viva100.com",
+   "2026-11-19",
+   "https://www.viva100.com/article/20261119501000"
+  ],
+  [
+   "떡·쌀",
+   "경남도의회 이경재 위원장 \"친환경쌀 판로 확대, 학교급식 찹쌀 수급 제...",
+   "newsgn.com",
+   "2026-11-19",
+   "https://www.newsgn.com/news/articleView.html?idxno=586770"
+  ],
+  [
+   "제지·포장",
+   "롯데마트·쿠팡, 포장까지 친환경…‘포장을 보다’ 기획전 동참",
+   "news2day.co.kr",
+   "2026-11-19",
+   "https://www.news2day.co.kr/article/20261119500220"
+  ],
+  [
+   "제지·포장",
+   "롯데마트, 친환경 포장 상품 소비 촉진…고객 참여형 행사 확대",
+   "thefirstmedia.net",
+   "2026-11-19",
+   "http://www.thefirstmedia.net/news/articleView.html?idxno=214128"
+  ],
   [
    "제지·포장",
    "롯데마트, 포장재 평가 넘어 구매 혜택…친환경 소비 참여 유도",
@@ -79,25 +107,11 @@
    "https://www.asiatime.co.kr/article/20261119500287"
   ],
   [
-   "제지·포장",
-   "종잇값 내리고 원가는 오르고…제지업계 3분기 줄적자",
-   "이데일리",
-   "2026-11-19",
-   "https://www.edaily.co.kr/News/Read?newsId=03102886645647360&mediaCodeNo=257&utm_source=naver&utm_medium=referral&utm_campaign=news_syndication&utm_content=original_article"
-  ],
-  [
    "떡·쌀",
    "쌀 생산량 '350만 8천 톤'… 6년 만에 '최저 수준'",
    "amnews.co.kr",
    "2026-11-19",
    "http://www.amnews.co.kr/news/articleView.html?idxno=75734"
-  ],
-  [
-   "제지·포장",
-   "한국플라스틱포장용기협회, 친환경패키징포럼서 플라스틱 포장산업 미...",
-   "gukjenews.com",
-   "2026-11-19",
-   "https://www.gukjenews.com/news/articleView.html?idxno=3756883"
   ],
   [
    "떡·쌀",
@@ -112,23 +126,9 @@
    "연합뉴스",
    "2026-11-19",
    "https://www.yna.co.kr/view/AKR20261118150200505?input=1195m"
-  ],
-  [
-   "떡·쌀",
-   "달라진 수능 응원 선물 문화..사라진 찹쌀떡",
-   "busanmbc.co.kr",
-   "2026-11-18",
-   "https://busanmbc.co.kr/01_new/new01_view.asp?idx=291161"
-  ],
-  [
-   "떡·쌀",
-   "수능 선물도 모바일 시대… 찹쌀떡·엿 대신 상품권이 대세",
-   "knnews.co.kr",
-   "2026-11-18",
-   "https://www.knnews.co.kr/news/articleView.php?idxno=1555413"
   ]
  ],
- "news_time": "11/19 14시",
+ "news_time": "11/19 15시",
  "sise": [
   [
    "쌀 (20kg)",
