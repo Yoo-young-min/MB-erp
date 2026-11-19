@@ -1,35 +1,35 @@
 {
- "updated": "2026-11-19 16:50",
+ "updated": "2026-11-19 17:50",
  "weather": [
   [
    "서울·경기",
-   "구름많음",
-   4
+   "흐림",
+   3
   ],
   [
    "인천",
-   "구름많음",
-   4
+   "흐림",
+   3
   ],
   [
    "강원 영서",
-   "구름많음",
-   4
-  ],
-  [
-   "강원 영동",
-   "맑음",
-   6
-  ],
-  [
-   "충북",
    "흐림",
    2
   ],
   [
-   "충남·대전",
-   "구름많음",
+   "강원 영동",
+   "맑음",
    4
+  ],
+  [
+   "충북",
+   "흐림",
+   3
+  ],
+  [
+   "충남·대전",
+   "흐림",
+   2
   ],
   [
    "전북",
@@ -38,8 +38,8 @@
   ],
   [
    "전남·광주",
-   "흐림",
-   5
+   "비",
+   4
   ],
   [
    "경북·대구",
@@ -49,21 +49,70 @@
   [
    "경남·부산",
    "구름많음",
-   8
+   7
   ],
   [
    "울산",
    "구름많음",
-   6
+   5
   ],
   [
    "제주",
-   "비",
-   10
+   "흐림",
+   11
   ]
  ],
- "wx_time": "11/19 16시 관측",
+ "wx_time": "11/19 17시 관측",
  "news": [
+  [
+   "K-떡",
+   "토끼밀, 구미 우리밀 '밀가리' 활용한 신제품 '오떡꼬치' 개발·출시",
+   "itbiznews.com",
+   "2026-11-19",
+   "https://www.itbiznews.com/news/articleView.html?idxno=232103"
+  ],
+  [
+   "K-떡",
+   "토끼밀, 우리밀 구미밀가리 100%로 만든 ‘10초 가래떡’ 선봬",
+   "segyebiz.com",
+   "2026-11-19",
+   "http://www.segyebiz.com/newsView/20261119517192?OutUrl=naver"
+  ],
+  [
+   "제지·포장",
+   "롯데마트, 친환경 포장 상품 행사 일주일로 확대",
+   "smartbizn.com",
+   "2026-11-19",
+   "https://www.smartbizn.com/news/articleView.html?idxno=160009"
+  ],
+  [
+   "제지·포장",
+   "롯데마트·쿠팡, 친환경 포장재 상품 소비 촉진 '앞장'",
+   "econovill.com",
+   "2026-11-19",
+   "https://www.econovill.com/news/articleView.html?idxno=757874"
+  ],
+  [
+   "제지·포장",
+   "인쇄업계 \"제지사 담합 피해 5200억 넘어…피해구제기금 설치해야\"",
+   "newspicom",
+   "2026-11-19",
+   "https://www.newspim.com/news/view/20261119001332"
+  ],
+  [
+   "떡·쌀",
+   "경남 친환경쌀 제주 납품 무산, 이경재 위원장 \"도내 판로 넓혀야\"",
+   "joongdo.co.kr",
+   "2026-11-19",
+   "https://www.joongdo.co.kr/web/view.php?key=20261119010006884"
+  ],
+  [
+   "제지·포장",
+   "참치 주춤한 사이 효자 된 ‘물류·포장재’…동원그룹 실적 떠받친 B2B...",
+   "쿠키뉴스",
+   "2026-11-19",
+   "https://www.kukinews.com/article/view/kuk202611130059"
+  ],
   [
    "K-떡",
    "토끼밀, 우리밀 100%로 만든 ‘10초 가래떡’ 선보여...전통 떡의 간편식...",
@@ -79,20 +128,6 @@
    "https://www.joongboo.com/news/articleView.html?idxno=363743048"
   ],
   [
-   "제지·포장",
-   "내용물 넘어 '포장을 보다'… 롯데마트·쿠팡 친환경 소비 판촉전",
-   "newsclaico.kr",
-   "2026-11-19",
-   "https://www.newsclaim.co.kr/news/articleView.html?idxno=3083428"
-  ],
-  [
-   "제지·포장",
-   "롯데마트 \"친환경포장상품 2만원구매한 5천명에 '2천 엘포인트' 쏜다\"",
-   "catchnews.kr",
-   "2026-11-19",
-   "https://www.catchnews.kr/news/articleView.html?idxno=130756"
-  ],
-  [
    "떡·쌀",
    "강진원 강진군수, 수매 현장 누비며 농심 챙겼다…강진 쌀 품질도 ‘껑...",
    "viva100.com",
@@ -105,37 +140,9 @@
    "newsgn.com",
    "2026-11-19",
    "https://www.newsgn.com/news/articleView.html?idxno=586770"
-  ],
-  [
-   "제지·포장",
-   "롯데마트, 친환경 포장 상품 소비 촉진…고객 참여형 행사 확대",
-   "thefirstmedia.net",
-   "2026-11-19",
-   "http://www.thefirstmedia.net/news/articleView.html?idxno=214128"
-  ],
-  [
-   "제지·포장",
-   "롯데마트·쿠팡, 포장까지 친환경…‘포장을 보다’ 기획전 동참",
-   "news2day.co.kr",
-   "2026-11-19",
-   "https://www.news2day.co.kr/article/20261119500220"
-  ],
-  [
-   "떡·쌀",
-   "이웃집 백만장자, 떡 사업가 김덕식 100억 매각 제안도 거절한 이유",
-   "topstarnews.net",
-   "2026-11-19",
-   "https://www.topstarnews.net/news/articleView.html?idxno=16280331"
-  ],
-  [
-   "K-떡",
-   "[소셜＋] K-디저트 '겹겹이 찹쌀떡' 원조 공방…표절 판가름 쟁점은?",
-   "연합뉴스",
-   "2026-11-19",
-   "https://www.yna.co.kr/view/AKR20261118150200505?input=1195m"
   ]
  ],
- "news_time": "11/19 16시",
+ "news_time": "11/19 17시",
  "sise": [
   [
    "쌀 (20kg)",
