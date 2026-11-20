@@ -140,7 +140,16 @@ html.emb .grid{gap:1.9vmin}
 html.emb .card{padding:1.9vmin 2.4vmin}
 html.emb .card h2{margin-bottom:.8vmin}
 html.emb .mbnews{padding:0;flex:none;height:35vmin}
-html.emb .tabbody{height:7.8em}
+/* 업계 소식·이달의 시 칸: 맨 아래 문구 바로 위까지 남는 공간을 모두 써요 */
+html.emb .tabcard{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+html.emb .tabbody{height:auto;flex:1 1 0;min-height:0}
+html.emb footer{margin-top:-1.3vmin}
+/* 새소식 칸 아래쪽만 여백을 줄여요 (새소식 칸 위치·크기는 그대로) */
+html.emb .wrap{padding-bottom:.9vmin}
+html.emb .mbnews~.grid,html.emb .tabcard{margin-top:-.6vmin}
+html.emb .grid .card{padding:1.5vmin 2.2vmin}
+html.emb .grid .card h2{margin-bottom:.5vmin}
+html.emb .tabcard{padding:1.5vmin 2.2vmin 1.2vmin}
 html.emb .tabs{margin-bottom:.8vmin}
 html.emb .dday-list{margin-top:.8vmin;padding-top:.6vmin}
 html.emb footer{padding-top:0}
@@ -201,7 +210,7 @@ footer{text-align:center;font-size:.95em;font-weight:700;color:#8a5a14;margin-to
     </section>
   </div>
 
-  <section class="card">
+  <section class="card tabcard">
     <div class="tabs"><button class="on" onclick="tab(0)">업계 소식</button><button onclick="tab(1)">이달의 시</button></div>
     <div class="tabbody">
       <div id="t0"><div id="news"></div><div class="src" id="nmeta"></div></div>
