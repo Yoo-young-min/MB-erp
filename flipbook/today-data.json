@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-22 07:50",
+ "updated": "2026-11-22 08:50",
  "weather": [
   [
    "서울·경기",
@@ -14,12 +14,12 @@
   [
    "강원 영서",
    "맑음",
-   -10
+   -9
   ],
   [
    "강원 영동",
    "맑음",
-   -1
+   0
   ],
   [
    "충북",
@@ -29,7 +29,7 @@
   [
    "충남·대전",
    "맑음",
-   -4
+   -3
   ],
   [
    "전북",
@@ -38,18 +38,18 @@
   ],
   [
    "전남·광주",
-   "구름많음",
+   "흐림",
    0
   ],
   [
    "경북·대구",
    "맑음",
-   -1
+   0
   ],
   [
    "경남·부산",
    "맑음",
-   1
+   2
   ],
   [
    "울산",
@@ -62,8 +62,15 @@
    6
   ]
  ],
- "wx_time": "11/22 7시 관측",
+ "wx_time": "11/22 8시 관측",
  "news": [
+  [
+   "떡·쌀",
+   "무한 변신 ‘이색떡’…뭘 먼저 먹어볼까?",
+   "농민신문",
+   "2026-11-22",
+   "https://www.nongmin.com/article/20261120500508"
+  ],
   [
    "떡·쌀",
    "전국 고품질쌀 한자리…우리 쌀 우수성‧가치 알려",
@@ -84,13 +91,6 @@
    "ohmynews.com",
    "2026-11-21",
    "https://www.ohmynews.com/NWS_Web/View/at_pg.aspx?CNTN_CD=A0003286962&CMPT_CD=P0010&utm_source=naver&utm_medium=newsearch&utm_campaign=naver_news"
-  ],
-  [
-   "떡·쌀",
-   "투자유치냐 매각이냐…‘찹쌀떡’ 한정선, 런베뮤와 닮은꼴",
-   "이데일리",
-   "2026-11-21",
-   "https://www.edaily.co.kr/News/Read?newsId=01767926645648016&mediaCodeNo=257&utm_source=naver&utm_medium=referral&utm_campaign=news_syndication&utm_content=original_article"
   ],
   [
    "K-떡",
@@ -142,7 +142,7 @@
    "https://www.asiatime.co.kr/article/20261119500287"
   ]
  ],
- "news_time": "11/22 07시",
+ "news_time": "11/22 08시",
  "sise": [
   [
    "쌀 (20kg)",
