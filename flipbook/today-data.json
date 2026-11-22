@@ -1,69 +1,76 @@
 {
- "updated": "2026-11-22 08:50",
+ "updated": "2026-11-22 09:50",
  "weather": [
   [
    "서울·경기",
    "맑음",
-   -6
+   -4
   ],
   [
    "인천",
    "맑음",
-   -7
+   -2
   ],
   [
    "강원 영서",
    "맑음",
-   -9
+   -6
   ],
   [
    "강원 영동",
    "맑음",
-   0
+   1
   ],
   [
    "충북",
-   "흐림",
-   -1
+   "맑음",
+   0
   ],
   [
    "충남·대전",
    "맑음",
-   -3
+   0
   ],
   [
    "전북",
-   "구름많음",
-   0
-  ],
-  [
-   "전남·광주",
-   "흐림",
-   0
-  ],
-  [
-   "경북·대구",
-   "맑음",
-   0
-  ],
-  [
-   "경남·부산",
    "맑음",
    2
   ],
   [
+   "전남·광주",
+   "구름많음",
+   2
+  ],
+  [
+   "경북·대구",
+   "맑음",
+   2
+  ],
+  [
+   "경남·부산",
+   "맑음",
+   3
+  ],
+  [
    "울산",
    "맑음",
-   0
+   2
   ],
   [
    "제주",
-   "맑음",
-   6
+   "구름많음",
+   9
   ]
  ],
- "wx_time": "11/22 8시 관측",
+ "wx_time": "11/22 9시 관측",
  "news": [
+  [
+   "떡·쌀",
+   "호떡믹스가 990원… 롯데마트 제타, 사흘간 ‘블랙딜’",
+   "조선일보",
+   "2026-11-22",
+   "https://biz.chosun.com/distribution/channel/2026/11/22/XE6MIL2WZ5B53BIKVRDWINQYXM/?utm_source=naver&utm_medium=original&utm_campaign=biz"
+  ],
   [
    "떡·쌀",
    "무한 변신 ‘이색떡’…뭘 먼저 먹어볼까?",
@@ -84,13 +91,6 @@
    "incheonilbo.com",
    "2026-11-21",
    "https://www.incheonilbo.com/news/articleView.html?idxno=1337409"
-  ],
-  [
-   "떡·쌀",
-   "\"납품 쌀 돌려달라 태워버리겠다고 하니 등급이 껑충\"",
-   "ohmynews.com",
-   "2026-11-21",
-   "https://www.ohmynews.com/NWS_Web/View/at_pg.aspx?CNTN_CD=A0003286962&CMPT_CD=P0010&utm_source=naver&utm_medium=newsearch&utm_campaign=naver_news"
   ],
   [
    "K-떡",
@@ -142,7 +142,7 @@
    "https://www.asiatime.co.kr/article/20261119500287"
   ]
  ],
- "news_time": "11/22 08시",
+ "news_time": "11/22 09시",
  "sise": [
   [
    "쌀 (20kg)",
