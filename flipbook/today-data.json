@@ -1,15 +1,15 @@
 {
- "updated": "2026-11-24 15:50",
+ "updated": "2026-11-24 16:50",
  "weather": [
   [
    "서울·경기",
    "맑음",
-   2
+   1
   ],
   [
    "인천",
    "맑음",
-   2
+   1
   ],
   [
    "강원 영서",
@@ -24,7 +24,7 @@
   [
    "충북",
    "구름많음",
-   3
+   2
   ],
   [
    "충남·대전",
@@ -33,8 +33,8 @@
   ],
   [
    "전북",
-   "구름많음",
-   2
+   "흐림",
+   3
   ],
   [
    "전남·광주",
@@ -44,25 +44,25 @@
   [
    "경북·대구",
    "구름많음",
-   6
+   4
   ],
   [
    "경남·부산",
-   "맑음",
-   8
+   "구름많음",
+   6
   ],
   [
    "울산",
-   "맑음",
+   "구름많음",
    6
   ],
   [
    "제주",
    "흐림",
-   11
+   9
   ]
  ],
- "wx_time": "11/24 15시 관측",
+ "wx_time": "11/24 16시 관측",
  "news": [
   [
    "떡·쌀",
@@ -77,20 +77,6 @@
    "gnmaeil.com",
    "2026-11-23",
    "http://www.gnmaeil.com/news/articleView.html?idxno=599366"
-  ],
-  [
-   "떡·쌀",
-   "'엽떡' 1만5000원 시대 오나... 결국 가격 인상, 언제부터?",
-   "ggilbo.com",
-   "2026-11-23",
-   "https://www.ggilbo.com/news/articleView.html?idxno=1195005"
-  ],
-  [
-   "떡·쌀",
-   "떡집·그릇가게에 골목길까지…백화점에 들어온 전통시장",
-   "dailypop.kr",
-   "2026-11-23",
-   "http://www.dailypop.kr/news/articleView.html?idxno=104840"
   ],
   [
    "제지·포장",
@@ -121,6 +107,20 @@
    "https://www.thebell.co.kr/free/content/ArticleView.asp?key=202611191348206200103566"
   ],
   [
+   "떡·쌀",
+   "호떡믹스가 990원… 롯데마트 제타, 사흘간 ‘블랙딜’",
+   "조선일보",
+   "2026-11-22",
+   "https://biz.chosun.com/distribution/channel/2026/11/22/XE6MIL2WZ5B53BIKVRDWINQYXM/?utm_source=naver&utm_medium=original&utm_campaign=biz"
+  ],
+  [
+   "떡·쌀",
+   "무한 변신 ‘이색떡’…뭘 먼저 먹어볼까?",
+   "농민신문",
+   "2026-11-22",
+   "https://www.nongmin.com/article/20261120500508"
+  ],
+  [
    "제지·포장",
    "제지업계, 수익성 악화에 인쇄용지 가격 연내 인상 추진",
    "아시아경제",
@@ -128,7 +128,7 @@
    "https://view.asiae.co.kr/article/2026111916162349625"
   ]
  ],
- "news_time": "11/24 15시",
+ "news_time": "11/24 16시",
  "sise": [
   [
    "쌀 (20kg)",
