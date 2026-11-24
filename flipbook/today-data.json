@@ -1,60 +1,60 @@
 {
- "updated": "2026-11-24 16:50",
+ "updated": "2026-11-24 17:50",
  "weather": [
   [
    "서울·경기",
    "맑음",
-   1
+   0
   ],
   [
    "인천",
    "맑음",
-   1
+   0
   ],
   [
    "강원 영서",
    "맑음",
-   2
+   0
   ],
   [
    "강원 영동",
    "맑음",
-   4
+   2
   ],
   [
    "충북",
    "구름많음",
-   2
+   1
   ],
   [
    "충남·대전",
-   "구름많음",
+   "흐림",
    1
   ],
   [
    "전북",
-   "흐림",
-   3
+   "구름많음",
+   2
   ],
   [
    "전남·광주",
    "흐림",
-   5
-  ],
-  [
-   "경북·대구",
-   "구름많음",
    4
   ],
   [
+   "경북·대구",
+   "흐림",
+   3
+  ],
+  [
    "경남·부산",
-   "구름많음",
-   6
+   "흐림",
+   5
   ],
   [
    "울산",
    "구름많음",
-   6
+   4
   ],
   [
    "제주",
@@ -62,21 +62,35 @@
    9
   ]
  ],
- "wx_time": "11/24 16시 관측",
+ "wx_time": "11/24 17시 관측",
  "news": [
   [
    "떡·쌀",
-   "수확기에도 쌀 20㎏ 6만3000원대…평년보다 13% 비싸",
-   "뉴시스",
+   "벼 수매가 8만4000원 역대 최고…\"수확기 이후 쌀값이 관건\"",
+   "agrinet.co.kr",
    "2026-11-24",
-   "https://www.newsis.com/view/NISX20261124_0003880224"
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=409156"
   ],
   [
-   "K-떡",
-   "인본의 근본 담아낸 문화 'K-컬처 담은 떡살'",
-   "gnmaeil.com",
-   "2026-11-23",
-   "http://www.gnmaeil.com/news/articleView.html?idxno=599366"
+   "떡·쌀",
+   "쌀값 안정세를 공익직불제 개혁의 기회로",
+   "agrinet.co.kr",
+   "2026-11-24",
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=409164"
+  ],
+  [
+   "떡·쌀",
+   "\"당진 해나루쌀 명품화 10년…농업인과 성과 나눠 기뻐\"",
+   "agrinet.co.kr",
+   "2026-11-24",
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=409099"
+  ],
+  [
+   "떡·쌀",
+   "창고 가득 채운 햅쌀 원료곡…쌀값 향방에 촉각",
+   "agrinet.co.kr",
+   "2026-11-24",
+   "https://www.agrinet.co.kr/news/articleView.html?idxno=409159"
   ],
   [
    "제지·포장",
@@ -84,13 +98,6 @@
    "newsquest.co.kr",
    "2026-11-23",
    "https://www.newsquest.co.kr/news/articleView.html?idxno=305605"
-  ],
-  [
-   "떡·쌀",
-   "\"쌀벌레는 어디서 나올까\"...쌀을 냉장고에 넣는 집이 늘어난 이유",
-   "gukjenews.com",
-   "2026-11-23",
-   "https://www.gukjenews.com/news/articleView.html?idxno=3760218"
   ],
   [
    "제지·포장",
@@ -107,20 +114,6 @@
    "https://www.thebell.co.kr/free/content/ArticleView.asp?key=202611191348206200103566"
   ],
   [
-   "떡·쌀",
-   "호떡믹스가 990원… 롯데마트 제타, 사흘간 ‘블랙딜’",
-   "조선일보",
-   "2026-11-22",
-   "https://biz.chosun.com/distribution/channel/2026/11/22/XE6MIL2WZ5B53BIKVRDWINQYXM/?utm_source=naver&utm_medium=original&utm_campaign=biz"
-  ],
-  [
-   "떡·쌀",
-   "무한 변신 ‘이색떡’…뭘 먼저 먹어볼까?",
-   "농민신문",
-   "2026-11-22",
-   "https://www.nongmin.com/article/20261120500508"
-  ],
-  [
    "제지·포장",
    "제지업계, 수익성 악화에 인쇄용지 가격 연내 인상 추진",
    "아시아경제",
@@ -128,7 +121,7 @@
    "https://view.asiae.co.kr/article/2026111916162349625"
   ]
  ],
- "news_time": "11/24 16시",
+ "news_time": "11/24 17시",
  "sise": [
   [
    "쌀 (20kg)",
@@ -142,8 +135,8 @@
   ],
   [
    "붉은팥(국산) (500g)",
-   "13,303원",
-   "▼1.9%"
+   "13,260원",
+   "-"
   ]
  ],
  "sise_time": "11.23"
