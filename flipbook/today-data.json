@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-25 12:50",
+ "updated": "2026-11-25 13:22",
  "weather": [
   [
    "서울·경기",
@@ -65,6 +65,13 @@
  "wx_time": "11/25 12시 관측",
  "news": [
   [
+   "떡·쌀",
+   "일본, 쌀 수출량 11% 감소",
+   "weeklytrade.co.kr",
+   "2026-11-25",
+   "https://weeklytrade.co.kr/news/view.html?section=1&category=136&item=&no=102418"
+  ],
+  [
    "제지·포장",
    "제지사 잇단 가격 인상 통보에 출판계 철회 촉구 성명서 발표",
    "readersnews.com",
@@ -93,13 +100,6 @@
    "https://www.khan.co.kr/article/202611242038025"
   ],
   [
-   "떡·쌀",
-   "고창 심원면, 생신축하 떡케이크 전달",
-   "sjbnews.com",
-   "2026-11-24",
-   "https://sjbnews.com/news/news.php?number=893493"
-  ],
-  [
    "제지·포장",
    "[더벨][70돌 무림그룹 줌인] 국내 유일 펄프-종이 일관화, 종합제지그룹...",
    "thebell.co.kr",
@@ -121,7 +121,7 @@
    "https://view.asiae.co.kr/article/2026111917563950166"
   ]
  ],
- "news_time": "11/25 12시",
+ "news_time": "11/25 13시",
  "sise": [
   [
    "쌀 (20kg)",
