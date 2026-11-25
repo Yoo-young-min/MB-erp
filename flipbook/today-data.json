@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-25 21:50",
+ "updated": "2026-11-25 22:50",
  "weather": [
   [
    "서울·경기",
@@ -18,12 +18,12 @@
   ],
   [
    "강원 영동",
-   "구름많음",
-   7
+   "맑음",
+   8
   ],
   [
    "충북",
-   "흐림",
+   "맑음",
    6
   ],
   [
@@ -49,7 +49,7 @@
   [
    "경남·부산",
    "맑음",
-   7
+   6
   ],
   [
    "울산",
@@ -62,8 +62,22 @@
    10
   ]
  ],
- "wx_time": "11/25 21시 관측",
+ "wx_time": "11/25 22시 관측",
  "news": [
+  [
+   "떡·쌀",
+   "[제31회 농업인의날 국무총리표창 수상자 인터뷰] 김황 (사)한국쌀전업...",
+   "newsfarco.kr",
+   "2026-11-25",
+   "http://www.newsfarm.co.kr/news/articleView.html?idxno=103085"
+  ],
+  [
+   "제지·포장",
+   "제지업체 또 가격 인상…출판계 \"담합 악몽 되풀이하나\" 공동 대응",
+   "ngonews.kr",
+   "2026-11-25",
+   "https://www.ngonews.kr/news/articleView.html?idxno=244173"
+  ],
   [
    "제지·포장",
    "플라스틱 대신 10배 비싼 종이 포장재…10만원 넘는 백화점 과일세트 더...",
@@ -100,28 +114,14 @@
    "http://www.yonhapnewstv.co.kr/news/MYH20261125143404rHQ"
   ],
   [
-   "떡·쌀",
-   "떡이 이렇게 맛있었나…외국인도 푹 빠진 ‘겉바속쫀’ 가래떡 [FOOD+]",
-   "segye.com",
-   "2026-11-25",
-   "https://www.segye.com/newsView/20261124514380?OutUrl=naver"
-  ],
-  [
    "제지·포장",
    "제지사 잇단 가격 인상 통보에 출판계 철회 촉구 성명서 발표",
    "readersnews.com",
    "2026-11-25",
    "https://www.readersnews.com/news/articleView.html?idxno=200913"
-  ],
-  [
-   "제지·포장",
-   "[더벨][70돌 무림그룹 줌인] 국내 유일 펄프-종이 일관화, 종합제지그룹...",
-   "thebell.co.kr",
-   "2026-11-23",
-   "https://www.thebell.co.kr/free/content/ArticleView.asp?key=202611191348206200103566"
   ]
  ],
- "news_time": "11/25 21시",
+ "news_time": "11/25 22시",
  "sise": [
   [
    "쌀 (20kg)",
