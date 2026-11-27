@@ -279,12 +279,13 @@ function zbtnTap(){
   if(!r.width)r=document.getElementById("book").getBoundingClientRect();
   zAt(r.left+r.width/2,r.top+r.height*0.3,2.2);
 }
-/* 휴대폰 처음 두 번만: 확대 방법 안내 */
+/* 휴대폰 하루에 한 번: 확대 방법 안내 (그날 처음 열 때만) */
 function zoomHint(){
   if(!isMobile)return;
-  var n=0;try{n=+(localStorage.getItem("mb_zoomhint")||0);}catch(e){}
-  if(n>=2)return;
-  try{localStorage.setItem("mb_zoomhint",String(n+1));}catch(e){}
+  var d0=new Date(),today=d0.getFullYear()+"-"+(d0.getMonth()+1)+"-"+d0.getDate(),last="";
+  try{last=localStorage.getItem("mb_zoomhint_day")||"";}catch(e){}
+  if(last===today)return;
+  try{localStorage.setItem("mb_zoomhint_day",today);}catch(e){}
   var d=document.createElement("div");d.id="zhint";
   d.innerHTML='<div class="zc">'
    +'<svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">'
